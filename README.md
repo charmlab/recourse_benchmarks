@@ -85,7 +85,7 @@ data_name = "adult"
 dataset = OnlineCatalog(data_name)
 
 # load artificial neural network from catalog
-model = MLModelCatalog(dataset, "ann")
+model = MLModelCatalog(dataset, "mlp")
 
 # get factuals from the data to generate counterfactual examples
 factuals = dataset.raw.iloc[:10]
