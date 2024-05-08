@@ -105,6 +105,8 @@ This interface displays the results from running the CARLA library with a range 
 python server.py
 ```
 
+Read more from [here](https://docs.google.com/document/d/1Dmp4sFYcm3yt8On8NagjzVnYl7SzJ6QiVi61XLcW8Xg/edit?usp=sharing) to learn about the amendment of the live site tool.
+
 ## Contributing
 
 ### Requirements
