@@ -34,7 +34,7 @@ recourse_methods:
         hidden_layer: [20, 10, 7]
         train_ae: True
         epochs: 5
-  cem-vae:
+  cem_vae:
     hyperparams:
       batch_size: 1
       kappa: 0.1

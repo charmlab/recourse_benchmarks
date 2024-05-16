@@ -3,7 +3,7 @@ import re
 
 from setuptools import find_packages, setup
 
-VERSIONFILE = "carla/_version.py"
+VERSIONFILE = "_version.py"
 verstrline = open(VERSIONFILE, "rt").read()
 VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
 mo = re.search(VSRE, verstrline, re.M)
@@ -53,10 +53,7 @@ setup(
         "xgboost==1.4.2",
         "causalgraphicalmodels==0.0.4",
         "PySMT==0.9.5",
-        "dash==2.15.0",
-        "plotly",
-        "Shapely",
-        "dash-bootstrap-components",
-        "gunicorn",
+        "flake8",
+        "black",
     ],
 )

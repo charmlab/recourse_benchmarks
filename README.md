@@ -68,60 +68,6 @@ It is planned to make all recourse methods available for all ML frameworks . The
 - `python3.7`
 - `pip`
 
-### Install via pip
-
-```sh
-pip install carla-recourse
-```
-
-## Quickstart
-
-```python
-from carla import OnlineCatalog, MLModelCatalog
-from carla.recourse_methods import GrowingSpheres
-
-# load a catalog dataset
-data_name = "adult"
-dataset = OnlineCatalog(data_name)
-
-# load artificial neural network from catalog
-model = MLModelCatalog(dataset, "mlp")
-
-# get factuals from the data to generate counterfactual examples
-factuals = dataset.raw.iloc[:10]
-
-# load a recourse model and pass black box model
-gs = GrowingSpheres(model)
-
-# generate counterfactual examples
-counterfactuals = gs.get_counterfactuals(factuals)
-```
-
-### Loading Site
-
-This interface displays the results from running the CARLA library with a range of datasets, models and recourse methods.
-
-```sh
-python server.py
-```
-
-Read more from [here](https://docs.google.com/document/d/1Dmp4sFYcm3yt8On8NagjzVnYl7SzJ6QiVi61XLcW8Xg/edit?usp=sharing) to learn about the amendment of the live site tool.
-
-## Contributing
-
-### Requirements
-
-- `python3.7-venv` (when not already shipped with python3.7)
-- Recommended: [GNU Make](https://www.gnu.org/software/make/)
-
-### Installation
-
-Using make:
-
-```sh
-make requirements
-```
-
 Using python directly or within activated virtual environment:
 
 ```sh
@@ -130,66 +76,70 @@ pip install -r requirements-dev.txt
 pip install -e .
 ```
 
-### Running Experiment
+## Quickstart
+
+```python
+from data.catalog import DataCatalog
+from evaluation import Benchmark
+import evaluation.catalog as evaluation_catalog
+from models.catalog import ModelCatalog
+from random import seed
+from recourse_methods import GrowingSpheres
+
+RANDOM_SEED = 54321
+seed(RANDOM_SEED) # set the random seed so that the random permutations can be reproduced again
+
+# load a catalog dataset
+data_name = "adult"
+dataset = DataCatalog(data_name)
+
+# load artificial neural network from catalog
+model = ModelCatalog(dataset, "mlp", "tensorflow")
+
+# get factuals from the data to generate counterfactual examples
+factuals = (dataset.raw).sample(n=10, random_state=RANDOM_SEED)
+
+# load a recourse model and pass black box model
+gs = GrowingSpheres(model)
+
+# generate counterfactual examples
+counterfactuals = gs.get_counterfactuals(factuals)
+
+# Generate Benchmark for recourse method, model and data
+benchmark = Benchmark(model, gs, factuals)
+evaluation_measures = [
+      evaluation_catalog.YNN(benchmark.mlmodel, {"y": 5, "cf_label": 1}),
+      evaluation_catalog.Distance(benchmark.mlmodel),
+      evaluation_catalog.SuccessRate(),
+      evaluation_catalog.Redundancy(benchmark.mlmodel, {"cf_label": 1}),
+      evaluation_catalog.ConstraintViolation(benchmark.mlmodel),
+      evaluation_catalog.AvgTime({"time": benchmark.timer}),
+]
+df_benchmark = benchmark.run_benchmark(evaluation_measures)
+```
+
+### Loading Site
+
+This interface displays the results from running the CARLA library with a range of datasets, models and recourse methods.
 
 ```sh
-cd experiments
+pip install -r .\live_site\requirements.txt
+python .\live_site\server.py
+```
+
+Read more from [here](https://docs.google.com/document/d/1Dmp4sFYcm3yt8On8NagjzVnYl7SzJ6QiVi61XLcW8Xg/edit?usp=sharing) to learn about the amendment of the live site tool.
+
+## Running Experiment
+
+```sh
 python .\run_experiment.py
 ```
 
-### Testing
-
-Using make:
-
-```sh
-make test
-```
-
-Using python directly or within activated virtual environment:
-
-```sh
-pip install -r requirements-dev.txt
-python -m pytest test/*
-```
-
-### Linting and Styling
-
-We use pre-commit hooks within our build pipelines to enforce:
+## Linting and Styling
 
 - Python linting with [flake8](https://flake8.pycqa.org/en/latest/).
 - Python styling with [black](https://github.com/psf/black).
 
-Install pre-commit with:
-
 ```sh
-make install-dev
+black .\
 ```
-
-Using python directly or within activated virtual environment:
-
-```sh
-pip install -r requirements-dev.txt
-pre-commit install
-```
-
-## Licence
-
-carla is under the MIT Licence. See the [LICENCE](github.com/indyfree/carla/blob/master/LICENSE) for more details.
-
-## Citation
-
-This project was recently accepted to NeurIPS 2021 (Benchmark & Data Sets Track).
-If you use this codebase, please cite:
-
-```sh
-@misc{pawelczyk2021carla,
-      title={CARLA: A Python Library to Benchmark Algorithmic Recourse and Counterfactual Explanation Algorithms},
-      author={Martin Pawelczyk and Sascha Bielawski and Johannes van den Heuvel and Tobias Richter and Gjergji Kasneci},
-      year={2021},
-      eprint={2108.00783},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
-}
-```
-
-Please also cite the original authors' work.
