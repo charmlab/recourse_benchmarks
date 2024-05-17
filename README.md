@@ -129,6 +129,8 @@ Read more from [here](https://docs.google.com/document/d/1Dmp4sFYcm3yt8On8NagjzV
 
 ## Running Experiment
 
+Before running the command below, clear out all former computations from the `results.csv` file. Ensure to maintain the header (first line) of the csv file, and only delete the computation result.
+
 ```sh
 python .\run_experiment.py
 ```
