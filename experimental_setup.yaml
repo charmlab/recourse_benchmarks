@@ -2,7 +2,7 @@ recourse_methods:
   ar:
     hyperparams:
       fs_size: 150
-  casual_recourse:
+  causal_recourse:
     hyperparams:
   cchvae:
     hyperparams:

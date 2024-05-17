@@ -7,12 +7,12 @@ import shapely
 import numpy as np
 
 # Global Variables
-df = pd.read_csv("../results.csv")
+df = pd.read_csv("./results.csv")
 categories = ["Similarity", "Coverage", "Runtime"]  # Metrics for Radar Chart
 methods_list = [
-    "ar",
     "cchvae",
     "cem",
+    "cem_vae",
     "clue",
     "cruds",
     "dice",
@@ -221,7 +221,6 @@ app.layout = html.Div(
                                 "All Available Recourse Models",
                                 "Top 3 Recourse Models",
                                 "Top 4 Recourse Models",
-                                "Categorical Data",
                             ],
                             "All Available Recourse Models",
                             id="constraints-dropdown",
@@ -232,7 +231,7 @@ app.layout = html.Div(
                 html.Div(
                     [
                         dcc.Dropdown(
-                            ["adult", "compass", "credit"],
+                            ["adult", "compass", "credit", "german", "mortgage", "twomoon"],
                             "adult",
                             id="dataset-radar-dropdown",
                         ),
@@ -242,7 +241,7 @@ app.layout = html.Div(
                 html.Div(
                     [
                         dcc.Dropdown(
-                            ["mlp", "linear"], "mlp", id="ml-model-radar-dropdown"
+                            ["linear"], "linear", id="ml-model-radar-dropdown"
                         )
                     ],
                     style={"width": "20%"},
@@ -435,9 +434,7 @@ def update_constraints_dropdown(input_value):
     DatasetRadar: List
       A list containing the options and value of the dataset radar dropdown.
     """
-    dataset_list = ["adult", "compass", "credit"]
-    # if input_value == "Categorical Data":
-    #   dataset_list.remove('credit')
+    dataset_list = ["adult", "compass", "credit", "german", "mortgage", "twomoon"]
     return [dataset_list, dataset_list[0]]
 
 

@@ -1,10 +1,10 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/carla-recourse?style=for-the-badge)](https://pypi.org/project/carla-recourse/) [![Read the Docs](https://img.shields.io/readthedocs/carla-counterfactual-and-recourse-library?style=for-the-badge)](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/?badge=latest) ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)
 
-# CARLA - Counterfactual And Recourse Library
+# CHARM LABS RECOURSE LIBRARY
 
 <img align="right" width="240" height="200" src="https://github.com/carla-recourse/CARLA/blob/main/images/carla_logo_square.png?raw=true">
 
-CARLA is a python library to benchmark counterfactual explanation and recourse models. It comes out-of-the box with commonly used datasets and various machine learning models. Designed with extensibility in mind: Easily include your own counterfactual methods, new machine learning models or other datasets. Find extensive documentation [here](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/)! Our arXiv paper can be found [here](https://arxiv.org/pdf/2108.00783.pdf).
+This repository is inspired and built on the CARLA library. CARLA is a python library to benchmark counterfactual explanation and recourse models. It comes out-of-the box with commonly used datasets and various machine learning models. Designed with extensibility in mind: Easily include your own counterfactual methods, new machine learning models or other datasets. Find extensive documentation [here](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/)! Our arXiv paper can be found [here](https://arxiv.org/pdf/2108.00783.pdf).
 
 **What is algorithmic recourse?** As machine learning (ML) models are increasingly being deployed in high-stakes applications, there has been growing interest in providing recourse to individuals adversely impacted by model predictions (e.g., below we depict the canonical recourse example for an applicant whose loan has been denied). This library provides a starting point for researchers and practitioners alike, who wish to understand the inner workings of various counterfactual explanation and recourse methods and their underlying assumptions that went into the design of these methods.
 
@@ -46,8 +46,6 @@ It is planned to make all recourse methods available for all ML frameworks . The
 
 | Recourse Method                                            | Paper                                                                                                                        | Tensorflow | Pytorch | SKlearn | XGBoost |
 | ---------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------- | :--------: | :-----: | :-----: | :-----: |
-| Actionable Recourse (AR)                                   | [Source](https://arxiv.org/pdf/1809.06514.pdf)                                                                               |     X      |         |         |         |
-| Causal Recourse                                            | [Source](https://arxiv.org/abs/2002.06278.pdf)                                                                               |     X      |    X    |         |         |
 | CCHVAE                                                     | [Source](https://arxiv.org/pdf/1910.09398.pdf)                                                                               |            |    X    |         |         |
 | Contrastive Explanations Method (CEM)                      | [Source](https://arxiv.org/pdf/1802.07623.pdf)                                                                               |     X      |         |         |         |
 | Counterfactual Latent Uncertainty Explanations (CLUE)      | [Source](https://arxiv.org/pdf/2006.06848.pdf)                                                                               |            |    X    |         |         |
@@ -61,7 +59,7 @@ It is planned to make all recourse methods available for all ML frameworks . The
 | Revise                                                     | [Source](https://arxiv.org/pdf/1907.09615.pdf)                                                                               |            |    X    |         |         |
 | Wachter                                                    | [Source](https://arxiv.org/ftp/arxiv/papers/1711/1711.00399.pdf)                                                             |            |    X    |         |         |
 
-## Installation
+## Installation/Setup
 
 ### Requirements
 
@@ -143,3 +141,26 @@ python .\run_experiment.py
 ```sh
 black .\
 ```
+
+## Contributing
+
+Contributions of any kind are very much welcome! Take a look at the To-Do issues section to see what things we are currently working on. If you have an idea for a new feature or a bug you want to fix, please follow look at the subsections below.
+
+### Branching
+
+- Branch off of `main` for all feature work and bug fixes, and create a "feature branch". Prefix the feature branch name with your name. The branch name should be in snake case and it should be short and descriptive. E.g. `abu/readme_update`
+
+### Commits
+
+- Commits should be atomic (guideline: the commit is self-contained; a reviewer could make sense of it even if they viewed the commit diff in isolation)
+
+- Commit messages and PR names are descriptive and written in **imperative tense**. With commit messages, they should include if they are a feature or a fix. E.g. "feat: create user REST endpoints", or "fix: remove typo in readme". From the example in the previous sentence, pay attention to the imperative tense used.
+
+- PRs can contain multiple commits, they do not need to be squashed together before merging as long as each commit is atomic.
+
+## To-Do Issues
+
+1. Expand the existing repository of available recourse methods to include new recourse methods.
+2. Extend the existing frontend design to incorporate new interactive features.
+3. Revamp the entire library to a newer python version.
+4. Refactor existing methods to utilize a singular backend type.

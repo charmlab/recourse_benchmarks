@@ -554,7 +554,7 @@ class Dataset(object):
     # (2020.04.15) perhaps we need a memoize here... but I tried calling this function
     # multiple times in a row from another file and it always returned the same slice
     # of data... weird.
-    def getTrainTestSplit(self, preprocessing=None, with_meta=False):
+    def getTrainTestSplit(self, preprocessing=None, with_meta=False, train_split=TRAIN_PERCENT):
         # When working only with normalized data in [0, 1], data ranges must change to [0, 1] as well
         # otherwise, in computing normalized distance we will normalize with intial ranges again!
         # pseudonym (2020.05.17) does this work with cat/ord and sub-cat/sub-ord data???
@@ -616,7 +616,7 @@ class Dataset(object):
             X_train, X_test, y_train, y_test = train_test_split(
                 all_data,
                 all_true_labels,
-                train_size=TRAIN_PERCENT,
+                train_size=train_split,
                 random_state=RANDOM_SEED,
             )
 
@@ -636,7 +636,7 @@ class Dataset(object):
             X_train, X_test, y_train, y_test = train_test_split(
                 all_data,
                 all_true_labels,
-                train_size=TRAIN_PERCENT,
+                train_size=train_split,
                 random_state=RANDOM_SEED,
             )
 
@@ -748,7 +748,7 @@ def loadDataset(
     return_one_hot,
     load_from_cache=False,
     debug_flag=True,
-    meta_param=None,
+    meta_param=None
 ):
     """
     Loads and returns the Dataset() object with the loaded data.

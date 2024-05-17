@@ -101,7 +101,7 @@ def initialize_recourse_method(
         raise KeyError("Method not in experimental setup")
 
     hyperparams = setup[method]["hyperparams"]
-    if method == "casual_recourse":
+    if method == "causal_recourse":
         return CausalRecourse(mlmodel, hyperparams)
     elif method == "ar":
         coeffs, intercepts = None, None
@@ -186,14 +186,16 @@ def create_parser():
         Default: ["adult", "compass", "credit", "german", "mortgage", "twomoon"].
         Choices: ["adult", "compass", "credit", "german", "mortgage", "twomoon"].
     -t, --type: Specifies model types for the experiment.
-        Default: ["mlp", "linear"].
+        Default: ["linear"].
         Choices: ["mlp", "linear", "forest"].
     -r, --recourse_method: Specifies recourse methods for the experiment.
-        Default: ["dice", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "gs", "revise", "wachter"].
-        Choices: ["dice", "ar", "casual_recourse", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
+        Default: ["dice", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "gs", "mace", "revise", "wachter"].
+        Choices: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
             "focus", "gs", "mace", "revise", "wachter"].
     -n, --number_of_samples: Specifies the number of instances per dataset.
-        Default: 100.
+        Default: 20.
+    -s, --train_split: Specifies the split of the available data used for training.
+        Default: 0.7.
     -p, --path: Specifies the save path for the output CSV file. If None, the output is written to the cache.
         Default: None.
 
@@ -214,7 +216,7 @@ def create_parser():
         "-t",
         "--type",
         nargs="*",
-        default=["mlp", "linear"],
+        default=["linear"],
         choices=["mlp", "linear", "forest"],
         help="Model type for experiment",
     )
@@ -231,6 +233,7 @@ def create_parser():
             "cruds",
             "face_knn",
             "face_epsilon",
+            "mace",
             "gs",
             "revise",
             "wachter",
@@ -238,7 +241,7 @@ def create_parser():
         choices=[
             "dice",
             "ar",
-            "casual_recourse",
+            "causal_recourse",
             "cchvae",
             "cem",
             "cem_vae",
@@ -259,8 +262,15 @@ def create_parser():
         "-n",
         "--number_of_samples",
         type=int,
-        default=100,
+        default=20,
         help="Number of instances per dataset",
+    )
+    parser.add_argument(
+        "-s",
+        "--train_split",
+        type=float,
+        default=0.7,
+        help="Training Data Split",
     )
     parser.add_argument(
         "-p",
@@ -310,8 +320,6 @@ if __name__ == "__main__":
     setup = load_setup()
 
     path = "results.csv"  # args.path
-    path_data_results = "results_data.csv"
-    results_data = pd.read_csv(path_data_results)
     if os.path.isfile(path):
         results = pd.read_csv(path)
     else:
@@ -336,53 +344,18 @@ if __name__ == "__main__":
                 log.info("Dataset: {}".format(data_name))
                 log.info("Model type: {}".format(model_name))
 
-                # face_knn requires datasets with immutable features.
-                if "face" in method_name and (data_name == "mortgage" or data_name == "twomoon"):
-                    continue
-
-                dataset = DataCatalog(data_name, model_name)
-                dataset_catalog = dataset.catalog
-                query_string = " & ".join(
-                    [
-                        f"{key.strip()} == '{value.strip()}'"
-                        for key, value in dataset_catalog.items()
-                        if type(value) is not list
-                    ]
-                )
-                dataset_info_exists = (
-                    len(
-                        results_data.query(f"{query_string} & dataset == '{data_name}'")
-                    )
-                    > 0
-                )
-
-                if not (dataset_info_exists):
-                    df_dataset = pd.DataFrame.from_dict(dataset.catalog, orient="index")
-                    df_dataset = df_dataset.transpose()
-                    df_dataset["dataset"] = data_name
-                    df_dataset = df_dataset[
-                        [
-                            "dataset",
-                            "continuous",
-                            "categorical",
-                            "immutable",
-                            "target",
-                        ]
-                    ]
-
-                    results_data = pd.concat([results_data, df_dataset], axis=0)
-                    results_data.to_csv(path_data_results, index=False)
-
                 exists_already = (
-                    len(
-                        results.query(
+                    len(results.query(
                             "Recourse_Method == @method_name and Dataset == @data_name and ML_Model == @model_name"
                         )
                     )
                     > 0
                 )
-                if exists_already:
+                # face_knn requires datasets with immutable features.
+                if exists_already or ("face" in method_name and (data_name == "mortgage" or data_name == "twomoon")):
                     continue
+
+                dataset = DataCatalog(data_name, model_name, args.train_split)
 
                 if method_name in session_models:
                     graph = Graph()

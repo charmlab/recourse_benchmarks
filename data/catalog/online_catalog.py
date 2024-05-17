@@ -18,6 +18,8 @@ class DataCatalog(Data, ABC):
         Used to get the correct dataset from online repository.
     model_type : {'mlp', 'linear', 'forest'}
         The model architecture. Multi-Layer Perceptron, Logistic Regression, and Random Forest respectively.
+    train_split : float
+        Specifies the split of the available data used for training the model.
 
     Returns
     -------
@@ -28,6 +30,7 @@ class DataCatalog(Data, ABC):
         self,
         data_name: str,
         model_type: str,
+        train_split: float,
     ):
         catalog_content = ["default", "one-hot"]
         lib_path = pathlib.Path(__file__).parent.resolve()
@@ -55,7 +58,9 @@ class DataCatalog(Data, ABC):
         )
 
         train_raw, test_raw, y_train, y_test = dataset_obj.getTrainTestSplit(
-            preprocessing="normalize"
+            preprocessing="normalize",
+            train_split=train_split
+
         )
         dataset_obj = pd.concat([train_raw, test_raw], ignore_index=True)
         output_merge = pd.concat([y_train, y_test], ignore_index=True)
