@@ -7,7 +7,7 @@ import shapely
 import numpy as np
 
 # Global Variables
-df = pd.read_csv("./results.csv")
+df = pd.read_csv("../results.csv")
 categories = ["Similarity", "Coverage", "Runtime"]  # Metrics for Radar Chart
 methods_list = [
     "cchvae",

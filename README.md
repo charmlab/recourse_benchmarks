@@ -121,8 +121,9 @@ df_benchmark = benchmark.run_benchmark(evaluation_measures)
 This interface displays the results from running the CARLA library with a range of datasets, models and recourse methods.
 
 ```sh
-pip install -r .\live_site\requirements.txt
-python .\live_site\server.py
+cd .\live_site
+pip install -r .\requirements.txt
+python .\server.py
 ```
 
 Read more from [here](https://docs.google.com/document/d/1Dmp4sFYcm3yt8On8NagjzVnYl7SzJ6QiVi61XLcW8Xg/edit?usp=sharing) to learn about the amendment of the live site tool.
