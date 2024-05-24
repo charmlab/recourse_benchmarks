@@ -7,7 +7,13 @@ import tensorflow as tf
 import torch
 import torch.nn as nn
 
-from carla import log
+# from carla import log
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from recourse_methods.autoencoder.save_load import get_home
 
 tf.compat.v1.disable_eager_execution()
@@ -129,7 +135,7 @@ class VariationalAutoencoder(nn.Module):
 
         # Train the VAE with the new prior
         ELBO = np.zeros((epochs, 1))
-        log.info("Start training of Variational Autoencoder...")
+        logger.info("Start training of Variational Autoencoder...")
         for epoch in range(epochs):
             beta = epoch * kl_weight / epochs
 
@@ -162,17 +168,17 @@ class VariationalAutoencoder(nn.Module):
 
             ELBO[epoch] = train_loss / train_loss_num
             if epoch % 10 == 0:
-                log.info(
+                logger.info(
                     "[Epoch: {}/{}] [objective: {:.3f}]".format(
                         epoch, epochs, ELBO[epoch, 0]
                     )
                 )
 
             ELBO_train = ELBO[epoch, 0].round(2)
-            log.info("[ELBO train: " + str(ELBO_train) + "]")
+            logger.info("[ELBO train: " + str(ELBO_train) + "]")
 
         self.save()
-        log.info("... finished training of Variational Autoencoder.")
+        logger.info("... finished training of Variational Autoencoder.")
 
         self.eval()
 

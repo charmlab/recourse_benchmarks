@@ -10,7 +10,13 @@ import torch.nn as nn
 from torch import optim
 from tqdm import trange
 
-from carla import log
+# from carla import log
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from recourse_methods.autoencoder.losses import csvae_loss
 from recourse_methods.autoencoder.save_load import get_home
 
@@ -221,7 +227,7 @@ class CSVAE(nn.Module):
         train_x_recon_losses = []
         train_y_recon_losses = []
 
-        log.info("Start training of CSVAE...")
+        logger.info("Start training of CSVAE...")
         for i in trange(epochs):
             for x, y in train_loader:
                 x = x.to(self.device)
@@ -247,19 +253,19 @@ class CSVAE(nn.Module):
                 train_x_recon_losses.append(x_recon_loss_val.item())
                 train_y_recon_losses.append(y_recon_loss_val.item())
 
-            log.info(
+            logger.info(
                 "epoch {}: x recon loss: {}".format(
                     i, np.mean(np.array(train_x_recon_losses))
                 )
             )
-            log.info(
+            logger.info(
                 "epoch {}: y recon loss: {}".format(
                     i, np.mean(np.array(train_y_recon_losses))
                 )
             )
 
         self.save()
-        log.info("... finished training of CSVAE")
+        logger.info("... finished training of CSVAE")
 
         self.eval()
 

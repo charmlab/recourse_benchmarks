@@ -5,7 +5,12 @@ import os
 import torch
 from torch.autograd import Variable
 
-from carla import log
+# from carla import log
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 try:
     import cPickle as pickle  # type: ignore
@@ -84,7 +89,7 @@ class Datafeed(data.Dataset):
 # ----------------------------------------------------------------------------------------------------------------------
 class BaseNet(object):
     def __init__(self):
-        log.info("\nNet:")
+        logger.info("\nNet:")
 
     def get_nb_parameters(self):
         return np.sum(p.numel() for p in self.model.parameters())
@@ -100,12 +105,12 @@ class BaseNet(object):
         if self.schedule is not None:
             if len(self.schedule) == 0 or epoch in self.schedule:
                 self.lr *= gamma
-                log.debug("learning rate: %f  (%d)\n" % (self.lr, epoch))
+                logger.debug("learning rate: %f  (%d)\n" % (self.lr, epoch))
                 for param_group in self.optimizer.param_groups:
                     param_group["lr"] = self.lr
 
     def save(self, filename):
-        log.info("Writting %s\n" % filename)
+        logger.info("Writting %s\n" % filename)
         torch.save(
             {
                 "epoch": self.epoch,
@@ -117,13 +122,13 @@ class BaseNet(object):
         )
 
     def load(self, filename):
-        log.info("Reading %s\n" % filename)
+        logger.info("Reading %s\n" % filename)
         state_dict = torch.load(filename)  # added map_location
         self.epoch = state_dict["epoch"]
         self.lr = state_dict["lr"]
         self.model = state_dict["model"]
         self.optimizer = state_dict["optimizer"]
-        log.info("restoring epoch: %d, lr: %f" % (self.epoch, self.lr))
+        logger.info("restoring epoch: %d, lr: %f" % (self.epoch, self.lr))
         return self.epoch
 
 

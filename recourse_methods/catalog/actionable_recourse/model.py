@@ -5,7 +5,12 @@ import pandas as pd
 import recourse as rs
 from lime.lime_tabular import LimeTabularExplainer
 
-from carla import log
+# from carla import log
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from recourse_methods.processing import (
     check_counterfactuals,
     encode_feature_names,
@@ -187,9 +192,9 @@ class ActionableRecourse(RecourseMethod):
 
         # Check if we need lime to build coefficients
         if (coeffs is None) and (intercepts is None):
-            log.info("Start generating LIME coefficients")
+            logger.info("Start generating LIME coefficients")
             coeffs, intercepts = self._get_lime_coefficients(factuals)
-            log.info("Finished generating LIME coefficients")
+            logger.info("Finished generating LIME coefficients")
         else:
             # Local explanations via LIME generate coeffs and intercepts per instance, while global explanations
             # via input parameter need to be set into correct shape [num_of_instances, num_of_features]
@@ -226,12 +231,12 @@ class ActionableRecourse(RecourseMethod):
             try:
                 fs_pop = fs.populate(total_items=self._fs_size)
             except (ValueError, KeyError):
-                log.warning(
+                logger.warning(
                     "Actionable Recourse is not able to produce a counterfactual explanation for instance {}".format(
                         index
                     )
                 )
-                log.warning(row.values)
+                logger.warning(row.values)
                 cfs.append(counterfactual)
                 continue
 
