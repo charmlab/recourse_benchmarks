@@ -164,6 +164,14 @@ Contributions of any kind are very much welcome! Take a look at the To-Do issues
 ## To-Do Issues
 
 1. Expand the existing repository of available recourse methods to include new recourse methods.
+   - Minimum Observables - https://arxiv.org/abs/1907.04135
+   - ClaPROAR - https://arxiv.org/abs/2308.08187
+   - Gravitational Generator - https://arxiv.org/abs/2308.08187
+   - Greedy - https://arxiv.org/abs/2103.08951
+   - PROBE - https://arxiv.org/abs/2203.06768
 2. Extend the existing frontend design to incorporate new interactive features.
 3. Revamp the entire library to a newer python version.
 4. Refactor existing methods to utilize a singular backend type.
+5. Improve documentation in the repo ReadMe file.
+   - Include flowcharts to display the connection between the files in the repo.
+   - Include explanations for each folder in the repo.
