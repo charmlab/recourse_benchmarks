@@ -8,7 +8,13 @@ from scipy.optimize import linprog
 from torch import nn
 from torch.autograd import Variable, grad
 
-from carla import log
+# from carla import log
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from recourse_methods.processing import reconstruct_encoding_constraints
 
 
@@ -53,7 +59,7 @@ def _calc_max_perturbation(
     res = linprog(c, bounds=bounds, method="simplex")
 
     if res.status != 0:
-        log.warning("Optimization with respect to delta failed to converge")
+        logger.warning("Optimization with respect to delta failed to converge")
 
     delta_opt = res.x
     delta_W, delta_W0 = np.array(delta_opt[:-1]), np.array([delta_opt[-1]])
@@ -208,7 +214,7 @@ def roar_recourse(
         loss_diff = torch.dist(loss_prev, loss, 2)
 
         if datetime.datetime.now() - t0 > t_max:
-            log.info("Timeout - ROAR didn't converge")
+            logger.info("Timeout - ROAR didn't converge")
             break
 
     return x_new_enc.cpu().detach().numpy().squeeze(axis=0)

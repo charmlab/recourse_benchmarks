@@ -7,7 +7,13 @@ import torch.optim as optim
 from torch import nn
 from torch.autograd import Variable
 
-from carla import log
+# from carla import log
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from recourse_methods.processing import reconstruct_encoding_constraints
 
 DECISION_THRESHOLD = 0.5
@@ -146,8 +152,8 @@ def wachter_recourse(
         lamb -= 0.05
 
         if datetime.datetime.now() - t0 > t_max:
-            log.info("Timeout - No Counterfactual Explanation Found")
+            logger.info("Timeout - No Counterfactual Explanation Found")
             break
         elif f_x_new >= 0.5:
-            log.info("Counterfactual Explanation Found")
+            logger.info("Counterfactual Explanation Found")
     return x_new_enc.cpu().detach().numpy().squeeze(axis=0)
