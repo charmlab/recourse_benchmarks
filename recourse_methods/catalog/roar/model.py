@@ -4,7 +4,13 @@ import numpy as np
 import pandas as pd
 from lime.lime_tabular import LimeTabularExplainer
 
-from carla import log
+# from carla import log
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from recourse_methods.catalog.roar.library import roar_recourse
 from recourse_methods.processing import check_counterfactuals
 
@@ -222,9 +228,9 @@ class Roar(RecourseMethod):
                     axis=1
                 )
             elif self._mlmodel.model_type == "ann":
-                log.info("Start generating LIME coefficients")
+                logger.info("Start generating LIME coefficients")
                 coeffs, intercepts = self._get_lime_coefficients(factuals)
-                log.info("Finished generating LIME coefficients")
+                logger.info("Finished generating LIME coefficients")
             else:
                 raise ValueError(
                     f"Model type {self._mlmodel.model_type} not supported in ROAR recourse method"
