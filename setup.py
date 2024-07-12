@@ -52,7 +52,7 @@ setup(
         "recourse==1.0.0",
         "scikit-learn==0.23.2",
         "tensorflow==1.14.0",
-        "torch==1.7.0 -f https://download.pytorch.org/whl/torch_stable.html",
+        "torch==1.7.0",
         "torchvision==0.8.1",
         "xgboost==1.4.2",
     ],
