@@ -1,7 +1,9 @@
 dash==2.15.0
+dash-bootstrap-components
+gunicorn
+itsdangerous==2.0.1
 numpy
 pandas
 plotly
 Shapely
-dash-bootstrap-components
-gunicorn
+werkzeug==2.0.3
