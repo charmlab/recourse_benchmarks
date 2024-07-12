@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch import nn
 from torch.autograd import Variable
 
-from carla import log
+from logging_carla import log
 from recourse_methods.processing import reconstruct_encoding_constraints
 
 DECISION_THRESHOLD = 0.5

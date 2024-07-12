@@ -8,7 +8,7 @@ from scipy.optimize import linprog
 from torch import nn
 from torch.autograd import Variable, grad
 
-from carla import log
+from logging_carla import log
 from recourse_methods.processing import reconstruct_encoding_constraints
 
 

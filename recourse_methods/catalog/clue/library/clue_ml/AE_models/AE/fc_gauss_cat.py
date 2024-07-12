@@ -5,7 +5,7 @@ import torch.backends.cudnn as cudnn
 from torch.distributions import kl_divergence
 from torch.distributions.normal import Normal
 
-from carla import log
+from logging_carla import log
 from recourse_methods.catalog.clue.library.clue_ml.src.gauss_cat import *
 from recourse_methods.catalog.clue.library.clue_ml.src.probability import (
     normal_parse_params,

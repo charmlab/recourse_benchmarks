@@ -5,7 +5,7 @@ import os
 import torch
 from torch.autograd import Variable
 
-from carla import log
+from logging_carla import log
 
 try:
     import cPickle as pickle  # type: ignore

@@ -7,7 +7,7 @@ import tensorflow as tf
 import torch
 import torch.nn as nn
 
-from carla import log
+from logging_carla import log
 from recourse_methods.autoencoder.save_load import get_home
 
 tf.compat.v1.disable_eager_execution()

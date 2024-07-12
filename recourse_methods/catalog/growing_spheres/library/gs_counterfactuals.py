@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from numpy import linalg as LA
 
-from carla import log
+from logging_carla import log
 
 
 def hyper_sphere_coordindates(n_search_samples, instance, high, low, p_norm=2):

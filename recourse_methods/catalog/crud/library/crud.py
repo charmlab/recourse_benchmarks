@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from carla import log
+from logging_carla import log
 from models.api import MLModel
 from recourse_methods.autoencoder import CSVAE
 from recourse_methods.processing import reconstruct_encoding_constraints

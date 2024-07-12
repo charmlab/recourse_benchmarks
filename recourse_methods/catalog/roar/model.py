@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from lime.lime_tabular import LimeTabularExplainer
 
-from carla import log
+from logging_carla import log
 from recourse_methods.catalog.roar.library import roar_recourse
 from recourse_methods.processing import check_counterfactuals
 

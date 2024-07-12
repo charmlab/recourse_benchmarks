@@ -5,7 +5,7 @@ import pandas as pd
 import recourse as rs
 from lime.lime_tabular import LimeTabularExplainer
 
-from carla import log
+from logging_carla import log
 from recourse_methods.processing import (
     check_counterfactuals,
     encode_feature_names,

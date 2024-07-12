@@ -1,7 +1,7 @@
 # flake8: noqa
 import os
 
-from log import log
+from logging_carla import log
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 

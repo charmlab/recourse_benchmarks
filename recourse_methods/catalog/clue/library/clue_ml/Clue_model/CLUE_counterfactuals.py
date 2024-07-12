@@ -3,7 +3,7 @@ from __future__ import division, print_function
 import torch.nn.functional as F
 from torch.optim import Adam
 
-from carla import log
+from logging_carla import log
 from recourse_methods.catalog.clue.library.clue_ml.src.probability import (
     decompose_entropy_cat,
     decompose_std_gauss,

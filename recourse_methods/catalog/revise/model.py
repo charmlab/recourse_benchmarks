@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 from torch import nn
 
-from carla import log
+from logging_carla import log
 from data.api import Data
 from models.api import MLModel
 from recourse_methods.api import RecourseMethod
