@@ -89,13 +89,13 @@ seed(RANDOM_SEED) # set the random seed so that the random permutations can be r
 
 # load a catalog dataset
 data_name = "adult"
-dataset = DataCatalog(data_name)
+dataset = DataCatalog(data_name, "mlp", 0.8)
 
 # load artificial neural network from catalog
 model = ModelCatalog(dataset, "mlp", "tensorflow")
 
 # get factuals from the data to generate counterfactual examples
-factuals = (dataset.raw).sample(n=10, random_state=RANDOM_SEED)
+factuals = (dataset._df_train).sample(n=10, random_state=RANDOM_SEED)
 
 # load a recourse model and pass black box model
 gs = GrowingSpheres(model)
@@ -114,6 +114,7 @@ evaluation_measures = [
       evaluation_catalog.AvgTime({"time": benchmark.timer}),
 ]
 df_benchmark = benchmark.run_benchmark(evaluation_measures)
+print(df_benchmark)
 ```
 
 ### Loading Site
