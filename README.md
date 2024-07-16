@@ -117,6 +117,12 @@ df_benchmark = benchmark.run_benchmark(evaluation_measures)
 print(df_benchmark)
 ```
 
+Using python directly or within activated virtual environment:
+
+```sh
+python .\quickStart.py
+```
+
 ### Loading Site
 
 This interface displays the results from running the CARLA library with a range of datasets, models and recourse methods.
@@ -128,6 +134,15 @@ python .\server.py
 ```
 
 Read more from [here](https://docs.google.com/document/d/1Dmp4sFYcm3yt8On8NagjzVnYl7SzJ6QiVi61XLcW8Xg/edit?usp=sharing) to learn about the amendment of the live site tool.
+
+## Testing
+
+Using python directly or within activated virtual environment:
+
+```sh
+pip install -r requirements-dev.txt
+python -m pytest .\sanityTest.py
+```
 
 ## Running Experiment
 
