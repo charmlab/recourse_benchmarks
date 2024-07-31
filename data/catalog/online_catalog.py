@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 
 class DataCatalog(Data, ABC):
     """
-    Implements DataCatalog using already implemented datasets. These datasets are loaded from an online repository.
+    Implements DataCatalog using already implemented datasets. These datasets are loaded from the _data_main folder.
 
     Parameters
     ----------

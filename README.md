@@ -74,6 +74,56 @@ pip install -r requirements-dev.txt
 pip install -e .
 ```
 
+## File Directory
+
+```mermaid
+flowchart TD
+    A[Recourse Methods] --> B[_Deprecated]
+    A --> C[Data]
+    A --> D[Evaluation]
+    A --> E[Live Site]
+    A --> F[Models]
+    A --> G[Recourse Methods]
+
+    C --> H[Catalog]
+    D --> I[Catalog]
+    D --> J[benchmark.py]
+    F --> K[Catalog]
+    G --> L[Catalog]
+
+    H --> M[online_catalog.py]
+    I --> N[Benchmark Metrics. i.e. distance, time, etc]
+    K --> O[catalog.py]
+    L --> P[Recourse Folders. i.e. dice, cchvae, etc]
+    E --> Q[Server.py]
+
+    A --> R[run_experiment.py]
+```
+
+### \_Deprecated Folder
+
+This folder contains deprecated material from the [CARLA library](https://github.com/carla-recourse/CARLA) that is no longer considered useful for the current development efforts of this repository.
+
+### Data Folder
+
+This folder houses all datasets and their cached versions. It also contains the data catalog class, which includes methods for loading datasets and other relevant functionalities.
+
+### Evaluation Folder
+
+This folder contains the implementation of all evaluation and benchmark metrics used to compare recourse methods in the repository. This includes metrics such as `distance`, `redundancy`, `success rate`, `time`, `violations`, and `y nearest neighbors`.
+
+### Live Site Folder
+
+This folder contains the implementation of the frontend UI interface, which displays results stored in `results.csv` from executing `./run_experiment.py`.
+
+### Models Folder
+
+This folder contains all implemented models/classifiers in the repository. It also contains the model catalog class, which includes methods for loading models/classifiers and other relevant functionalities.
+
+### Recourse Methods
+
+This folder contains all the implemented recourse methods in the repository. Each recourse method has its own subfolder within the catalog directory (`recourse_methods/catalog`) and is implemented using the `RecourseMethod` API class` interface.
+
 ## Quickstart
 
 ```python
