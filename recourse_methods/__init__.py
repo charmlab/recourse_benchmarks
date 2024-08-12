@@ -12,9 +12,9 @@ from .catalog import (
     Dice,
     Face,
     FeatureTweak,
+    Greedy,
     GrowingSpheres,
     Revise,
     Roar,
     Wachter,
-    Greedy,
 )
