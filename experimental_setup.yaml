@@ -12,7 +12,7 @@ recourse_methods:
       max_iter: 1000
       binary_cat_features: True
       vae_params:
-        layers: [ 512, 256, 8 ]
+        layers: [512, 256, 8]
         train: True
         lambda_reg: 0.000001
         epochs: 5
@@ -67,7 +67,7 @@ recourse_methods:
       lr: 0.008
       max_iter: 2000
       vae_params:
-        layers: [ 16, 8 ]
+        layers: [16, 8]
         train: True
         epochs: 5
         lr: 0.001
@@ -89,6 +89,13 @@ recourse_methods:
     hyperparams:
   focus:
     hyperparams:
+  greedy:
+    hyperparams:
+      lambda_param: 0.05
+      step_size: 0.05
+      max_iter: 100
+      locked_features: []
+      target_class: 1
   gs:
     hyperparams:
   mace:
@@ -99,10 +106,10 @@ recourse_methods:
       optimizer: "adam"
       lr: 0.1
       max_iter: 1500
-      target_class: [ 0, 1 ]
+      target_class: [0, 1]
       binary_cat_features: True
       vae_params:
-        layers: [ 512, 256, 8 ]
+        layers: [512, 256, 8]
         activFun:
         train: True
         lambda_reg: 0.000001
@@ -113,10 +120,3 @@ recourse_methods:
     hyperparams:
       loss_type: "BCE"
       binary_cat_features: True
-  greedy:
-    hyperparams:
-      lambda_param: 0.05
-      step_size: 0.05
-      max_iter: 500
-      locked_features: []
-      target_class: 1

@@ -1,7 +1,11 @@
 import torch
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import Dense
 import numpy as np
+
+# Set TensorFlow logging level to ERROR
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 # Custom Pytorch Module for Neural Networks
