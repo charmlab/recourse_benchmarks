@@ -1,10 +1,20 @@
+"""
+This file has been provided for you to work off of for your assignment of adding the implementation of the new recourse method to the repository.
+Specifically, the file should help you understand how to reference your implementation and generate counterfactuals against factual samples.
+There are assertions that are specifcally designed to instruct you on whether your implementation is correct or not.
+
+Currently, the file uses the Dice recourse method as an example to show you what to do. Replace this with your custom implementation class instead.
+Follow the TO-DOs as hints on what to change and subsitute with your implementation.
+If all tests pass, then you should see 'TEST PASSED' printed at the end of your console.
+"""
+
 # flake8: noqa
 from data.catalog import DataCatalog
 from logging_carla import log
 from models.catalog import ModelCatalog
 from models.negative_instances import predict_negative_instances
 from random import seed
-from recourse_methods import Dice # Replace with implemented recourse method
+from recourse_methods import Dice # TO-DO: Replace with implemented recourse method
 from recourse_methods.processing import check_counterfactuals
 from typing import Dict, Tuple, Union
 
@@ -19,9 +29,9 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 RANDOM_SEED = 54321
 NUMBER_OF_SAMPLES = 20
-BACKEND = "tensorflow" # Replace with backend type of the implemented recourse method
+BACKEND = "tensorflow" # TO-DO: Replace with backend type of the implemented recourse method
 DATA_NAME = "adult" 
-METHOD_NAME = "dice" # Replace with implemented recourse method
+METHOD_NAME = "dice" # TO-DO: Replace with implemented recourse method
 MODEL_NAME = "linear"
 TRAIN_SPLIT = 0.7
 
@@ -119,7 +129,7 @@ if __name__ == "__main__":
   Error if there are inconsistencies in the assertion.
   """
 
-  setup = load_setup()  # Include the hyperparamemters of the implemented recourse method in ./experimental_setup.yaml
+  setup = load_setup()  # TO-DO: Include the hyperparamemters of the implemented recourse method in ./experimental_setup.yaml, to access from here.
 
   log.info("=====================================")
   log.info("Recourse method: {}".format(METHOD_NAME))
