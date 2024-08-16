@@ -15,12 +15,14 @@ from models.catalog import ModelCatalog
 from models.negative_instances import predict_negative_instances
 from random import seed
 from recourse_methods import Dice # TO-DO: Replace with implemented recourse method
-from recourse_methods.processing import check_counterfactuals
+from recourse_methods.processing import create_hash_dataframe
 from typing import Dict, Tuple, Union
 
 import numpy as np
 import os
 import pandas as pd
+import tensorflow as tf
+import torch
 import yaml
 import warnings
 
@@ -37,6 +39,8 @@ TRAIN_SPLIT = 0.7
 
 seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
+tf.set_random_seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
 
 
 def load_setup() -> Dict:
@@ -62,39 +66,6 @@ def load_setup() -> Dict:
 
   return setup_catalog["recourse_methods"]
 
-def assert_counterfactuals(
-    counterfactuals: pd.DataFrame, factuals: pd.DataFrame
-) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
-  """
-  Remove instances for which a counterfactual could not be found,
-  and returns an error if such instances exist.
-
-  Parameters
-  ----------
-  counterfactuals (pd.DataFrame): Has to be the same shape as factuals.
-  factuals (pd.DataFrame): Has to be the same shape as counterfactuals. (optional)
-
-  Returns
-  -------
-  pd.DataFrame: An instance of a pd.DataFrame without any nan/null instances.
-  
-  Raises
-  -------
-  ValueError: If any nan/null instances are found in the counterfactual DataFrame, and it no longer matches the number of factuals.
-  """
-  # get indices of unsuccessful counterfactuals
-  nan_idx = counterfactuals.index[counterfactuals.isnull().any(axis=1)]
-  output_counterfactuals = counterfactuals.copy()
-  output_counterfactuals = output_counterfactuals.drop(index=nan_idx)
-
-  if factuals.shape[0] != counterfactuals.shape[0]:
-    raise ValueError(
-    "Counterfactuals and factuals should contain the same amount of samples"
-  )
-
-  return output_counterfactuals
-
-
 if __name__ == "__main__":
   """
   Generates and validates Counterfactual Explanations using recourse methods from academic literature on specified datasets and model types.
@@ -117,12 +88,7 @@ if __name__ == "__main__":
     - Initialize the dataset, machine learning model, and recourse method.
     - Select factual instances from the dataset that are predicted as the negative class.
     - Generate counterfactual explanations for these factual instances using the recourse method.
-    - Assert the functional correctness of the generated counterfactuals:
-      - Verify that counterfactuals cause a change in the target class.
-      - Replace any counterfactuals that do not cause a class change with NaNs using the `check_counterfactuals` function.
-      - Ensure the number of valid counterfactuals matches the number of factuals; otherwise, an error is raised.
-    - Store the valid counterfactuals in a DataFrame.
-  4. Print the valid counterfactuals without NaN/Null values.
+    - Assert the functional and algorithmic correctness of the generated counterfactuals.
 
   Raises
   -------
@@ -139,7 +105,7 @@ if __name__ == "__main__":
   dataset = DataCatalog(DATA_NAME, MODEL_NAME, TRAIN_SPLIT)
   hyperparameters = setup[METHOD_NAME]["hyperparams"]
   mlmodel = ModelCatalog(dataset, MODEL_NAME, BACKEND)
-  recourse_method = Dice(mlmodel, hyperparameters)
+  recourse_method = Dice(mlmodel, hyperparameters) # TO-DO: Replace with implemented recourse method
 
   factual_test_set = predict_negative_instances(mlmodel, dataset)
   factual_test_set = factual_test_set.sample(
@@ -150,14 +116,26 @@ if __name__ == "__main__":
   counterfactuals = recourse_method.get_counterfactuals(factuals)
   log.info("Generated Counterfactual: {}".format(counterfactuals))
 
-  # Functional Correctness Assertion
-  # Check if generated counterfactuals cause a change in the target class
-  # Counterfactuals that do not cause a class change are replaced with NaNs in the check_counterfactuals function
-  # After passing through check_counterfactuals, the number of valid counterfactuals must match the factuals; otherwise, an error is raised.
-  df_cfs = check_counterfactuals(mlmodel, counterfactuals, factuals.index)
-  counterfactuals_without_nans = assert_counterfactuals(
-    df_cfs, factuals
-  )
-  log.info("Counterfactuals without Nan/Null Values: {}".format(counterfactuals_without_nans))
-  log.info("=====================================")
-  log.info("TEST PASSED")
+  # Hash the counterfactuals and prepare dataframe from the new implementation
+  df_hashes = create_hash_dataframe(counterfactuals)
+
+  # Load the hashes of the pre-generated counterfactuals
+  pre_generated_df = pd.read_csv('counterfactual_hashes.csv')
+  pre_generated_hash_df = pre_generated_df[['id', 'hash']].rename(columns={'hash': 'pre_generated_hash'})
+
+  # Merge DataFrames for comparison
+  merged_df = pd.merge(df_hashes, pre_generated_hash_df, on='id')
+
+  # Check if all new hashes match pre-generated counterfactual hashes
+  if (merged_df['hash'] == merged_df['pre_generated_hash']).all():
+    log.info("All counterfactuals match the pre-generated counterfactuals.")
+    log.info("=====================================")
+    log.info("TEST PASSED")
+    log.info("=====================================")
+  else:
+    mismatches = merged_df[merged_df['hash'] != merged_df['pre_generated_hash']]
+    log.info("Some counterfactuals do not match the pre-generated counterfactuals.")
+    log.info(mismatches)
+    log.info("=====================================")
+    log.info("TEST FAILED")
+    log.info("=====================================")

@@ -17,6 +17,7 @@ from typing import Dict, Optional
 import numpy as np
 import yaml
 import tensorflow as tf
+import torch
 from tensorflow import Graph, Session
 from tensorflow.python.keras.backend import set_session
 
@@ -39,6 +40,8 @@ seed(
     RANDOM_SEED
 )  # set the random seed so that the random permutations can be reproduced again
 np.random.seed(RANDOM_SEED)
+tf.set_random_seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
 
 
 def load_setup() -> Dict:
