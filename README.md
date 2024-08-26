@@ -1,6 +1,6 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/carla-recourse?style=for-the-badge)](https://pypi.org/project/carla-recourse/) [![Read the Docs](https://img.shields.io/readthedocs/carla-counterfactual-and-recourse-library?style=for-the-badge)](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/?badge=latest) ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)
 
-# CHARM LABS RECOURSE LIBRARY
+# CHARM LAB RECOURSE LIBRARY
 
 <img align="right" width="240" height="200" src="https://github.com/carla-recourse/CARLA/blob/main/images/carla_logo_square.png?raw=true">
 
@@ -18,7 +18,7 @@ This repository is inspired and built on the CARLA library. CARLA is a python li
 - Benchmarking (notebook): [Source](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/notebooks/benchmark_example.html)
 - Adding your own Data: [Source](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#data)
 - Adding your own ML-Model: [Source](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#black-box-model)
-- Adding your own Recourse Method: [Source 1](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#recourse-method) [Source 2](https://docs.google.com/document/d/1XftDbR5RhEk_rCQeGhYpbfKgUA_Z-gsAjgA7NiPoLcs/edit?usp=sharing)
+- Adding your own Recourse Method: [Source 1](recourse_addition.md) [Source 2](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#recourse-method)
 
 ### Available Datasets
 
@@ -175,7 +175,7 @@ python .\quickStart.py
 
 ### Loading Site
 
-This interface displays the results from running the CARLA library with a range of datasets, models and recourse methods.
+This interface displays the results from running the recourse benchmark library with a range of datasets, models and recourse methods.
 
 ```sh
 cd .\live_site
@@ -183,7 +183,7 @@ pip install -r .\requirements.txt
 python .\server.py
 ```
 
-Read more from [here](https://docs.google.com/document/d/1Dmp4sFYcm3yt8On8NagjzVnYl7SzJ6QiVi61XLcW8Xg/edit?usp=sharing) to learn about the amendment of the live site tool.
+Read more from [here](livesite_amend.md) to learn about amending the live site tool.
 
 ## Testing
 
@@ -213,7 +213,7 @@ black .\
 
 ## Contributing
 
-Contributions of any kind are very much welcome! Take a look at the To-Do issues section to see what things we are currently working on. If you have an idea for a new feature or a bug you want to fix, please follow look at the subsections below.
+Contributions of any kind are very much welcome! Take a look at the To-Do issues section to see what we are currently working on. If you have an idea for a new feature or a bug you want to fix, please follow look at the subsections below for our branching and commit policies, and make a PR with your suggestions.
 
 ### Branching
 
@@ -227,18 +227,18 @@ Contributions of any kind are very much welcome! Take a look at the To-Do issues
 
 - PRs can contain multiple commits, they do not need to be squashed together before merging as long as each commit is atomic.
 
+### Implementation Suggestion
+
+- We advise future contributors to consider utilizing `PyTorch` for their recourse implementations whenever possible. This recommendation stems from our past experience, which has demonstrated that `PyTorch` benefits from a larger community support and offers easier refactoring, in contrast to `TensorFlow`, which tends to be more susceptible to version changes.
+
 ## To-Do Issues
 
 1. Expand the existing repository of available recourse methods to include new recourse methods.
    - Minimum Observables - https://arxiv.org/abs/1907.04135
    - ClaPROAR - https://arxiv.org/abs/2308.08187
    - Gravitational Generator - https://arxiv.org/abs/2308.08187
-   - Greedy - https://arxiv.org/abs/2103.08951
    - PROBE - https://arxiv.org/abs/2203.06768
 2. Extend the existing frontend design to incorporate new interactive features (Adjourned).
 3. Revamp the entire library to a newer python version.
 4. Refactor existing methods to utilize a singular backend type.
-5. Improve documentation in the repo ReadMe file.
-   - Include flowcharts to display the connection between the files in the repo.
-   - Include explanations for each folder in the repo.
-6. Extending the repo to be installible through pip.
+5. Extending the repo to be installible through pip.
