@@ -89,6 +89,16 @@ recourse_methods:
     hyperparams:
   focus:
     hyperparams:
+  gravitational:
+    hyperparams:
+      prediction_loss_lambda: 1
+      original_dist_lambda: 0.5
+      grav_penalty_lambda: 1.5
+      learning_rate: 0.01
+      num_steps: 500
+      target_class: 1
+      scheduler_step_size: 100
+      scheduler_gamma: 0.5
   greedy:
     hyperparams:
       lambda_param: 0.05

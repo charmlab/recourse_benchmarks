@@ -152,6 +152,8 @@ def initialize_recourse_method(
         return FeatureTweak(mlmodel)
     elif method == "focus":
         return FOCUS(mlmodel)
+    elif method == "gravitational":
+        return Gravitational(mlmodel, hyperparams)
     elif method == "greedy":
         return Greedy(mlmodel, hyperparams)
     elif method == "gs":
@@ -196,7 +198,7 @@ def create_parser():
     -r, --recourse_method: Specifies recourse methods for the experiment.
         Default: ["dice", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "gs", "mace", "revise", "wachter"].
         Choices: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
-            "focus", "greedy", "gs", "mace", "revise", "wachter"].
+            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter"].
     -n, --number_of_samples: Specifies the number of instances per dataset.
         Default: 20.
     -s, --train_split: Specifies the split of the available data used for training.
@@ -239,6 +241,7 @@ def create_parser():
             "face_knn",
             "face_epsilon",
             "mace",
+            "gravitational",
             "greedy",
             "gs",
             "revise",
@@ -257,6 +260,7 @@ def create_parser():
             "face_epsilon",
             "feature_tweak",
             "focus",
+            "gravitational",
             "greedy",
             "gs",
             "mace",
@@ -333,7 +337,7 @@ if __name__ == "__main__":
         results = pd.DataFrame()
 
     session_models = ["cem", "cem_vae", "greedy"]
-    torch_methods = ["cchvae", "clue", "cruds", "wachter", "revise"]
+    torch_methods = ["cchvae", "clue", "cruds", "gravitational", "wachter", "revise"]
     sklearn_methods = ["feature_tweak", "focus", "mace"]
 
     for method_name in args.recourse_method:
