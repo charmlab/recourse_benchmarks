@@ -30,6 +30,8 @@ class Gravitational(RecourseMethod):
     -------
     get_counterfactuals:
         Generate counterfactual examples for given factuals.
+    prediction_loss:
+        Calculates the loss that measures how well the counterfactual is classified as the target class by the model.
     cost:
         Calculates the distance between the original input instance and the generated counterfactua.
     gravitational_penalty:
@@ -108,12 +110,17 @@ class Gravitational(RecourseMethod):
         self.x_center = x_center
 
         if self.x_center is None:
-            data = self.mlmodel.data()
-            x_train = data.df_train().drop(data.target())
-            y_train = data.df_train()[data.target()]
+            data = self.mlmodel.data
+            x_train = data.df_train.drop(data.target, axis=1)
+            y_train = data.df_train[data.target]
             self.x_center = np.mean(x_train[y_train == self.target_class], axis=0)
 
         self.criterion = nn.CrossEntropyLoss()
+    
+    def prediction_loss(self, model, x_cf, target_class):
+        output = model.predict(x_cf.unsqueeze(0))
+        loss = self.criterion(output, torch.tensor([target_class], dtype=torch.long))
+        return loss
     
     def cost(x_original, x_cf):
         return torch.norm(x_original - x_cf)
@@ -121,7 +128,7 @@ class Gravitational(RecourseMethod):
     def gravitational_penalty(x_cf, x_center):
         return torch.norm(x_cf - torch.tensor(x_center, dtype=torch.float32))
 
-    def get_counterfactual(self, factuals: pd.DataFrame):
+    def get_counterfactuals(self, factuals: pd.DataFrame):
         x_cf = torch.tensor(factuals.values.flatten(), dtype=torch.float32, requires_grad=True)
             
         optimizer = optim.Adam([x_cf], lr=self.learning_rate)
