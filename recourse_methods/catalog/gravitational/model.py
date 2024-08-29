@@ -9,7 +9,7 @@ import torch.optim as optim
 from models.api import MLModel
 from recourse_methods.api import RecourseMethod
 from recourse_methods.processing import (
-    merge_default_parameters,
+    check_counterfactuals, merge_default_parameters,
 )
 
 class Gravitational(RecourseMethod):
@@ -118,18 +118,19 @@ class Gravitational(RecourseMethod):
         self.criterion = nn.CrossEntropyLoss()
     
     def prediction_loss(self, model, x_cf, target_class):
-        output = model.predict(x_cf.unsqueeze(0))
-        loss = self.criterion(output, torch.tensor([target_class], dtype=torch.long))
+        output = model.predict_proba(x_cf)
+        loss = self.criterion(output, torch.tensor([target_class] * output.size(0), dtype=torch.long))
         return loss
     
-    def cost(x_original, x_cf):
+    def cost(self, x_original, x_cf):
         return torch.norm(x_original - x_cf)
 
-    def gravitational_penalty(x_cf, x_center):
+    def gravitational_penalty(self, x_cf, x_center):
         return torch.norm(x_cf - torch.tensor(x_center, dtype=torch.float32))
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
-        x_cf = torch.tensor(factuals.values.flatten(), dtype=torch.float32, requires_grad=True)
+        factuals = factuals.drop("y", axis="columns")
+        x_cf = torch.tensor(factuals.values, dtype=torch.float32, requires_grad=True)
             
         optimizer = optim.Adam([x_cf], lr=self.learning_rate)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=self.scheduler_step_size, gamma=self.scheduler_gamma)
@@ -138,7 +139,7 @@ class Gravitational(RecourseMethod):
             optimizer.zero_grad()
 
             prediction_loss_value = self.prediction_loss(self.mlmodel, x_cf, self.target_class)
-            original_dist = self.cost(torch.tensor(factuals.values.flatten(), dtype=torch.float32), x_cf)
+            original_dist = self.cost(torch.tensor(factuals.values, dtype=torch.float32), x_cf)
             grav_penalty = self.gravitational_penalty(x_cf, self.x_center)
 
             loss = self.prediction_loss_lambda * prediction_loss_value + self.original_dist_lambda * original_dist + self.grav_penalty_lambda * grav_penalty
@@ -147,9 +148,14 @@ class Gravitational(RecourseMethod):
             optimizer.step()
             scheduler.step()
         
-        x_cf_df = pd.DataFrame([x_cf.detach().numpy()], columns=factuals.columns)
+        x_cf = x_cf.detach().numpy()
+        x_cf_df = pd.DataFrame(x_cf, columns=factuals.columns)
+        print(f'Generated Counterfactuals before checking: {x_cf_df}')
+        df_cfs = check_counterfactuals(self.mlmodel, x_cf_df, factuals.index)
+        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        print(f'Generated Counterfactuals after checking: {df_cfs}')
 
-        return x_cf_df
+        return df_cfs
     
     def set_x_center(self, x_center):
         self.x_center = x_center
