@@ -92,8 +92,8 @@ recourse_methods:
   gravitational:
     hyperparams:
       prediction_loss_lambda: 1
-      original_dist_lambda: 0.5
-      grav_penalty_lambda: 1.5
+      original_dist_lambda: 2
+      grav_penalty_lambda: 2.05
       learning_rate: 0.01
       num_steps: 500
       target_class: 1

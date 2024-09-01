@@ -29,7 +29,8 @@ def predict_negative_instances(
     df = data.df_test.copy()
     if df.empty:
         raise ValueError("Empty Test Set")
-    df["y_neg"] = predict_label(model, df)
+    df2  = df.drop("y", axis="columns")
+    df["y_neg"] = predict_label(model, df2)
     df = df[df["y_neg"] == 0]
     df = df.drop("y_neg", axis="columns")
 
