@@ -227,6 +227,26 @@ Contributions of any kind are very much welcome! Take a look at the To-Do issues
 
 - PRs can contain multiple commits, they do not need to be squashed together before merging as long as each commit is atomic.
 
+### Naming Conventions
+
+- **Modules and Packages:** Use lowercase letters with underscores to separate words.
+  Example: minimum_observables.py, growing_spheres.py.
+
+- **Classes:** Use CamelCase for class names.
+  Example: MinimumObservables, GrowingSpheres.
+
+- **Functions and Methods:** Use lowercase with underscores to separate words.
+  Example: load_data(), get_counterfactuals().
+
+- **Variables:** Use lowercase with underscores. Be descriptive but concise.
+  Example: training_data, learning_rate.
+
+- **Constants:** Use uppercase letters with underscores to separate words.
+  Example: MAX_EPOCHS, DEFAULT_BATCH_SIZE.
+
+- **Global Variables:** Use a prefix like g* or global* to indicate that it is a global variable.
+  Example: g_model_dir, global_logger.
+
 ### Implementation Suggestion
 
 - We advise future contributors to consider utilizing `PyTorch` for their recourse implementations whenever possible. This recommendation stems from our past experience, which has demonstrated that `PyTorch` benefits from a larger community support and offers easier refactoring, in contrast to `TensorFlow`, which tends to be more susceptible to version changes.
