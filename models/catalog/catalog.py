@@ -218,7 +218,7 @@ class ModelCatalog(MLModel):
         """
 
         # order data (column-wise) before prediction
-        # x = self.get_ordered_features(x)
+        x = self.get_ordered_features(x)
 
         if len(x.shape) != 2:
             raise ValueError("Input shape has to be two-dimensional")

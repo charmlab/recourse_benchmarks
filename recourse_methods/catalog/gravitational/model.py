@@ -57,7 +57,7 @@ class Gravitational(RecourseMethod):
             Controls the weight of the gravitational penalty in the total loss.
         * "learning_rate": float, default: 0.01
             Specifies the learning rate for the optimization algorithm.
-        * "num_steps": int, default: 500
+        * "num_steps": int, default: 100
             Specifies the number of iterations for the optimization process.
         * "target_class": int (0 or 1), default: 1:
             Specifies the desired class for the counterfactual.
@@ -75,10 +75,10 @@ class Gravitational(RecourseMethod):
 
     _DEFAULT_HYPERPARAMS = {
         "prediction_loss_lambda": 1,
-        "original_dist_lambda": 2,
-        "grav_penalty_lambda": 2.05,
+        "original_dist_lambda": 0.5,
+        "grav_penalty_lambda": 1.5,
         "learning_rate": 0.01,
-        "num_steps": 500,
+        "num_steps": 100,
         "target_class": 1,
         "scheduler_step_size": 100,
         "scheduler_gamma": 0.5
@@ -129,7 +129,8 @@ class Gravitational(RecourseMethod):
         return torch.norm(x_cf - torch.tensor(x_center, dtype=torch.float32))
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
-        factuals = factuals.drop("y", axis="columns")
+        factuals = factuals.reset_index()
+        factuals = self._mlmodel.get_ordered_features(factuals)
         x_cf = torch.tensor(factuals.values, dtype=torch.float32, requires_grad=True)
             
         optimizer = optim.Adam([x_cf], lr=self.learning_rate)
@@ -150,10 +151,8 @@ class Gravitational(RecourseMethod):
         
         x_cf = x_cf.detach().numpy()
         x_cf_df = pd.DataFrame(x_cf, columns=factuals.columns)
-        print(f'Generated Counterfactuals before checking: {x_cf_df}')
         df_cfs = check_counterfactuals(self.mlmodel, x_cf_df, factuals.index)
         df_cfs = self._mlmodel.get_ordered_features(df_cfs)
-        print(f'Generated Counterfactuals after checking: {df_cfs}')
 
         return df_cfs
     

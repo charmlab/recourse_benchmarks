@@ -92,10 +92,10 @@ recourse_methods:
   gravitational:
     hyperparams:
       prediction_loss_lambda: 1
-      original_dist_lambda: 2
-      grav_penalty_lambda: 2.05
+      original_dist_lambda: 0.5
+      grav_penalty_lambda: 1.05
       learning_rate: 0.01
-      num_steps: 500
+      num_steps: 100
       target_class: 1
       scheduler_step_size: 100
       scheduler_gamma: 0.5
