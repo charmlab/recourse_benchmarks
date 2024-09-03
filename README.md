@@ -191,7 +191,7 @@ Using python directly or within activated virtual environment:
 
 ```sh
 pip install -r requirements-dev.txt
-python -m pytest .\sanityTest.py
+python -m pytest .\sanity_test.py
 ```
 
 ## Running Experiment
@@ -251,12 +251,15 @@ Contributions of any kind are very much welcome! Take a look at the To-Do issues
 
 - We advise future contributors to consider utilizing `PyTorch` for their recourse implementations whenever possible. This recommendation stems from our past experience, which has demonstrated that `PyTorch` benefits from a larger community support and offers easier refactoring, in contrast to `TensorFlow`, which tends to be more susceptible to version changes.
 
+### Reproducibility
+
+- It is essential that implemented algorithms closely match the research paper they are derived from. Therefore, every implemented algorithm must be accompanied by a `reproduce.py` test file (in the corresponding folder in `recourse_methods/catalog`). This file should contain unit tests that replicate the experiments presented in the corresponding research paper, ensuring that the results obtained are consistent with those reported in the paper, within an acceptable margin of error.
+
 ## To-Do Issues
 
 1. Expand the existing repository of available recourse methods to include new recourse methods.
    - Minimum Observables - https://arxiv.org/abs/1907.04135
    - ClaPROAR - https://arxiv.org/abs/2308.08187
-   - Gravitational Generator - https://arxiv.org/abs/2308.08187
    - PROBE - https://arxiv.org/abs/2203.06768
 2. Extend the existing frontend design to incorporate new interactive features (Adjourned).
 3. Revamp the entire library to a newer python version.
