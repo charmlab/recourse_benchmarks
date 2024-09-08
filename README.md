@@ -170,7 +170,7 @@ print(df_benchmark)
 Using python directly or within activated virtual environment:
 
 ```sh
-python .\quickStart.py
+python .\quick_start.py
 ```
 
 ### Loading Site
