@@ -1,10 +1,12 @@
-from models.api import MLModel
+import hashlib
 from typing import Dict, List, Optional, Union
 
-import hashlib
 import numpy as np
 import pandas as pd
 import torch
+
+from models.api import MLModel
+
 
 def hash_counterfactual(row):
     """
@@ -23,6 +25,7 @@ def hash_counterfactual(row):
     row_str = row.to_string(index=False)
     return hashlib.sha256(row_str.encode()).hexdigest()
 
+
 def create_hash_dataframe(counterfactuals_df):
     """
     Creates a DataFrame with hashed counterfactuals.
@@ -39,13 +42,13 @@ def create_hash_dataframe(counterfactuals_df):
     """
     # Apply the hashing function to each row of the DataFrame
     counterfactuals_hashes = counterfactuals_df.apply(hash_counterfactual, axis=1)
-    
-    new_hash_df = pd.DataFrame({
-      'id': counterfactuals_df.index,
-      'hash': counterfactuals_hashes
-    })
+
+    new_hash_df = pd.DataFrame(
+        {"id": counterfactuals_df.index, "hash": counterfactuals_hashes}
+    )
 
     return new_hash_df
+
 
 def check_counterfactuals(
     mlmodel: MLModel,

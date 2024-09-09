@@ -1,5 +1,8 @@
 from __future__ import division, print_function
 
+import numpy as np
+import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam
 
@@ -8,8 +11,12 @@ from recourse_methods.catalog.clue.library.clue_ml.src.probability import (
     decompose_entropy_cat,
     decompose_std_gauss,
 )
-from recourse_methods.catalog.clue.library.clue_ml.src.utils import *
-from recourse_methods.catalog.clue.library.clue_ml.src.utils import Ln_distance
+from recourse_methods.catalog.clue.library.clue_ml.src.utils import (
+    BaseNet,
+    Ln_distance,
+    MNIST_mean_std_norm,
+    generate_ind_batch,
+)
 
 """
 Here we conduct the search for counterfactual explanations using CLUE.
@@ -303,12 +310,15 @@ class CLUE(BaseNet):
         if self.VAE is not None and self.cond_mask is None and self.prior_weight > 0:
             try:
                 prior_loglike = self.VAE.prior.log_prob(self.z).sum(dim=1)
-            except:  # This mode is just for CondCLUE but the objective method is inherited
+            except (
+                Exception
+            ) as e:  # This mode is just for CondCLUE but the objective method is inherited
                 prior_loglike = (
                     self.VAEAC.get_prior(self.original_x, self.cond_mask, flatten=False)
                     .log_prob(self.z)
                     .sum(dim=1)
                 )
+                print(f"Exception {e}")
             objective += self.prior_weight * prior_loglike
 
         if self.latent_L2_weight != 0 and self.latent_L2_weight is not None:

@@ -1,10 +1,11 @@
-import os
-import sys
 import copy
+import os
 import pickle
+import sys
+from random import seed
+
 import numpy as np
 import pandas as pd
-from pprint import pprint
 from sklearn.model_selection import train_test_split
 
 from data.catalog.debug import ipsh
@@ -12,44 +13,39 @@ from data.catalog.debug import ipsh
 sys.path.insert(0, "_data_main")
 
 try:
-    from data.catalog._data_main.fair_adult_data import *
-except:
-    print("[ENV WARNING] fair_adult_data not available")
+    from data.catalog._data_main.fair_adult_data import load_adult_data_new
+except Exception as e:
+    print(f"[ENV WARNING] fair_adult_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.fair_compas_data import *
-except:
-    print("[ENV WARNING] fair_compas_data not available")
+    from data.catalog._data_main.fair_compas_data import load_compas_data_new
+except Exception as e:
+    print(f"[ENV WARNING] fair_compas_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_credit_data import *
-except:
-    print("[ENV WARNING] process_credit_data not available")
+    from data.catalog._data_main.process_credit_data import load_credit_data
+except Exception as e:
+    print(f"[ENV WARNING] process_credit_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_german_data import *
-except:
-    print("[ENV WARNING] process_german_data not available")
+    from data.catalog._data_main.process_german_data import load_german_data
+except Exception as e:
+    print(f"[ENV WARNING] process_german_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_synthetic_data import *
-except:
-    print("[ENV WARNING] process_synthetic_data not available")
+    from data.catalog._data_main.process_mortgage_data import load_mortgage_data
+except Exception as e:
+    print(f"[ENV WARNING] process_mortgage_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_mortgage_data import *
-except:
-    print("[ENV WARNING] process_mortgage_data not available")
+    from data.catalog._data_main.process_twomoon_data import load_twomoon_data
+except Exception as e:
+    print(f"[ENV WARNING] process_twomoon_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_twomoon_data import *
-except:
-    print("[ENV WARNING] process_twomoon_data not available")
-
-try:
-    from data.catalog._data_main.process_test_data import *
-except:
-    print("[ENV WARNING] process_test_data not available")
+    from data.catalog._data_main.process_test_data import load_test_data
+except Exception as e:
+    print(f"[ENV WARNING] process_test_data not available. Error: {e}")
 
 VALID_ATTRIBUTE_DATA_TYPES = {
     "numeric-int",
@@ -64,7 +60,6 @@ VALID_ATTRIBUTE_NODE_TYPES = {"meta", "input", "output"}
 VALID_ACTIONABILITY_TYPES = {"none", "any", "same-or-increase", "same-or-decrease"}
 VALID_MUTABILITY_TYPES = {True, False}
 
-from random import seed
 
 RANDOM_SEED = 54321
 TRAIN_PERCENT = 0.7
@@ -156,7 +151,8 @@ class Dataset(object):
                         or np.array_equal(unique_values, [1])
                     )  # the first sub-ordinal attribute is always 1
                     # race (binary) in compass is encoded as {1,2}
-                except:
+                except Exception as e:
+                    print(f"Error: {e}")
                     ipsh()
 
         # # assert attributes and is_one_hot agree on one-hot-ness (i.e., if is_one_hot,
@@ -250,7 +246,7 @@ class Dataset(object):
         # We must loop through all attributes and check mutability
         for attr_name_long in self.getInputAttributeNames("long"):
             attr_obj = self.attributes_long[attr_name_long]
-            if attr_obj.node_type == "input" and attr_obj.mutability != False:
+            if attr_obj.node_type == "input" and attr_obj.mutability:
                 if long_or_kurz == "long":
                     names.append(attr_obj.attr_name_long)
                 elif long_or_kurz == "kurz":
@@ -363,7 +359,6 @@ class Dataset(object):
             "cat" in attr_name_long_or_kurz or "ord" in attr_name_long_or_kurz
         ), "attr_name must include either `cat` or `ord`."
         if attr_name_long_or_kurz in self.getInputOutputAttributeNames("long"):
-            attr_name_long = attr_name_long_or_kurz
             dict_of_siblings_long = self.getDictOfSiblings("long")
             for parent_name_long in dict_of_siblings_long["cat"]:
                 siblings_long = dict_of_siblings_long["cat"][parent_name_long]
@@ -374,7 +369,6 @@ class Dataset(object):
                 if attr_name_long_or_kurz in siblings_long:
                     return siblings_long
         elif attr_name_long_or_kurz in self.getInputOutputAttributeNames("kurz"):
-            attr_name_kurz = attr_name_long_or_kurz
             dict_of_siblings_kurz = self.getDictOfSiblings("kurz")
             for parent_name_kurz in dict_of_siblings_kurz["cat"]:
                 siblings_kurz = dict_of_siblings_kurz["cat"][parent_name_kurz]
@@ -554,7 +548,9 @@ class Dataset(object):
     # (2020.04.15) perhaps we need a memoize here... but I tried calling this function
     # multiple times in a row from another file and it always returned the same slice
     # of data... weird.
-    def getTrainTestSplit(self, preprocessing=None, with_meta=False, train_split=TRAIN_PERCENT):
+    def getTrainTestSplit(
+        self, preprocessing=None, with_meta=False, train_split=TRAIN_PERCENT
+    ):
         # When working only with normalized data in [0, 1], data ranges must change to [0, 1] as well
         # otherwise, in computing normalized distance we will normalize with intial ranges again!
         # pseudonym (2020.05.17) does this work with cat/ord and sub-cat/sub-ord data???
@@ -611,7 +607,7 @@ class Dataset(object):
             ]
             all_true_labels = balanced_data_frame.loc[:, output_col]
             if preprocessing is not None:
-                assert with_meta == False, "This feature is not built yet..."
+                assert not with_meta, "This feature is not built yet..."
 
             X_train, X_test, y_train, y_test = train_test_split(
                 all_data,
@@ -719,13 +715,13 @@ class DatasetAttribute(object):
 
         if node_type != "input":
             assert actionability == "none", f"{node_type} attribute is not actionable."
-            assert mutability == False, f"{node_type} attribute is not mutable."
+            assert not mutability, f"{node_type} attribute is not mutable."
 
         # We have introduced 3 types of variables: (actionable and mutable, non-actionable but mutable, immutable and non-actionable)
         if actionability != "none":
-            assert mutability == True
+            assert mutability
         # TODO: above/below seem contradictory... (2020.04.14)
-        if mutability == False:
+        if not mutability:
             assert actionability == "none"
 
         if parent_name_long == -1 or parent_name_kurz == -1:
@@ -748,7 +744,7 @@ def loadDataset(
     return_one_hot,
     load_from_cache=False,
     debug_flag=True,
-    meta_param=None
+    meta_param=None,
 ):
     """
     Loads and returns the Dataset() object with the loaded data.
@@ -797,10 +793,10 @@ def loadDataset(
             if debug_flag:
                 print("done.")
             return tmp
-        except:
+        except Exception as e:
             if debug_flag:
                 print("failed. Re-creating dataset...")
-            print("failed. Re-creating dataset...")
+            print(f"failed. Re-creating dataset... Error: {e}")
 
     if dataset_name == "adult":
         data_frame_non_hot = load_adult_data_new()
@@ -1098,72 +1094,72 @@ def loadDataset(
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
 
-    elif dataset_name == "synthetic":
-        variable_type = "real"
-        # variable_type = 'integer'
+    # elif dataset_name == "synthetic":
+    #     variable_type = "real"
+    #     # variable_type = 'integer'
 
-        scm_class = meta_param
+    #     scm_class = meta_param
 
-        data_frame_non_hot = load_synthetic_data(scm_class, variable_type)
-        data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
-        attributes_non_hot = {}
+    #     data_frame_non_hot = load_synthetic_data(scm_class, variable_type)
+    #     data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
+    #     attributes_non_hot = {}
 
-        input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
-        # ordering of next two lines matters (shouldn't overwrite input_cols); silly code... :|
-        meta_cols = [col_name for col_name in input_cols if "u" in col_name]
-        input_cols = [col_name for col_name in input_cols if "x" in col_name]
+    #     input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
+    #     # ordering of next two lines matters (shouldn't overwrite input_cols); silly code... :|
+    #     meta_cols = [col_name for col_name in input_cols if "u" in col_name]
+    #     input_cols = [col_name for col_name in input_cols if "x" in col_name]
 
-        col_name = output_col
-        attributes_non_hot[col_name] = DatasetAttribute(
-            attr_name_long=col_name,
-            attr_name_kurz="y",
-            attr_type="binary",
-            node_type="output",
-            actionability="none",
-            mutability=False,
-            parent_name_long=-1,
-            parent_name_kurz=-1,
-            lower_bound=data_frame_non_hot[col_name].min(),
-            upper_bound=data_frame_non_hot[col_name].max(),
-        )
+    #     col_name = output_col
+    #     attributes_non_hot[col_name] = DatasetAttribute(
+    #         attr_name_long=col_name,
+    #         attr_name_kurz="y",
+    #         attr_type="binary",
+    #         node_type="output",
+    #         actionability="none",
+    #         mutability=False,
+    #         parent_name_long=-1,
+    #         parent_name_kurz=-1,
+    #         lower_bound=data_frame_non_hot[col_name].min(),
+    #         upper_bound=data_frame_non_hot[col_name].max(),
+    #     )
 
-        for col_idx, col_name in enumerate(input_cols):
-            attr_type = "numeric-real" if variable_type == "real" else "numeric-int"
-            node_type = "input"
-            actionability = "any"
-            mutability = True
+    #     for col_idx, col_name in enumerate(input_cols):
+    #         attr_type = "numeric-real" if variable_type == "real" else "numeric-int"
+    #         node_type = "input"
+    #         actionability = "any"
+    #         mutability = True
 
-            attributes_non_hot[col_name] = DatasetAttribute(
-                attr_name_long=col_name,
-                attr_name_kurz=col_name,
-                attr_type=attr_type,
-                node_type=node_type,
-                actionability=actionability,
-                mutability=mutability,
-                parent_name_long=-1,
-                parent_name_kurz=-1,
-                lower_bound=data_frame_non_hot[col_name].min(),
-                upper_bound=data_frame_non_hot[col_name].max(),
-            )
+    #         attributes_non_hot[col_name] = DatasetAttribute(
+    #             attr_name_long=col_name,
+    #             attr_name_kurz=col_name,
+    #             attr_type=attr_type,
+    #             node_type=node_type,
+    #             actionability=actionability,
+    #             mutability=mutability,
+    #             parent_name_long=-1,
+    #             parent_name_kurz=-1,
+    #             lower_bound=data_frame_non_hot[col_name].min(),
+    #             upper_bound=data_frame_non_hot[col_name].max(),
+    #         )
 
-        for col_idx, col_name in enumerate(meta_cols):
-            attr_type = "numeric-real"
-            node_type = "meta"
-            actionability = "none"
-            mutability = False
+    #     for col_idx, col_name in enumerate(meta_cols):
+    #         attr_type = "numeric-real"
+    #         node_type = "meta"
+    #         actionability = "none"
+    #         mutability = False
 
-            attributes_non_hot[col_name] = DatasetAttribute(
-                attr_name_long=col_name,
-                attr_name_kurz=col_name,
-                attr_type=attr_type,
-                node_type=node_type,
-                actionability=actionability,
-                mutability=mutability,
-                parent_name_long=-1,
-                parent_name_kurz=-1,
-                lower_bound=data_frame_non_hot[col_name].min(),
-                upper_bound=data_frame_non_hot[col_name].max(),
-            )
+    #         attributes_non_hot[col_name] = DatasetAttribute(
+    #             attr_name_long=col_name,
+    #             attr_name_kurz=col_name,
+    #             attr_type=attr_type,
+    #             node_type=node_type,
+    #             actionability=actionability,
+    #             mutability=mutability,
+    #             parent_name_long=-1,
+    #             parent_name_kurz=-1,
+    #             lower_bound=data_frame_non_hot[col_name].min(),
+    #             upper_bound=data_frame_non_hot[col_name].max(),
+    #         )
 
     elif dataset_name == "mortgage":
         data_frame_non_hot = load_mortgage_data()

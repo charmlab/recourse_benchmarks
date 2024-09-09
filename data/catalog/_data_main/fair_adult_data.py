@@ -1,9 +1,10 @@
-import os, sys
+import os
+import urllib.request
+from random import seed, shuffle
+
+import fair_utils_data as ut
 import numpy as np
 import pandas as pd
-import urllib.request
-import fair_utils_data as ut
-from random import seed, shuffle
 
 SEED = 1122334455
 seed(
@@ -218,27 +219,17 @@ def load_adult_data_new():
         "hours_per_week",
         "native_country",
     ]  # all attributes
-    int_attrs = [
-        "age",
-        "fnlwgt",
-        "education_num",
-        "capital_gain",
-        "capital_loss",
-        "hours_per_week",
-    ]  # attributes with integer values -- the rest are categorical
     sensitive_attrs = ["sex"]  # the fairness constraints will be used for this feature
     attrs_to_ignore = [
         "sex",
         "race",
         "fnlwgt",
     ]  # sex and race are sensitive feature so we will not use them in classification, we will not consider fnlwght for classification since its computed externally and it highly predictive for the class (for details, see documentation of the adult data)
-    attrs_for_classification = set(attrs) - set(attrs_to_ignore)
 
     # adult data comes in two different files, one for training and one for testing, however, we will combine data from both the files
     this_files_directory = os.path.dirname(os.path.realpath(__file__))
     data_files = ["adult.data", "adult.test"]
 
-    X = []
     y = []
     x_control = {}
 

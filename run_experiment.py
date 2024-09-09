@@ -12,12 +12,13 @@ import pandas as pd
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import argparse
+from random import seed
 from typing import Dict, Optional
 
 import numpy as np
-import yaml
 import tensorflow as tf
 import torch
+import yaml
 from tensorflow import Graph, Session
 from tensorflow.python.keras.backend import set_session
 
@@ -31,8 +32,6 @@ from models.negative_instances import predict_negative_instances
 from recourse_methods import *
 from recourse_methods.api import RecourseMethod
 from recourse_methods.catalog.mace import MACE
-
-from random import seed
 
 RANDOM_SEED = 54321
 
@@ -356,14 +355,18 @@ if __name__ == "__main__":
                 log.info("Model type: {}".format(model_name))
 
                 exists_already = (
-                    len(results.query(
+                    len(
+                        results.query(
                             "Recourse_Method == @method_name and Dataset == @data_name and ML_Model == @model_name"
                         )
                     )
                     > 0
                 )
                 # face_knn requires datasets with immutable features.
-                if exists_already or ("face" in method_name and (data_name == "mortgage" or data_name == "twomoon")):
+                if exists_already or (
+                    "face" in method_name
+                    and (data_name == "mortgage" or data_name == "twomoon")
+                ):
                     continue
 
                 dataset = DataCatalog(data_name, model_name, args.train_split)
@@ -424,7 +427,7 @@ if __name__ == "__main__":
                     factuals = predict_negative_instances(mlmodel, dataset)
 
                     factuals_len = len(factuals)
-                    if factuals_len  == 0:
+                    if factuals_len == 0:
                         continue
                     elif factuals_len > args.number_of_samples:
                         factuals = factuals.sample(

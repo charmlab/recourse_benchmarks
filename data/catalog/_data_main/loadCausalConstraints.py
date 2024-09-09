@@ -5,8 +5,18 @@
 
 
 import numpy as np
-from pysmt.shortcuts import *
-from pysmt.typing import *
+from pysmt.shortcuts import (
+    And,
+    EqualsOrIff,
+    Ite,
+    Minus,
+    Not,
+    Plus,
+    Pow,
+    Real,
+    Times,
+    ToReal,
+)
 
 
 def getGermanCausalConsistencyConstraints(model_symbols, factual_sample):

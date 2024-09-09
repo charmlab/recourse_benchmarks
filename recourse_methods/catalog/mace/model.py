@@ -1,19 +1,17 @@
 from typing import Dict, Optional
 
-from recourse_methods import RecourseMethod
-from models.catalog import ModelCatalog
-
-from recourse_methods.processing import merge_default_parameters
 import pandas as pd
 
-from recourse_methods.catalog.mace.library import generateExplanations
-import os
-
 import data.catalog.loadData as loadData
-
+from models.catalog import ModelCatalog
+from recourse_methods import RecourseMethod
+from recourse_methods.catalog.mace.library import generateExplanations
+from recourse_methods.processing import merge_default_parameters
 
 # Custom recourse implementations need to
 # inherit from the RecourseMethod interface
+
+
 class MACE(RecourseMethod):
     """
     Implementation of MACE from Karimi et.al. [1]_.
@@ -67,7 +65,7 @@ class MACE(RecourseMethod):
         )
 
         self._approach_string = "MACE_eps_1e-5"
-        self._explanation_file_name = f"mace"
+        self._explanation_file_name = "mace"
         self._norm_type = checked_hyperparams["norm_type"]
 
     # Generate and return encoded and

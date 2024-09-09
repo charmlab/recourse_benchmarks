@@ -1,24 +1,44 @@
 import sys
 import time
-import copy
-import pickle
-import numpy as np
-import pandas as pd
+from random import seed
+
 import normalizedDistance
-
-from modelConversion import *
-from pysmt.shortcuts import *
-from pysmt.typing import *
-from pprint import pprint
-
-from sklearn.tree import DecisionTreeClassifier
+import numpy as np
+from loadCausalConstraints import (
+    getGermanCausalConsistencyConstraints,
+    getMortgageCausalConsistencyConstraints,
+    getRandomCausalConsistencyConstraints,
+    getTestCausalConsistencyConstraints,
+    getTwoMoonCausalConsistencyConstraints,
+)
+from modelConversion import forest2formula, lr2formula, mlp2formula, tree2formula
+from pysmt.shortcuts import (
+    GE,
+    LE,
+    TRUE,
+    And,
+    Bool,
+    Div,
+    Equals,
+    EqualsOrIff,
+    Int,
+    Ite,
+    Max,
+    Minus,
+    Not,
+    Plus,
+    Pow,
+    Real,
+    Solver,
+    Symbol,
+    Times,
+    ToReal,
+)
+from pysmt.typing import BOOL, INT, REAL
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
-
-from loadCausalConstraints import *
-
-from random import seed
+from sklearn.tree import DecisionTreeClassifier
 
 RANDOM_SEED = 1122334455
 seed(
@@ -31,14 +51,26 @@ DEBUG_FLAG = False
 
 
 def getModelFormula(model_symbols, model_trained):
+    def model2formula_tree(a, b):
+        return tree2formula(a, b)
+
+    def model2formula_lr(a, b):
+        return lr2formula(a, b)
+
+    def model2formula_forest(a, b):
+        return forest2formula(a, b)
+
+    def model2formula_mlp(a, b):
+        return mlp2formula(a, b)
+
     if isinstance(model_trained, DecisionTreeClassifier):
-        model2formula = lambda a, b: tree2formula(a, b)
+        model2formula = model2formula_tree
     elif isinstance(model_trained, LogisticRegression):
-        model2formula = lambda a, b: lr2formula(a, b)
+        model2formula = model2formula_lr
     elif isinstance(model_trained, RandomForestClassifier):
-        model2formula = lambda a, b: forest2formula(a, b)
+        model2formula = model2formula_forest
     elif isinstance(model_trained, MLPClassifier):
-        model2formula = lambda a, b: mlp2formula(a, b)
+        model2formula = model2formula_mlp
 
     return model2formula(model_trained, model_symbols)
 
@@ -328,9 +360,7 @@ def getPlausibilityFormula(model_symbols, dataset_obj, factual_sample, approach_
     #  3. actionability + mutability
     #  4. causal consistency
 
-    ##############################################################################
-    ## 1. data range plausibility
-    ##############################################################################
+    # 1. data range plausibility
     range_plausibility_counterfactual = And(
         [
             And(
@@ -373,9 +403,7 @@ def getPlausibilityFormula(model_symbols, dataset_obj, factual_sample, approach_
         [range_plausibility_counterfactual, range_plausibility_interventional]
     )
 
-    ##############################################################################
-    ## 2. data type plausibility
-    ##############################################################################
+    # 2. data type plausibility
     onehot_categorical_plausibility = TRUE()  # plausibility of categorical (sum = 1)
     onehot_ordinal_plausibility = TRUE()  # plausibility ordinal (x3 >= x2 & x2 >= x1)
 
@@ -490,7 +518,7 @@ def getPlausibilityFormula(model_symbols, dataset_obj, factual_sample, approach_
             # ])
 
     ##############################################################################
-    ## 3. actionability + mutability
+    # 3. actionability + mutability
     #    a) actionable and mutable: both interventional and counterfactual value can change
     #    b) non-actionable but mutable: interventional value cannot change, but counterfactual value can
     #    c) immutable and non-actionable: neither interventional nor counterfactual value can change
@@ -500,7 +528,7 @@ def getPlausibilityFormula(model_symbols, dataset_obj, factual_sample, approach_
         attr_obj = dataset_obj.attributes_kurz[attr_name_kurz]
 
         # a) actionable and mutable: both interventional and counterfactual value can change
-        if attr_obj.mutability == True and attr_obj.actionability != "none":
+        if attr_obj.mutability and attr_obj.actionability != "none":
             if attr_obj.actionability == "same-or-increase":
                 actionability_mutability_plausibility.append(
                     GE(
@@ -531,7 +559,7 @@ def getPlausibilityFormula(model_symbols, dataset_obj, factual_sample, approach_
                 continue
 
         # b) mutable but non-actionable: interventional value cannot change, but counterfactual value can
-        elif attr_obj.mutability == True and attr_obj.actionability == "none":
+        elif attr_obj.mutability and attr_obj.actionability == "none":
             # IMPORTANT: when we are optimizing for nearest CFE, we completely ignore
             #            the interventional symbols, even though they are defined. In
             #            such a world, we also don't have any assumptions about the
@@ -575,7 +603,7 @@ def getPlausibilityFormula(model_symbols, dataset_obj, factual_sample, approach_
     actionability_mutability_plausibility = And(actionability_mutability_plausibility)
 
     ##############################################################################
-    ## 4. causal consistency
+    # 4. causal consistency
     ##############################################################################
     if "mace" in approach_string:
         causal_consistency = TRUE()
@@ -886,9 +914,9 @@ def getDictSampleFromPySMTSample(pysmt_sample, dataset_obj):
                 )
             else:  # refer to loadData.VALID_ATTRIBUTE_TYPES
                 dict_sample[attr_name_kurz] = int(str(pysmt_sample[attr_name_kurz]))
-        except:
+        except Exception as e:
             raise Exception(
-                f"Failed to read value from pysmt sample. Debug me manually."
+                f"Failed to read value from pysmt sample. Debug me manually. Exceeption: {e}"
             )
     return dict_sample
 

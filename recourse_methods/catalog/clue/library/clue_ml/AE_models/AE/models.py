@@ -4,8 +4,6 @@ import torch.nn as nn
 
 from recourse_methods.catalog.clue.library.clue_ml.src.layers import (
     MLPBlock,
-    ResBlock,
-    SkipConnection,
     leaky_MLPBlock,
     preact_leaky_MLPBlock,
 )

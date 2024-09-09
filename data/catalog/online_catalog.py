@@ -1,11 +1,13 @@
-from abc import ABC
-from data.api import Data
-from data.load_catalog import load
-from data.catalog.loadData import loadDataset
 import os
-import pandas as pd
 import pathlib
+from abc import ABC
 from typing import Any, Dict, List
+
+import pandas as pd
+
+from data.api import Data
+from data.catalog.loadData import loadDataset
+from data.load_catalog import load
 
 
 class DataCatalog(Data, ABC):
@@ -58,9 +60,7 @@ class DataCatalog(Data, ABC):
         )
 
         train_raw, test_raw, y_train, y_test = dataset_obj.getTrainTestSplit(
-            preprocessing="normalize",
-            train_split=train_split
-
+            preprocessing="normalize", train_split=train_split
         )
         dataset_obj = pd.concat([train_raw, test_raw], ignore_index=True)
         output_merge = pd.concat([y_train, y_test], ignore_index=True)

@@ -5,7 +5,6 @@ import numpy as np
 import torch
 import torch.optim as optim
 from scipy.optimize import linprog
-from torch import nn
 from torch.autograd import Variable, grad
 
 from logging_carla import log

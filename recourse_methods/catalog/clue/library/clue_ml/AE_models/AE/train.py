@@ -1,12 +1,18 @@
 from __future__ import division, print_function
 
+import os
 import time
 
+import numpy as np
 import torch.utils.data
 from numpy.random import normal
 from torchvision.utils import make_grid
 
-from recourse_methods.catalog.clue.library.clue_ml.src.utils import *
+from logging_carla import log
+from recourse_methods.catalog.clue.library.clue_ml.src.utils import (
+    humansize,
+    torch_onehot,
+)
 
 
 def train_VAE(
@@ -54,13 +60,13 @@ def train_VAE(
             num_workers=0,
         )
 
-    ## ---------------------------------------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------------------------------
     # net dims
     log.info("\nNetwork:")
 
     epoch = 0
 
-    ## ---------------------------------------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------------------------------
     # train
     log.info("\nTrain:")
 
@@ -127,8 +133,9 @@ def train_VAE(
                 o = net.regenerate(zz)
                 try:
                     o = o.cpu()
-                except:
+                except Exception as e:
                     o = o.loc.cpu()
+                    print(f"Exception: {e}")
                 if len(x.shape) == 2:
                     side = int(np.sqrt(x.shape[1]))
                     x = x.view(-1, 1, side, side).data
@@ -148,8 +155,9 @@ def train_VAE(
                 x_rec = net.regenerate(z_sample)
                 try:
                     x_rec = x_rec.cpu()
-                except:
+                except Exception as e:
                     x_rec = x_rec.loc.cpu()
+                    print(f"Exception: {e}")
                 if len(x_rec.shape) == 2:
                     side = int(np.sqrt(x_rec.shape[1]))
                     x_rec = x_rec.view(-1, 1, side, side)
@@ -174,7 +182,7 @@ def train_VAE(
     runtime_per_it = (toc0 - tic0) / float(nb_epochs)
     log.info("average time: %f seconds\n" % runtime_per_it)
 
-    ## ---------------------------------------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------------------------------
     # results
     log.info("\nRESULTS:")
     nb_parameters = net.get_nb_parameters()
@@ -185,5 +193,5 @@ def train_VAE(
     log.info("best_vlb_train: %f" % best_cost_train)
     log.info("nb_parameters: %d (%s)\n" % (nb_parameters, humansize(nb_parameters)))
 
-    ## ---------------------------------------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------------------------------
     return vlb_train, vlb_dev

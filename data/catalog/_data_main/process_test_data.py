@@ -1,11 +1,7 @@
-import copy
+from random import seed
+
 import numpy as np
 import pandas as pd
-from sklearn import datasets
-
-from debug import ipsh
-
-from random import seed
 
 RANDOM_SEED = 54321
 seed(

@@ -1,10 +1,10 @@
 # Import packages
-from dash import Dash, html, dcc, callback, Output, Input, ctx, State
 import dash_bootstrap_components as dbc
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import shapely
-import numpy as np
+from dash import Dash, Input, Output, State, callback, ctx, dcc, html
 
 # Global Variables
 df = pd.read_csv("../results.csv")
@@ -231,7 +231,14 @@ app.layout = html.Div(
                 html.Div(
                     [
                         dcc.Dropdown(
-                            ["adult", "compass", "credit", "german", "mortgage", "twomoon"],
+                            [
+                                "adult",
+                                "compass",
+                                "credit",
+                                "german",
+                                "mortgage",
+                                "twomoon",
+                            ],
                             "adult",
                             id="dataset-radar-dropdown",
                         ),
@@ -239,11 +246,7 @@ app.layout = html.Div(
                     style={"width": "20%"},
                 ),
                 html.Div(
-                    [
-                        dcc.Dropdown(
-                            ["linear"], "linear", id="ml-model-radar-dropdown"
-                        )
-                    ],
+                    [dcc.Dropdown(["linear"], "linear", id="ml-model-radar-dropdown")],
                     style={"width": "20%"},
                 ),
                 html.Div([modal], style={"width": "20%"}),

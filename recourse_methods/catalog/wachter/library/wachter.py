@@ -4,7 +4,6 @@ from typing import List, Optional
 import numpy as np
 import torch
 import torch.optim as optim
-from torch import nn
 from torch.autograd import Variable
 
 from logging_carla import log

@@ -8,13 +8,12 @@ import torch.optim as optim
 
 from models.api import MLModel
 from recourse_methods.api import RecourseMethod
-from recourse_methods.processing import (
-    check_counterfactuals, merge_default_parameters,
-)
+from recourse_methods.processing import check_counterfactuals, merge_default_parameters
+
 
 class Gravitational(RecourseMethod):
     """
-    Implemention of Gravitational Recourse Algorithm 
+    Implemention of Gravitational Recourse Algorithm
 
     Parameters
     ----------
@@ -25,7 +24,7 @@ class Gravitational(RecourseMethod):
     x_center : numpy.array
         A central or sensible point in the feature space of the target class.
         By default, the mean of the instances belonging to the target class will be assign to x_center.
-    
+
     Methods
     -------
     get_counterfactuals:
@@ -40,12 +39,12 @@ class Gravitational(RecourseMethod):
         Sets x_center entry to x_center.
     reset_x_center:
         Sets the mean of the instances belonging to the target class to the x_center and return it.
-    
+
     Notes
     -----
     - Restriction
         * Currently working only with PyTorch models
-    
+
     -Hyperparams
         Hyperparameter contains important information for the recourse method to initialize.
         Please make sure to pass all values as dict with the following keys.
@@ -62,12 +61,12 @@ class Gravitational(RecourseMethod):
         * "target_class": int (0 or 1), default: 1:
             Specifies the desired class for the counterfactual.
         * "scheduler_step_size": int, default: 100
-            Step_size for "torch.optim.lr_scheduler.StepLR". Specifies the number of steps or epochs after 
+            Step_size for "torch.optim.lr_scheduler.StepLR". Specifies the number of steps or epochs after
             which the learning rate should be decreased.
         * "scheduler_gamma": float, default: 0.5
-            Gamma for "torch.optim.lr_scheduler.StepLR". Specifies the factor by which the learning rate is multiplied 
+            Gamma for "torch.optim.lr_scheduler.StepLR". Specifies the factor by which the learning rate is multiplied
             at each step when the scheduler is applied.
-    
+
     Implemented from:
         "Endogenous Macrodynamics in Algorithmic Recourse"
         Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S. Liem
@@ -81,16 +80,21 @@ class Gravitational(RecourseMethod):
         "num_steps": 100,
         "target_class": 1,
         "scheduler_step_size": 100,
-        "scheduler_gamma": 0.5
+        "scheduler_gamma": 0.5,
     }
 
-    def __init__(self, mlmodel: MLModel = None, hyperparams: Dict = None, x_center: np.array = None):
+    def __init__(
+        self,
+        mlmodel: MLModel = None,
+        hyperparams: Dict = None,
+        x_center: np.array = None,
+    ):
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
-        
+
         super().__init__(mlmodel)
 
         checked_hyperparams = merge_default_parameters(
@@ -116,12 +120,14 @@ class Gravitational(RecourseMethod):
             self.x_center = np.mean(x_train[y_train == self.target_class], axis=0)
 
         self.criterion = nn.CrossEntropyLoss()
-    
+
     def prediction_loss(self, model, x_cf, target_class):
         output = model.predict_proba(x_cf)
-        loss = self.criterion(output, torch.tensor([target_class] * output.size(0), dtype=torch.long))
+        loss = self.criterion(
+            output, torch.tensor([target_class] * output.size(0), dtype=torch.long)
+        )
         return loss
-    
+
     def cost(self, x_original, x_cf):
         return torch.norm(x_original - x_cf)
 
@@ -132,33 +138,43 @@ class Gravitational(RecourseMethod):
         factuals = factuals.reset_index()
         factuals = self._mlmodel.get_ordered_features(factuals)
         x_cf = torch.tensor(factuals.values, dtype=torch.float32, requires_grad=True)
-            
+
         optimizer = optim.Adam([x_cf], lr=self.learning_rate)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=self.scheduler_step_size, gamma=self.scheduler_gamma)
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=self.scheduler_step_size, gamma=self.scheduler_gamma
+        )
 
         for step in range(self.num_steps):
             optimizer.zero_grad()
 
-            prediction_loss_value = self.prediction_loss(self.mlmodel, x_cf, self.target_class)
-            original_dist = self.cost(torch.tensor(factuals.values, dtype=torch.float32), x_cf)
+            prediction_loss_value = self.prediction_loss(
+                self.mlmodel, x_cf, self.target_class
+            )
+            original_dist = self.cost(
+                torch.tensor(factuals.values, dtype=torch.float32), x_cf
+            )
             grav_penalty = self.gravitational_penalty(x_cf, self.x_center)
 
-            loss = self.prediction_loss_lambda * prediction_loss_value + self.original_dist_lambda * original_dist + self.grav_penalty_lambda * grav_penalty
+            loss = (
+                self.prediction_loss_lambda * prediction_loss_value
+                + self.original_dist_lambda * original_dist
+                + self.grav_penalty_lambda * grav_penalty
+            )
 
             loss.backward()
             optimizer.step()
             scheduler.step()
-        
+
         x_cf = x_cf.detach().numpy()
         x_cf_df = pd.DataFrame(x_cf, columns=factuals.columns)
         df_cfs = check_counterfactuals(self.mlmodel, x_cf_df, factuals.index)
         df_cfs = self._mlmodel.get_ordered_features(df_cfs)
 
         return df_cfs
-    
+
     def set_x_center(self, x_center):
         self.x_center = x_center
-    
+
     def reset_x_center(self):
         data = self.mlmodel.data()
         x_train = data.df_train().drop(data.target())

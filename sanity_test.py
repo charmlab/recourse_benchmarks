@@ -7,6 +7,7 @@ from models.catalog import ModelCatalog
 from models.negative_instances import predict_negative_instances
 from recourse_methods import GrowingSpheres
 
+
 @lru_cache(maxsize=None)
 def make_benchmark(data_name="adult", model_name="mlp"):
     # get data and mlmodel
@@ -48,8 +49,8 @@ def test_benchmarks():
 
     expected = (5, 9)
     actual = benchmark.shape
-    print(f'Actual Value: {actual}')
-    print(f'Expected Value: {expected}')
+    print(f"Actual Value: {actual}")
+    print(f"Expected Value: {expected}")
     assert expected == actual
 
 

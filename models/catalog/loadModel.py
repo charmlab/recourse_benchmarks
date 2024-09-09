@@ -1,32 +1,33 @@
+import pickle
+import sys
+import warnings
+from random import seed
+
+import numpy as np
+import pandas as pd
+import xgboost as xgb
+from matplotlib import pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+import data.catalog.loadData as loadData
+import models.catalog.utils as utils
+from models.catalog.modelConversion import (
+    PyTorchLogisticRegression,
+    PyTorchNeuralNetwork,
+    TensorflowLogisticRegression,
+    TensorflowNeuralNetwork,
+)
+
+
 def warn(*args, **kwargs):
     pass
 
 
-import warnings
-
 warnings.warn = warn  # to ignore all warnings.
 
-import sys
-import pickle
-import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
-
-import models.catalog.utils as utils
-import data.catalog.loadData as loadData
-
-from sklearn.metrics import accuracy_score
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-
-import xgboost as xgb
-from models.catalog.modelConversion import *
-
-from data.catalog.debug import ipsh
-
-from random import seed
 
 RANDOM_SEED = 54321
 seed(
@@ -34,12 +35,10 @@ seed(
 )  # set the random seed so that the random permutations can be reproduced again
 np.random.seed(RANDOM_SEED)
 
-# TODO: change to be like _data_main below, and make python module
-# this answer https://stackoverflow.com/a/50474562 and others
 try:
     import treeUtils
-except:
-    print("[ENV WARNING] treeUtils not available")
+except Exception as e:
+    print(f"[ENV WARNING] treeUtils not available. Error: {e}")
 
 SIMPLIFY_TREES = False
 
@@ -74,7 +73,7 @@ def loadModelForDataset(
     """
     log_file = (
         sys.stdout
-        if experiment_folder_name == None
+        if experiment_folder_name is None
         else open(f"{experiment_folder_name}/log_training.txt", "w")
     )
 
@@ -112,12 +111,8 @@ def loadModelForDataset(
     X_train, X_test, y_train, y_test = dataset_obj.getTrainTestSplit(
         preprocessing="normalize"
     )
-    X_all = pd.concat([X_train, X_test], axis=0)
     y_all = pd.concat([y_train, y_test], axis=0)
     assert sum(y_all) / len(y_all) == 0.5, "Expected class balance should be 50/50%."
-    feature_names = dataset_obj.getInputAttributeNames(
-        "kurz"
-    )  # easier to read (nothing to do with one-hot vs non-hit!)
 
     logisticRegressionMap = {
         "sklearn": LogisticRegression(
@@ -162,7 +157,6 @@ def loadModelForDataset(
     print(tmp_text, file=log_file)
 
     model_trained = model_pretrain.fit(X_train.values, y_train.values)
-    classifier_obj = model_trained
     # visualizeDatasetAndFixedModel(dataset_obj, classifier_obj, experiment_folder_name)
 
     if model_class == "tree":
@@ -290,14 +284,11 @@ def scatterDecisionBoundary(dataset_obj, classifier_obj, ax):
             / fixed_model_w[0][2]
         )
 
-        surf = ax.plot_wireframe(X, Y, Z, alpha=0.3)
-
 
 def visualizeDatasetAndFixedModel(dataset_obj, classifier_obj, experiment_folder_name):
     if not len(dataset_obj.getInputAttributeNames()) <= 3:
         return
 
-    fig = plt.figure()
     if len(dataset_obj.getInputAttributeNames()) == 2:
         ax = plt.subplot()
         ax.set_xlabel("x1")

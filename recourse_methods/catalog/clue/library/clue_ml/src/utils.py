@@ -1,19 +1,11 @@
 from __future__ import division, print_function
 
-import os
-
+import numpy as np
 import torch
+import torch.utils.data as data
 from torch.autograd import Variable
 
 from logging_carla import log
-
-try:
-    import cPickle as pickle  # type: ignore
-except:
-    import pickle  # type: ignore
-
-
-import torch.nn as nn
 
 suffixes = ["B", "KB", "MB", "GB", "TB", "PB"]
 
@@ -56,10 +48,6 @@ def to_variable(var=(), cuda=False, volatile=False):
             v = Variable(v, volatile=volatile)
         out.append(v)
     return out
-
-
-import numpy as np
-import torch.utils.data as data
 
 
 class Datafeed(data.Dataset):
@@ -138,8 +126,6 @@ def torch_onehot(y, Nclass):
     return y_onehot
 
 
-import contextlib
-
 _map_location = [None]
 
 
@@ -151,7 +137,7 @@ def MNIST_mean_std_norm(x):
     return x
 
 
-class Ln_distance(nn.Module):
+class Ln_distance(torch.nn.Module):
     """If dims is None Compute across all dimensions except first"""
 
     def __init__(self, n, dim=None):
@@ -178,7 +164,7 @@ def smooth_median(X, dim=0):
     return smooth_median
 
 
-class l1_MAD(nn.Module):
+class l1_MAD(torch.nn.Module):
     """Intuition behind this metric -> allows variability only where the dataset has variability
     Otherwise it penalises discrepancy heavily. Might not make much sense if data is already normalised to
     unit std. Might also not make sense if we want to detect outlier values in specific features.

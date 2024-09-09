@@ -1,12 +1,15 @@
+from random import seed
+
+import evaluation.catalog as evaluation_catalog
 from data.catalog import DataCatalog
 from evaluation import Benchmark
-import evaluation.catalog as evaluation_catalog
 from models.catalog import ModelCatalog
-from random import seed
 from recourse_methods import GrowingSpheres
 
 RANDOM_SEED = 54321
-seed(RANDOM_SEED) # set the random seed so that the random permutations can be reproduced again
+seed(
+    RANDOM_SEED
+)  # set the random seed so that the random permutations can be reproduced again
 
 # load a catalog dataset
 data_name = "adult"
@@ -27,12 +30,12 @@ counterfactuals = gs.get_counterfactuals(factuals)
 # Generate Benchmark for recourse method, model and data
 benchmark = Benchmark(model, gs, factuals)
 evaluation_measures = [
-      evaluation_catalog.YNN(benchmark.mlmodel, {"y": 5, "cf_label": 1}),
-      evaluation_catalog.Distance(benchmark.mlmodel),
-      evaluation_catalog.SuccessRate(),
-      evaluation_catalog.Redundancy(benchmark.mlmodel, {"cf_label": 1}),
-      evaluation_catalog.ConstraintViolation(benchmark.mlmodel),
-      evaluation_catalog.AvgTime({"time": benchmark.timer}),
+    evaluation_catalog.YNN(benchmark.mlmodel, {"y": 5, "cf_label": 1}),
+    evaluation_catalog.Distance(benchmark.mlmodel),
+    evaluation_catalog.SuccessRate(),
+    evaluation_catalog.Redundancy(benchmark.mlmodel, {"cf_label": 1}),
+    evaluation_catalog.ConstraintViolation(benchmark.mlmodel),
+    evaluation_catalog.AvgTime({"time": benchmark.timer}),
 ]
 df_benchmark = benchmark.run_benchmark(evaluation_measures)
 print(df_benchmark)

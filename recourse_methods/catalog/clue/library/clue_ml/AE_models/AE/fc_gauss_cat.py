@@ -1,20 +1,24 @@
 from __future__ import division
 
 import numpy as np
+import torch
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
 from torch.distributions import kl_divergence
 from torch.distributions.normal import Normal
 
 from logging_carla import log
-from recourse_methods.catalog.clue.library.clue_ml.src.gauss_cat import *
+from recourse_methods.catalog.clue.library.clue_ml.src.gauss_cat import (
+    flat_to_gauss_cat,
+    gauss_cat_to_flat,
+    rms_cat_loglike,
+    selective_softmax,
+)
 from recourse_methods.catalog.clue.library.clue_ml.src.probability import (
     normal_parse_params,
 )
 from recourse_methods.catalog.clue.library.clue_ml.src.radam import RAdam
-from recourse_methods.catalog.clue.library.clue_ml.src.utils import (
-    BaseNet,
-    to_variable,
-)
+from recourse_methods.catalog.clue.library.clue_ml.src.utils import BaseNet, to_variable
 
 from .models import MLP_preact_generator_net, MLP_preact_recognition_net
 

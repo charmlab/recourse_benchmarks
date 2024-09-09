@@ -1,16 +1,31 @@
-import graphviz
 import numpy as np
-from sklearn.tree import _tree, export_graphviz
-from pysmt.shortcuts import *
-from pysmt.typing import *
-
+from pysmt.shortcuts import (
+    FALSE,
+    GE,
+    GT,
+    LE,
+    TRUE,
+    And,
+    Bool,
+    EqualsOrIff,
+    Ite,
+    Not,
+    Or,
+    Plus,
+    Real,
+    Symbol,
+    Times,
+    ToReal,
+)
+from pysmt.typing import REAL
+from sklearn.tree import _tree
 
 # # Hoare triple examples:
 #     # https://www.cs.cmu.edu/~aldrich/courses/654-sp07/slides/7-hoare.pdf
 #     # https://cs.stackexchange.com/questions/86936/finding-weakest-precondition
 
 ################################################################################
-##                                                         Tree-related Methods
+#                                                         Tree-related Methods
 ################################################################################
 
 
@@ -79,7 +94,7 @@ def tree2c(tree, feature_names, return_value="class_idx_max", tree_idx=""):
             recurse(tree_.children_left[node], depth + 1)
             lines.append("{}}} else {{ ".format(indent))
             recurse(tree_.children_right[node], depth + 1)
-            lines.append("{}}}".format(indent, name, threshold))
+            lines.append("{}}}".format(indent))
         else:
             if return_value == "class_idx_max":
                 values = list(tree_.value[node][0])
@@ -155,7 +170,7 @@ def tree2formula(tree, model_symbols, return_value="class_idx_max", tree_idx="")
 
 
 ################################################################################
-##                                                       Forest-related Methods
+#                                                       Forest-related Methods
 ################################################################################
 
 
@@ -283,7 +298,7 @@ def forest2formula(forest, model_symbols):
 
 
 ################################################################################
-##                                          Logistic Regression-related Methods
+#                                          Logistic Regression-related Methods
 ################################################################################
 
 
@@ -375,7 +390,7 @@ def lr2formula(model, model_symbols):
 
 
 ################################################################################
-##                                       Multi-Layer Perceptron-related Methods
+#                                       Multi-Layer Perceptron-related Methods
 ################################################################################
 
 
@@ -410,7 +425,6 @@ def mlp2py(model):
 
 
 def mlp2c(model, feature_names):
-    num_layers = 2 + len(model.hidden_layer_sizes)
     layer_widths = []
     layer_widths.append(len(feature_names))
     layer_widths.extend(model.hidden_layer_sizes)
@@ -566,7 +580,6 @@ def mlp2formula(model, model_symbols):
             curr_layer_feature_string_2 = "f_{}_{}_post_nonlin".format(
                 layer_idx, curr_layer_feature_idx
             )
-            bias_string = "b_{}_{}".format(layer_idx, curr_layer_feature_idx)
 
             inputs_to_curr_layer_feature = []
             inputs_to_curr_layer_feature.append(
@@ -580,9 +593,6 @@ def mlp2formula(model, model_symbols):
                     input_layer_feature_string = list(
                         model_symbols["counterfactual"].keys()
                     )[prev_layer_feature_idx]
-                    weight_string = "w_{}_{}_{}".format(
-                        layer_idx - 1, prev_layer_feature_idx, curr_layer_feature_idx
-                    )
                     inputs_to_curr_layer_feature.append(
                         Times(
                             ToReal(
@@ -602,9 +612,6 @@ def mlp2formula(model, model_symbols):
                 else:
                     prev_layer_feature_string_2 = "f_{}_{}_post_nonlin".format(
                         layer_idx - 1, prev_layer_feature_idx
-                    )
-                    weight_string = "w_{}_{}_{}".format(
-                        layer_idx - 1, prev_layer_feature_idx, curr_layer_feature_idx
                     )
                     inputs_to_curr_layer_feature.append(
                         Times(

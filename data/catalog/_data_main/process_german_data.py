@@ -1,10 +1,10 @@
 import os
+from random import seed
+
 import numpy as np
 import pandas as pd
 
 pd.options.mode.chained_assignment = None
-
-from random import seed
 
 RANDOM_SEED = 54321
 seed(
@@ -15,11 +15,10 @@ np.random.seed(RANDOM_SEED)
 
 def load_german_data():
     # input vars
-    data_name = "german"
     raw_data_file = os.path.join(os.path.dirname(__file__), "german_raw.csv")
     processed_file = os.path.join(os.path.dirname(__file__), "german_processed.csv")
 
-    ##### German Data Processing
+    # German Data Processing
     raw_df = pd.read_csv(raw_data_file)  # , index_col = 0)
     processed_df = pd.DataFrame()
 

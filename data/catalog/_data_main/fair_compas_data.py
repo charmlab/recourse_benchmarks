@@ -1,14 +1,14 @@
 from __future__ import division
-import os, sys
+
+import os
+import urllib.request
+from collections import defaultdict
+from random import seed, shuffle
+
+import fair_utils_data as ut
 import numpy as np
 import pandas as pd
-import urllib.request
-import fair_utils_data as ut
-from random import seed, shuffle
 from sklearn import preprocessing
-from collections import defaultdict
-from sklearn import feature_extraction
-
 
 SEED = 1234
 seed(SEED)
@@ -180,11 +180,7 @@ def load_compas_data_new():
         "priors_count",
         "c_charge_degree",
     ]  # features to be used for classification
-    CONT_VARIABLES = [
-        "priors_count"
-    ]  # continuous features, will need to be handled separately from categorical features, categorical features will be encoded using one-hot
     CLASS_FEATURE = "two_year_recid"  # the decision variable
-    SENSITIVE_ATTRS = ["race"]
 
     file_name = "compas-scores-two-years.csv"
     this_files_directory = os.path.dirname(os.path.realpath(__file__))
@@ -211,7 +207,7 @@ def load_compas_data_new():
         & ((df["race"] == "African-American") | (df["race"] == "Caucasian"))
     )
 
-    df = df[tmp == True]
+    df = df[tmp]
     df = pd.concat(
         [
             df[FEATURES_CLASSIFICATION],

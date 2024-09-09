@@ -1,3 +1,5 @@
+import os
+import pathlib
 from typing import Any, List, Union
 
 import numpy as np
@@ -9,8 +11,6 @@ from data.catalog.online_catalog import DataCatalog
 from data.load_catalog import load
 from models.api import MLModel
 from models.catalog.loadModel import loadModelForDataset
-import os
-import pathlib
 
 
 class ModelCatalog(MLModel):
@@ -77,7 +77,9 @@ class ModelCatalog(MLModel):
         # Load catalog from saved yaml file
         catalog_content = ["mlp", "linear", "forest"]
         lib_path = pathlib.Path(__file__).parent.resolve()
-        catalog = load(os.path.join(lib_path, "mlmodel_catalog.yaml"), data.name, catalog_content)
+        catalog = load(
+            os.path.join(lib_path, "mlmodel_catalog.yaml"), data.name, catalog_content
+        )
 
         if model_type not in catalog:
             raise ValueError("Model type not in model catalog")
