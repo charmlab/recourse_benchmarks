@@ -165,3 +165,6 @@ class Gravitational(RecourseMethod):
         y_train = data.df_train()[data.target()]
         self.x_center = np.mean(x_train[y_train == self.target_class], axis=0)
         return self.x_center
+    
+    def get_x_center(self):
+        return self.x_center
