@@ -47,6 +47,12 @@ try:
 except Exception as e:
     print(f"[ENV WARNING] process_test_data not available. Error: {e}")
 
+try:
+    from data.catalog._data_main.process_breast_cancer_data import load_breast_cancer_data
+except:
+    print("[ENV WARNING] process_breast_cancer_data not available")
+
+
 VALID_ATTRIBUTE_DATA_TYPES = {
     "numeric-int",
     "numeric-real",
@@ -1291,6 +1297,47 @@ def loadDataset(
                 lower_bound=data_frame_non_hot[col_name].min(),
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
+    
+    elif dataset_name == "breast_cancer":
+        data_frame_non_hot = load_breast_cancer_data()
+        data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
+        attributes_non_hot = {}
+        
+        input_cols = [col for col in data_frame_non_hot.columns if col != 'target']
+        output_col = 'target'
+        
+        col_name = output_col
+        attributes_non_hot[col_name] = DatasetAttribute(
+            attr_name_long=col_name,
+            attr_name_kurz="y",
+            attr_type="binary",
+            node_type="output",
+            actionability="none",
+            mutability=False,
+            parent_name_long=-1,
+            parent_name_kurz=-1,
+            lower_bound=data_frame_non_hot[col_name].min(),
+            upper_bound=data_frame_non_hot[col_name].max(),
+        )
+        
+        for col_idx, col_name in enumerate(input_cols):
+            attr_type = "numeric-real"
+            actionability = "any"
+            mutability = True
+            
+            attributes_non_hot[col_name] = DatasetAttribute(
+                attr_name_long=col_name,
+                attr_name_kurz=f"x{col_idx}",
+                attr_type=attr_type,
+                node_type="input",
+                actionability=actionability,
+                mutability=mutability,
+                parent_name_long=-1,
+                parent_name_kurz=-1,
+                lower_bound=data_frame_non_hot[col_name].min(),
+                upper_bound=data_frame_non_hot[col_name].max(),
+            )
+
 
     else:
         raise Exception(f"{dataset_name} not recognized as a valid dataset.")
