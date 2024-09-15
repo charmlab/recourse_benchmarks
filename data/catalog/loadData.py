@@ -1303,8 +1303,7 @@ def loadDataset(
         data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
         attributes_non_hot = {}
         
-        input_cols = [col for col in data_frame_non_hot.columns if col != 'target']
-        output_col = 'target'
+        input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
         
         col_name = output_col
         attributes_non_hot[col_name] = DatasetAttribute(

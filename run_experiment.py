@@ -214,8 +214,8 @@ def create_parser():
         "-d",
         "--dataset",
         nargs="*",
-        default=["adult", "compass", "credit", "german", "mortgage", "twomoon"],
-        choices=["adult", "compass", "credit", "german", "mortgage", "twomoon"],
+        default=["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer"],
+        choices=["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer"],
         help="Datasets for experiment",
     )
     parser.add_argument(

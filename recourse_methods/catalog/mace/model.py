@@ -5,7 +5,7 @@ import pandas as pd
 import data.catalog.loadData as loadData
 from models.catalog import ModelCatalog
 from recourse_methods import RecourseMethod
-from recourse_methods.catalog.mace.library import generateExplanations
+from recourse_methods.catalog.mace.library.mace import generateExplanations
 from recourse_methods.processing import merge_default_parameters
 
 # Custom recourse implementations need to
