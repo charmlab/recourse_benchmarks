@@ -2,7 +2,6 @@ import sys
 import time
 from random import seed
 
-import normalizedDistance
 import numpy as np
 from loadCausalConstraints import (
     getGermanCausalConsistencyConstraints,
@@ -11,7 +10,6 @@ from loadCausalConstraints import (
     getTestCausalConsistencyConstraints,
     getTwoMoonCausalConsistencyConstraints,
 )
-from modelConversion import forest2formula, lr2formula, mlp2formula, tree2formula
 from pysmt.shortcuts import (
     GE,
     LE,
@@ -39,6 +37,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.tree import DecisionTreeClassifier
+
+from . import normalizedDistance
+from .modelConversion import forest2formula, lr2formula, mlp2formula, tree2formula
 
 RANDOM_SEED = 1122334455
 seed(

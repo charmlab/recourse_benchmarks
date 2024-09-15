@@ -6,6 +6,7 @@ from .catalog import (
     CEM,
     CRUD,
     FOCUS,
+    MACE,
     ActionableRecourse,
     CausalRecourse,
     Clue,

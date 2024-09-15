@@ -12,6 +12,7 @@ from .focus import FOCUS
 from .gravitational import Gravitational
 from .greedy import Greedy
 from .growing_spheres import GrowingSpheres
+from .mace import MACE
 from .revise import Revise
 from .roar import Roar
 from .wachter import Wachter

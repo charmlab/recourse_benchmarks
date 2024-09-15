@@ -1,21 +1,12 @@
 # flake8: noqa
-import os
-
-from logging_carla import log
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
-import warnings
-
-import pandas as pd
-
-warnings.simplefilter(action="ignore", category=FutureWarning)
-
 import argparse
+import os
+import warnings
 from random import seed
-from typing import Dict, Optional
+from typing import Dict
 
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import torch
 import yaml
@@ -26,21 +17,23 @@ import evaluation.catalog as evaluation_catalog
 from data.api import Data
 from data.catalog import DataCatalog
 from evaluation import Benchmark
+from logging_carla import log
 from models.api import MLModel
 from models.catalog import ModelCatalog
 from models.negative_instances import predict_negative_instances
 from recourse_methods import *
 from recourse_methods.api import RecourseMethod
-from recourse_methods.catalog.mace import MACE
 
 RANDOM_SEED = 54321
 
+np.random.seed(RANDOM_SEED)
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 seed(
     RANDOM_SEED
 )  # set the random seed so that the random permutations can be reproduced again
-np.random.seed(RANDOM_SEED)
 tf.set_random_seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 def load_setup() -> Dict:
