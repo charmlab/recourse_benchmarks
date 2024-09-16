@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 
 from data.catalog.debug import ipsh
 
+
 sys.path.insert(0, "_data_main")
 
 try:
@@ -102,9 +103,7 @@ class Dataset(object):
 
     def __init__(self, data_frame, attributes, is_one_hot, dataset_name):
         self.dataset_name = dataset_name
-
         self.is_one_hot = is_one_hot
-
         attributes_long = attributes
         data_frame_long = data_frame
         self.data_frame_long = (
@@ -113,7 +112,6 @@ class Dataset(object):
         self.attributes_long = (
             attributes_long  # i.e., attributes is indexed by attr_name_long
         )
-
         attributes_kurz = dict(
             (attributes[key].attr_name_kurz, value)
             for (key, value) in attributes_long.items()
@@ -126,7 +124,6 @@ class Dataset(object):
         self.attributes_kurz = (
             attributes_kurz  # i.e., attributes is indexed by attr_name_kurz
         )
-
         # assert that data_frame and attributes match on variable names (long)
         assert (
             len(
@@ -524,16 +521,17 @@ class Dataset(object):
         meta_cols = self.getMetaAttributeNames()
         input_cols = self.getInputAttributeNames()
         output_col = self.getOutputAttributeNames()[0]
-
+        
         # assert only two classes in label (maybe relax later??)
         assert np.array_equal(
             np.unique(balanced_data_frame[output_col]),
             np.array([0, 1]),  # only allowing {0, 1} labels
         )
-
         # get balanced dataframe (take minimum of the count, then round down to nearest 250)
         unique_values_and_count = balanced_data_frame[output_col].value_counts()
         number_of_subsamples_in_each_class = unique_values_and_count.min() // 250 * 250
+        if(number_of_subsamples_in_each_class == 0):
+            number_of_subsamples_in_each_class = unique_values_and_count.min()
         balanced_data_frame = pd.concat(
             [
                 balanced_data_frame[balanced_data_frame.loc[:, output_col] == 0].sample(
@@ -548,7 +546,6 @@ class Dataset(object):
         #     balanced_data_frame[balanced_data_frame.loc[:,output_col] == 0],
         #     balanced_data_frame[balanced_data_frame.loc[:,output_col] == 1],
         # ]).sample(frac = 1, random_state = RANDOM_SEED)
-
         return balanced_data_frame, meta_cols, input_cols, output_col
 
     # (2020.04.15) perhaps we need a memoize here... but I tried calling this function
@@ -1304,20 +1301,7 @@ def loadDataset(
         attributes_non_hot = {}
         
         input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
-        
-        col_name = output_col
-        attributes_non_hot[col_name] = DatasetAttribute(
-            attr_name_long=col_name,
-            attr_name_kurz="y",
-            attr_type="binary",
-            node_type="output",
-            actionability="none",
-            mutability=False,
-            parent_name_long=-1,
-            parent_name_kurz=-1,
-            lower_bound=data_frame_non_hot[col_name].min(),
-            upper_bound=data_frame_non_hot[col_name].max(),
-        )
+
         
         for col_idx, col_name in enumerate(input_cols):
             attr_type = "numeric-real"
@@ -1337,6 +1321,19 @@ def loadDataset(
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
 
+        col_name = output_col
+        attributes_non_hot[col_name] = DatasetAttribute(
+            attr_name_long=col_name,
+            attr_name_kurz="y",
+            attr_type="binary",
+            node_type="output",
+            actionability="none",
+            mutability=False,
+            parent_name_long=-1,
+            parent_name_kurz=-1,
+            lower_bound=data_frame_non_hot[col_name].min(),
+            upper_bound=data_frame_non_hot[col_name].max(),
+        )
 
     else:
         raise Exception(f"{dataset_name} not recognized as a valid dataset.")
@@ -1350,6 +1347,7 @@ def loadDataset(
 
     # save then return
     dataset_obj = Dataset(data_frame, attributes, return_one_hot, dataset_name)
+
     # if not loading from cache, we always overwrite the cache
     pickle.dump(dataset_obj, open(save_file_path, "wb"))
     return dataset_obj

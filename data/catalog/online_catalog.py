@@ -58,7 +58,6 @@ class DataCatalog(Data, ABC):
             load_from_cache=True,
             debug_flag=False,
         )
-        
         train_raw, test_raw, y_train, y_test = dataset_obj.getTrainTestSplit(
             preprocessing="normalize", train_split=train_split
         )
