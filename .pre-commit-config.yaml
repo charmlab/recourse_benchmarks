@@ -18,3 +18,37 @@ repos:
     hooks:
       - id: isort
         args: ["--profile", "black", "--filter-files"]
+  - repo: local
+    hooks:
+      - id: clean-pytest-cache
+        name: Remove pytest cache
+        entry: python clean_pytest_cache.py
+        language: system
+        types: [python]
+  - repo: local
+    hooks:
+      - id: check-new-methods-structure
+        name: Check new_methods Folder Structure and Run Unit Tests
+        entry: python folder_structure_check.py
+        language: python
+        types: [python]
+        additional_dependencies:
+          - causalgraphicalmodels==0.0.4
+          - dice-ml==0.5
+          - ipython==7.16.0
+          - h5py==2.10.0
+          - keras==2.3.0
+          - lime==0.2.0.1
+          - matplotlib
+          - mip==1.12.0
+          - pandas
+          - protobuf<=3.21
+          - PySMT==0.9.5
+          - pytest==6.1.2
+          - pyyaml
+          - recourse==1.0.0
+          - scikit-learn==0.23.2
+          - tensorflow==1.14.0
+          - torch
+          - torchvision
+          - xgboost==1.4.2
