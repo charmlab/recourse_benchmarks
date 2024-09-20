@@ -50,6 +50,14 @@ recourse_methods:
         hidden_layer: [20, 10, 7]
         train_ae: True
         epochs: 5
+  claproar:
+    hyperparams:
+      individual_cost_lambda: 0.1
+      external_cost_lambda: 0.1
+      learning_rate: 0.01
+      max_iter: 100
+      tol: 1e-4
+      target_class: 1
   clue:
     hyperparams:
       train_vae: True
