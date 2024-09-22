@@ -228,3 +228,40 @@ test:
       - x0_cat_2
       - x0_cat_3
     immutable:
+boston_housing:
+  default:
+    target: y
+    continuous:
+      - x0
+      - x1
+      - x2
+      - x4
+      - x5
+      - x6
+      - x7
+      - x9
+      - x10
+      - x11
+      - x12
+    categorical:
+      - x3
+      - x8
+    immutable:
+  one-hot:
+    target: y
+    continuous:
+      - x0
+      - x1
+      - x2
+      - x4
+      - x5
+      - x6
+      - x7
+      - x9
+      - x10
+      - x11
+      - x12
+    categorical:
+      - x3
+      - x8
+    immutable:
