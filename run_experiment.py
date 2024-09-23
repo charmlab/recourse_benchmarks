@@ -126,6 +126,9 @@ def initialize_recourse_method(
     elif "cem" in method:
         hyperparams["data_name"] = data_name
         return CEM(sess, mlmodel, hyperparams)
+    elif method == "claproar":
+        hyperparams["data_name"] = data_name
+        return ClaPROAR(mlmodel, hyperparams)
     elif method == "clue":
         hyperparams["data_name"] = data_name
         return Clue(data, mlmodel, hyperparams)
@@ -189,7 +192,7 @@ def create_parser():
         Choices: ["mlp", "linear", "forest"].
     -r, --recourse_method: Specifies recourse methods for the experiment.
         Default: ["dice", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "gs", "mace", "revise", "wachter"].
-        Choices: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
+        Choices: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "claproar", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
             "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter"].
     -n, --number_of_samples: Specifies the number of instances per dataset.
         Default: 20.
@@ -228,6 +231,7 @@ def create_parser():
             "cchvae",
             "cem",
             "cem_vae",
+            "claproar",
             "clue",
             "cruds",
             "face_knn",
@@ -246,6 +250,7 @@ def create_parser():
             "cchvae",
             "cem",
             "cem_vae",
+            "claproar",
             "clue",
             "cruds",
             "face_knn",
@@ -329,7 +334,7 @@ if __name__ == "__main__":
         results = pd.DataFrame()
 
     session_models = ["cem", "cem_vae", "greedy"]
-    torch_methods = ["cchvae", "clue", "cruds", "gravitational", "wachter", "revise"]
+    torch_methods = ["cchvae", "claproar", "clue", "cruds", "gravitational", "wachter", "revise"]
     sklearn_methods = ["feature_tweak", "focus", "mace"]
 
     for method_name in args.recourse_method:
