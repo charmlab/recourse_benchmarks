@@ -67,7 +67,7 @@ class ClaPROAR(RecourseMethod):
         "external_cost_lambda": 0.1,
         "learning_rate": 0.01,
         "max_iter": 100,
-        "tol": 1e-4,
+        "tol": 0.0001,
         "target_class": 1,
     }
 
@@ -92,41 +92,40 @@ class ClaPROAR(RecourseMethod):
         self.tol = checked_hyperparams["tol"]
         self.target_class = checked_hyperparams["target_class"]
 
-        self.criterion = nn.BCELoss()
+        self.criterion = nn.CrossEntropyLoss()
 
-    def compute_yloss(self, x_prime, y_star):
-        output = self.mlmodel(x_prime)
-        yloss = self.criterion(output, y_star)
+    def compute_yloss(self, x_prime):
+        output = self.mlmodel.predict_proba(x_prime)
+        yloss = self.criterion(output, torch.tensor([self.target_class] * output.size(0), dtype=torch.long))
         return yloss
 
     def compute_individual_cost(self, x, x_prime):
         return torch.norm(x - x_prime)
 
-    def compute_external_cost(self, x_prime, y_true):
-        output = self.mlmodel(x_prime)
-        ext_cost = self.criterion(output, y_true)
+    def compute_external_cost(self, x_prime):
+        output = self.mlmodel.predict_proba(x_prime)
+        ext_cost = self.criterion(output, torch.tensor([1 - self.target_class] * output.size(0), dtype=torch.long))
         return ext_cost
 
-    def compute_costs(self, x, x_prime, y_star, y_true):
-        yloss = self.compute_yloss(x_prime, y_star)
+    def compute_costs(self, x, x_prime):
+        yloss = self.compute_yloss(x_prime)
         individual_cost = self.compute_individual_cost(x, x_prime)
-        external_cost = self.compute_external_cost(x_prime, y_true)
+        external_cost = self.compute_external_cost(x_prime)
         
         return yloss + self.individual_cost_lambda * individual_cost + self.external_cost_lambda * external_cost
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
+        factuals = factuals.drop("y", axis=1)
 
         x = torch.tensor(factuals.values, dtype=torch.float32)
-        y_star = torch.tensor([[self.target_class]], dtype=torch.float32)
-        y_true = torch.tensor([[1 - self.target_class]], dtype=torch.float32)
-
+        
         x_prime = x.clone().detach().requires_grad_(True)
         optimizer_cf = optim.Adam([x_prime], lr=self.learning_rate)
         
         for i in range(self.max_iter):
             optimizer_cf.zero_grad()
             
-            objective = self.compute_costs(x, x_prime, y_star, y_true)
+            objective = self.compute_costs(x, x_prime)
             
             objective.backward()
             
