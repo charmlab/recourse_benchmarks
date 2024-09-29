@@ -53,6 +53,11 @@ try:
 except:
     print("[ENV WARNING] process_breast_cancer_data not available")
 
+try:
+    from data.catalog._data_main.process_boston_housing_data import load_boston_housing_data
+except:
+    print("[ENV WARNING] process_boston_housing_data not available")
+
 
 VALID_ATTRIBUTE_DATA_TYPES = {
     "numeric-int",
@@ -1333,6 +1338,41 @@ def loadDataset(
             parent_name_kurz=-1,
             lower_bound=data_frame_non_hot[col_name].min(),
             upper_bound=data_frame_non_hot[col_name].max(),
+        )
+    
+    elif dataset_name == "boston_housing":
+        data_frame_non_hot = load_boston_housing_data().reset_index(drop=True)
+
+        attributes_non_hot = {}
+
+        input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
+
+
+        for col_idx, col_name in enumerate(input_cols):
+            attributes_non_hot[col_name] = DatasetAttribute(
+                attr_name_long=col_name,
+                attr_name_kurz=f"x{col_idx}",
+                attr_type="numeric-real",
+                node_type="input",
+                actionability="any",
+                mutability=True,
+                parent_name_long=-1,
+                parent_name_kurz=-1,
+                lower_bound=data_frame_non_hot[col_name].min(),
+                upper_bound=data_frame_non_hot[col_name].max()
+            )
+
+        attributes_non_hot[output_col] = DatasetAttribute(
+            attr_name_long=output_col,
+            attr_name_kurz="y",
+            attr_type="numeric-real",
+            node_type="output",
+            actionability="none",
+            mutability=False,
+            parent_name_long=-1,
+            parent_name_kurz=-1,
+            lower_bound=data_frame_non_hot[output_col].min(),
+            upper_bound=data_frame_non_hot[output_col].max()
         )
 
     else:

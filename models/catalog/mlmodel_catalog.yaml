@@ -1813,3 +1813,247 @@ breast_cancer:
           - x27
           - x28
           - x29
+boston_housing:
+  mlp:
+    tensorflow:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+    pytorch:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+    sklearn:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+  linear:
+    tensorflow:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+    pytorch:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+    sklearn:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+  forest:
+    sklearn:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+    xgboost:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
