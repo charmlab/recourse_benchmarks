@@ -11,6 +11,21 @@ from models.catalog import ModelCatalog
 from recourse_methods import Greedy
 from models.negative_instances import predict_negative_instances
 
+"""
+The tests focus on two key aspects:
+1. Minimal perturbations (ensuring small changes between factuals and counterfactuals).
+2. Realism (ensuring counterfactuals belong to the data distribution of the target class).
+
+Minimal Perturbations using L1 Distance
+The research paper emphasizes that counterfactual explanations should have minimal perturbations, meaning the smallest necessary changes are made to the input (factual) to change the classification outcome.
+
+Realism using IM1 Score
+The paper introduces the IM1 score as a measure of realism for the generated counterfactuals. A counterfactual is considered realistic if it resembles data points from the target class distribution.
+
+Implented from:
+"Generating Interpretable Counterfactual Explanations By Implicit Minimisation of Epistemic and Aleatoric Uncertainties"
+Lisa Schut, Oscar Key, Rory McGrathz, Luca Costabelloz, Bogdan Sacaleanuz, Medb Corcoranz, Yarin Galy.
+"""
 
 def build_autoencoder(input_dim):
     input_layer = Input(shape=(input_dim,))
