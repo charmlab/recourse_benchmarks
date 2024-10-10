@@ -6,6 +6,15 @@ from models.catalog import ModelCatalog
 from recourse_methods import Gravitational
 from models.negative_instances import predict_negative_instances
 
+"""
+The test is designed to replicate the standard deviation results described in the research paper.
+By comparing the calculated standard deviation with the expected range,
+the test ensures that the generated counterfactuals are consistent with paper's findings.
+
+Implemented from:
+"Endogenous Macrodynamics in Algorithmic Recourse"
+Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S. Liem
+"""
 
 def calculate_std_deviation(counterfactuals):
     return np.std(counterfactuals, axis=0)
