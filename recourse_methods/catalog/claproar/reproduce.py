@@ -62,7 +62,7 @@ def test_claproar_distribution_shift(dataset_name):
 
     tolerance = 0.03
 
-    assert abs(mmd_value - expected_mmd_value) <= tolerance or abs(expected_mmd_value - mmd_value) <= tolerance, \
+    assert abs(mmd_value - expected_mmd_value) <= tolerance, \
         f"MMD value mismatch."
 
 @pytest.mark.parametrize("dataset_name", [
