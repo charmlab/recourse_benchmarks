@@ -9,6 +9,7 @@ from .catalog import (
     MACE,
     ActionableRecourse,
     CausalRecourse,
+    ClaPROAR,
     Clue,
     Dice,
     Face,
