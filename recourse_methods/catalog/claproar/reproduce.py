@@ -7,7 +7,15 @@ from models.catalog import ModelCatalog
 from recourse_methods import ClaPROAR
 from models.negative_instances import predict_negative_instances
 
+"""
+This test is designed to replicate the standard deviation results described in the research paper.
+By comparing the calculated standard deviation with the expected range,
+the test ensures that the generated counterfactuals are consistent with paper's findings.
 
+Implemented from:
+"Endogenous Macrodynamics in Algorithmic Recourse"
+Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S. Liem
+"""
 @pytest.mark.parametrize("dataset_name", [
     ("credit")
 ])
@@ -37,6 +45,16 @@ def test_claproar_counterfactuals_standard_deviation(dataset_name):
     assert np.allclose(std_deviation, expected_std_deviation, atol=tolerance), \
         "Standard deviation mismatch."
 
+"""
+This test focuses on measuring distribution shifts between the original data and
+the counterfactual data using the Maximum Mean Discrepancy (MMD) metric as described in the research paper.
+By comparing the calculated  Maximum Mean Discrepancy (MMD) with the expected range,
+the test ensures that the generated counterfactuals are consistent with paper's findings.
+
+Implemented from:
+"Endogenous Macrodynamics in Algorithmic Recourse"
+Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S. Liem
+"""
 @pytest.mark.parametrize("dataset_name", [
     ("credit")
 ])
@@ -65,6 +83,17 @@ def test_claproar_distribution_shift(dataset_name):
     assert abs(mmd_value - expected_mmd_value) <= tolerance, \
         f"MMD value mismatch."
 
+"""
+This test measures the individual cost of applying recourse,
+specifically focusing on the Euclidean distance between the original factual instances
+and the counterfactuals.
+By comparing the calculated indivdual cost with the expected range,
+the test ensures that the generated counterfactuals are consistent with paper's findings.
+
+Implemented from:
+"Endogenous Macrodynamics in Algorithmic Recourse"
+Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S. Liem
+"""
 @pytest.mark.parametrize("dataset_name", [
     ("credit")
 ])
