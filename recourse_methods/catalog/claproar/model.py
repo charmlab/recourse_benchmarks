@@ -84,9 +84,6 @@ class ClaPROAR(RecourseMethod):
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
 
-        # Assume you have a device setup (e.g., CUDA if available)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
         self.mlmodel = mlmodel
         self.individual_cost_lambda = checked_hyperparams["individual_cost_lambda"]
         self.external_cost_lambda = checked_hyperparams["external_cost_lambda"]
@@ -98,21 +95,16 @@ class ClaPROAR(RecourseMethod):
         self.criterion = nn.CrossEntropyLoss()
 
     def compute_yloss(self, x_prime):
-        x_prime = x_prime.to(self.device)
         output = self.mlmodel.predict_proba(x_prime)
-        target_class = torch.tensor([self.target_class] * output.size(0), dtype=torch.long).to(self.device)
-        yloss = self.criterion(output, target_class)
+        yloss = self.criterion(output, torch.tensor([self.target_class] * output.size(0), dtype=torch.long))
         return yloss
 
     def compute_individual_cost(self, x, x_prime):
         return torch.norm(x - x_prime)
 
     def compute_external_cost(self, x_prime):
-        x_prime = x_prime.to(self.device)
         output = self.mlmodel.predict_proba(x_prime)
-        target_class = torch.tensor([1- self.target_class] * output.size(0), dtype=torch.long).to(self.device)
-    
-        ext_cost = self.criterion(output, target_class)
+        ext_cost = self.criterion(output, torch.tensor([1 - self.target_class] * output.size(0), dtype=torch.long))
         return ext_cost
 
     def compute_costs(self, x, x_prime):
