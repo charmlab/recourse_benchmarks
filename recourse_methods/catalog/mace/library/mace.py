@@ -41,6 +41,11 @@ from sklearn.tree import DecisionTreeClassifier
 from . import normalizedDistance
 from .modelConversion import forest2formula, lr2formula, mlp2formula, tree2formula
 
+from pysmt.environment import reset_env, get_env
+
+reset_env()
+get_env().enable_infix_notation = True
+
 RANDOM_SEED = 1122334455
 seed(
     RANDOM_SEED
