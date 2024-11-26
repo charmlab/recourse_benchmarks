@@ -363,7 +363,8 @@ if __name__ == "__main__":
                 # face_knn requires datasets with immutable features.
                 if exists_already or (
                     "face" in method_name
-                    and (data_name == "mortgage" or data_name == "twomoon")
+                    and (data_name == "mortgage" or data_name == "twomoon" 
+                         or data_name == "boston_housing" or data_name == "breast_cancer")
                 ):
                     continue
 
