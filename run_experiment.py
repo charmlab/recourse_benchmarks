@@ -210,8 +210,10 @@ def create_parser():
         "-d",
         "--dataset",
         nargs="*",
-        default=["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer", "boston_housing"],
-        choices=["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer", "boston_housing"],
+        default=["adult", "compass", "credit", "german", "mortgage", "twomoon",
+                 "breast_cancer", "boston_housing", "online_news_popularity"],
+        choices=["adult", "compass", "credit", "german", "mortgage", "twomoon",
+                 "breast_cancer", "boston_housing", "online_news_popularity"],
         help="Datasets for experiment",
     )
     parser.add_argument(
@@ -363,7 +365,8 @@ if __name__ == "__main__":
                 # face_knn requires datasets with immutable features.
                 if exists_already or (
                     "face" in method_name
-                    and (data_name == "mortgage" or data_name == "twomoon")
+                    and (data_name == "mortgage" or data_name == "twomoon" 
+                         or data_name == "online_news_popularity")
                 ):
                     continue
 
