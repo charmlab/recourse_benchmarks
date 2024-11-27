@@ -15,8 +15,9 @@ seed(
 
 """
 The test is designed to replicate the sparsity results described in the research paper.
-By comparing the calculated standard deviation with the expected range,
-the test ensures that the generated counterfactuals are consistent with paper's findings.
+By comparing the calculated maximum number of features changed for generated counterfactuals
+with the expected range, the test ensures that the generated counterfactuals are consistent
+with paper's findings.
 
 Implemented from:
 "Laugel, T., Lesot, M. J., Marsala, C., Renard, X., & Detyniecki, M. (2017). 
