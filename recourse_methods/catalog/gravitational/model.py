@@ -101,6 +101,7 @@ class Gravitational(RecourseMethod):
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.mlmodel = mlmodel
         self.prediction_loss_lambda = checked_hyperparams["prediction_loss_lambda"]
         self.original_dist_lambda = checked_hyperparams["original_dist_lambda"]
@@ -122,9 +123,11 @@ class Gravitational(RecourseMethod):
         self.criterion = nn.CrossEntropyLoss()
 
     def prediction_loss(self, model, x_cf, target_class):
+        x_cf = x_cf.to(self.device)
         output = model.predict_proba(x_cf)
+        target_class = torch.tensor([target_class] * output.size(0), dtype=torch.long).to(self.device)
         loss = self.criterion(
-            output, torch.tensor([target_class] * output.size(0), dtype=torch.long)
+            output, target_class
         )
         return loss
 
