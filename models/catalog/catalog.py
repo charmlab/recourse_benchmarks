@@ -96,6 +96,9 @@ class ModelCatalog(MLModel):
             data.name,
             self._backend,
         )
+        if(self.backend == "pytorch"):    
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            self._model = self._model.to(device)
 
     def _test_accuracy(self):
         # get preprocessed data
