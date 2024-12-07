@@ -5,9 +5,7 @@ import torch
 from recourse_methods.catalog.clue.library.clue_ml.AE_models.AE.fc_gauss_cat import (
     VAE_gauss_cat_net,
 )
-from recourse_methods.catalog.clue.library.clue_ml.AE_models.AE.train import (
-    train_VAE,
-)
+from recourse_methods.catalog.clue.library.clue_ml.AE_models.AE.train import train_VAE
 from recourse_methods.catalog.clue.library.clue_ml.src.utils import Datafeed
 
 

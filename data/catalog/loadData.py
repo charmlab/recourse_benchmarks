@@ -10,7 +10,6 @@ from sklearn.model_selection import train_test_split
 
 from data.catalog.debug import ipsh
 
-
 sys.path.insert(0, "_data_main")
 
 try:
@@ -49,14 +48,18 @@ except Exception as e:
     print(f"[ENV WARNING] process_test_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_breast_cancer_data import load_breast_cancer_data
-except:
-    print("[ENV WARNING] process_breast_cancer_data not available")
+    from data.catalog._data_main.process_breast_cancer_data import (
+        load_breast_cancer_data,
+    )
+except Exception as e:
+    print(f"[ENV WARNING] process_breast_cancer_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_boston_housing_data import load_boston_housing_data
-except:
-    print("[ENV WARNING] process_boston_housing_data not available")
+    from data.catalog._data_main.process_boston_housing_data import (
+        load_boston_housing_data,
+    )
+except Exception as e:
+    print(f"[ENV WARNING] process_boston_housing_data not available. Error: {e}")
 
 
 VALID_ATTRIBUTE_DATA_TYPES = {
@@ -526,7 +529,7 @@ class Dataset(object):
         meta_cols = self.getMetaAttributeNames()
         input_cols = self.getInputAttributeNames()
         output_col = self.getOutputAttributeNames()[0]
-        
+
         # assert only two classes in label (maybe relax later??)
         assert np.array_equal(
             np.unique(balanced_data_frame[output_col]),
@@ -535,7 +538,7 @@ class Dataset(object):
         # get balanced dataframe (take minimum of the count, then round down to nearest 250)
         unique_values_and_count = balanced_data_frame[output_col].value_counts()
         number_of_subsamples_in_each_class = unique_values_and_count.min() // 250 * 250
-        if(number_of_subsamples_in_each_class == 0):
+        if number_of_subsamples_in_each_class == 0:
             number_of_subsamples_in_each_class = unique_values_and_count.min()
         balanced_data_frame = pd.concat(
             [
@@ -1299,20 +1302,19 @@ def loadDataset(
                 lower_bound=data_frame_non_hot[col_name].min(),
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
-    
+
     elif dataset_name == "breast_cancer":
         data_frame_non_hot = load_breast_cancer_data()
         data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
         attributes_non_hot = {}
-        
+
         input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
 
-        
         for col_idx, col_name in enumerate(input_cols):
             attr_type = "numeric-real"
             actionability = "any"
             mutability = True
-            
+
             attributes_non_hot[col_name] = DatasetAttribute(
                 attr_name_long=col_name,
                 attr_name_kurz=f"x{col_idx}",
@@ -1339,14 +1341,13 @@ def loadDataset(
             lower_bound=data_frame_non_hot[col_name].min(),
             upper_bound=data_frame_non_hot[col_name].max(),
         )
-    
+
     elif dataset_name == "boston_housing":
         data_frame_non_hot = load_boston_housing_data().reset_index(drop=True)
 
         attributes_non_hot = {}
 
         input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
-
 
         for col_idx, col_name in enumerate(input_cols):
             attributes_non_hot[col_name] = DatasetAttribute(
@@ -1359,7 +1360,7 @@ def loadDataset(
                 parent_name_long=-1,
                 parent_name_kurz=-1,
                 lower_bound=data_frame_non_hot[col_name].min(),
-                upper_bound=data_frame_non_hot[col_name].max()
+                upper_bound=data_frame_non_hot[col_name].max(),
             )
 
         attributes_non_hot[output_col] = DatasetAttribute(
@@ -1372,7 +1373,7 @@ def loadDataset(
             parent_name_long=-1,
             parent_name_kurz=-1,
             lower_bound=data_frame_non_hot[output_col].min(),
-            upper_bound=data_frame_non_hot[output_col].max()
+            upper_bound=data_frame_non_hot[output_col].max(),
         )
 
     else:

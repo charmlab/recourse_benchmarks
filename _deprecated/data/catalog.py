@@ -1,5 +1,4 @@
 from abc import ABC
-from typing import Callable, List, Tuple
 
 import pandas as pd
 from sklearn.base import BaseEstimator

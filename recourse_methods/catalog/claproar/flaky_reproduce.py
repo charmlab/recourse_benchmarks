@@ -1,11 +1,11 @@
-import pytest
 import numpy as np
+import pytest
 from sklearn.metrics.pairwise import rbf_kernel
 
 from data.catalog import DataCatalog
 from models.catalog import ModelCatalog
-from recourse_methods import ClaPROAR
 from models.negative_instances import predict_negative_instances
+from recourse_methods import ClaPROAR
 
 """
 This test is designed to replicate the standard deviation results described in the research paper.
@@ -16,9 +16,9 @@ Implemented from:
 "Endogenous Macrodynamics in Algorithmic Recourse"
 Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S. Liem
 """
-@pytest.mark.parametrize("dataset_name", [
-    ("credit")
-])
+
+
+@pytest.mark.parametrize("dataset_name", [("credit")])
 def test_claproar_counterfactuals_standard_deviation(dataset_name):
     data = DataCatalog(dataset_name, "linear", 0.7)
     model = ModelCatalog(data, "linear", backend="pytorch")
@@ -42,8 +42,10 @@ def test_claproar_counterfactuals_standard_deviation(dataset_name):
 
     tolerance = 0.2
 
-    assert np.allclose(std_deviation, expected_std_deviation, atol=tolerance), \
-        "Standard deviation mismatch."
+    assert np.allclose(
+        std_deviation, expected_std_deviation, atol=tolerance
+    ), "Standard deviation mismatch."
+
 
 """
 This test focuses on measuring distribution shifts between the original data and
@@ -55,9 +57,9 @@ Implemented from:
 "Endogenous Macrodynamics in Algorithmic Recourse"
 Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S. Liem
 """
-@pytest.mark.parametrize("dataset_name", [
-    ("credit")
-])
+
+
+@pytest.mark.parametrize("dataset_name", [("credit")])
 def test_claproar_distribution_shift(dataset_name):
     data = DataCatalog(dataset_name, "linear", 0.7)
     model = ModelCatalog(data, "linear", backend="pytorch")
@@ -80,8 +82,8 @@ def test_claproar_distribution_shift(dataset_name):
 
     tolerance = 0.03
 
-    assert abs(mmd_value - expected_mmd_value) <= tolerance, \
-        f"MMD value mismatch."
+    assert abs(mmd_value - expected_mmd_value) <= tolerance, "MMD value mismatch."
+
 
 """
 This test measures the individual cost of applying recourse,
@@ -94,9 +96,9 @@ Implemented from:
 "Endogenous Macrodynamics in Algorithmic Recourse"
 Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S. Liem
 """
-@pytest.mark.parametrize("dataset_name", [
-    ("credit")
-])
+
+
+@pytest.mark.parametrize("dataset_name", [("credit")])
 def test_claproar_individual_cost(dataset_name):
     data = DataCatalog(dataset_name, "linear", 0.7)
     model = ModelCatalog(data, "linear", backend="pytorch")
@@ -117,11 +119,11 @@ def test_claproar_individual_cost(dataset_name):
 
     expected_cost = 0.5
 
-    assert individual_cost <= expected_cost, \
-        f"Individual cost too high."
+    assert individual_cost <= expected_cost, "Individual cost too high."
+
 
 def compute_mmd(X, Y, gamma=0.05):
-        K_XX = rbf_kernel(X, X, gamma=gamma)
-        K_YY = rbf_kernel(Y, Y, gamma=gamma)
-        K_XY = rbf_kernel(X, Y, gamma=gamma)
-        return np.mean(K_XX) + np.mean(K_YY) - 2 * np.mean(K_XY)
+    K_XX = rbf_kernel(X, X, gamma=gamma)
+    K_YY = rbf_kernel(Y, Y, gamma=gamma)
+    K_XY = rbf_kernel(X, Y, gamma=gamma)
+    return np.mean(K_XX) + np.mean(K_YY) - 2 * np.mean(K_XY)

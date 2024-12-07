@@ -125,10 +125,10 @@ class Gravitational(RecourseMethod):
     def prediction_loss(self, model, x_cf, target_class):
         x_cf = x_cf.to(self.device)
         output = model.predict_proba(x_cf)
-        target_class = torch.tensor([target_class] * output.size(0), dtype=torch.long).to(self.device)
-        loss = self.criterion(
-            output, target_class
-        )
+        target_class = torch.tensor(
+            [target_class] * output.size(0), dtype=torch.long
+        ).to(self.device)
+        loss = self.criterion(output, target_class)
         return loss
 
     def cost(self, x_original, x_cf):

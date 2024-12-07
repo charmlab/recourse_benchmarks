@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 import pytest
-from tensorflow import Graph, Session
-
 from carla.data.catalog import OnlineCatalog
 from carla.models.catalog import MLModelCatalog
 from carla.models.negative_instances import predict_negative_instances
@@ -19,6 +17,7 @@ from carla.recourse_methods.catalog.growing_spheres.model import GrowingSpheres
 from carla.recourse_methods.catalog.revise import Revise
 from carla.recourse_methods.catalog.roar import Roar
 from carla.recourse_methods.catalog.wachter import Wachter
+from tensorflow import Graph, Session
 
 testmodel = ["ann", "linear"]
 

@@ -20,6 +20,9 @@ EXEMPTED_METHODS = [
     "revise",
     "roar",
     "wachter",
+    "claproar",
+    "gravitational",
+    "greedy",
 ]
 REQUIRED_FILES = ["__init__.py", "model.py", "reproduce.py"]
 ROOT_FOLDER = "recourse_methods\\catalog"

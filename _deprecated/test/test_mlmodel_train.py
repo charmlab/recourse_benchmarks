@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from carla.data.catalog import OnlineCatalog
 from carla.models.catalog import MLModelCatalog
 
