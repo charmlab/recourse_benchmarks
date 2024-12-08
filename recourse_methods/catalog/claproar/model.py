@@ -10,7 +10,6 @@ from recourse_methods.api import RecourseMethod
 from recourse_methods.processing import merge_default_parameters
 
 
-
 class ClaPROAR(RecourseMethod):
     """
     Implemention of ClaPROAR Recourse Algorithm
@@ -34,7 +33,7 @@ class ClaPROAR(RecourseMethod):
         Compute the individual cost. (Euclidean distance between x and x_prime)
     compute_external_cost:
         Compute the external cost. (The change in model loss when the new point x_prime is added)
-    
+
     Notes
     -----
     - Restriction
@@ -52,14 +51,14 @@ class ClaPROAR(RecourseMethod):
         * "max_iter": int, default: 100
             Maximum number of iterations.
         * "tol": float, default: 1e-4
-            This is the tolerance for convergence, which sets a threshold for the gradient norm. If the gradient norm falls below this value, 
+            This is the tolerance for convergence, which sets a threshold for the gradient norm. If the gradient norm falls below this value,
             the optimization process will stop
         * "target_class": int (0 or 1), default: 1
             Desired output class.
 
     Implemented from:
         "Endogenous Macrodynamics in Algorithmic Recourse"
-        Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S. 
+        Patrick Altmeyer, Giovan Angela, Karol Dobiczek, Arie van Deursen, Cynthia C. S.
     """
 
     _DEFAULT_HYPERPARAMS = {
@@ -98,7 +97,9 @@ class ClaPROAR(RecourseMethod):
     def compute_yloss(self, x_prime):
         x_prime = x_prime.to(self.device)
         output = self.mlmodel.predict_proba(x_prime)
-        target_class = torch.tensor([self.target_class] * output.size(0), dtype=torch.long).to(self.device)
+        target_class = torch.tensor(
+            [self.target_class] * output.size(0), dtype=torch.long
+        ).to(self.device)
         yloss = self.criterion(output, target_class)
         return yloss
 
@@ -108,7 +109,9 @@ class ClaPROAR(RecourseMethod):
     def compute_external_cost(self, x_prime):
         x_prime = x_prime.to(self.device)
         output = self.mlmodel.predict_proba(x_prime)
-        target_class = torch.tensor([1- self.target_class] * output.size(0), dtype=torch.long).to(self.device)
+        target_class = torch.tensor(
+            [1 - self.target_class] * output.size(0), dtype=torch.long
+        ).to(self.device)
         ext_cost = self.criterion(output, target_class)
         return ext_cost
 
@@ -116,28 +119,32 @@ class ClaPROAR(RecourseMethod):
         yloss = self.compute_yloss(x_prime)
         individual_cost = self.compute_individual_cost(x, x_prime)
         external_cost = self.compute_external_cost(x_prime)
-        
-        return yloss + self.individual_cost_lambda * individual_cost + self.external_cost_lambda * external_cost
+
+        return (
+            yloss
+            + self.individual_cost_lambda * individual_cost
+            + self.external_cost_lambda * external_cost
+        )
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
         factuals = factuals.drop("y", axis=1)
 
         x = torch.tensor(factuals.values, dtype=torch.float32)
-        
+
         x_prime = x.clone().detach().requires_grad_(True)
         optimizer_cf = optim.Adam([x_prime], lr=self.learning_rate)
-        
+
         for i in range(self.max_iter):
             optimizer_cf.zero_grad()
-            
+
             objective = self.compute_costs(x, x_prime)
-            
+
             objective.backward()
-            
+
             optimizer_cf.step()
-            
+
             if torch.norm(x_prime.grad) < self.tol:
-                print(f'Converged at iteration {i+1}')
+                print(f"Converged at iteration {i+1}")
                 break
 
         cfs = x_prime.detach()

@@ -1,8 +1,7 @@
 import pytest
+from carla.data.catalog import OnlineCatalog
 from pandas._testing import assert_frame_equal
 from sklearn import preprocessing
-
-from carla.data.catalog import OnlineCatalog
 
 testdata = ["adult", "give_me_some_credit", "compas", "heloc"]
 

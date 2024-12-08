@@ -195,12 +195,7 @@ class CEM(RecourseMethod):
             self._target_lab_score,
             gamma,
         )
-        (
-            _,
-            _,
-            _,
-            Loss_ToOptimize_s,
-        ) = self._compute_losses(
+        (_, _, _, Loss_ToOptimize_s,) = self._compute_losses(
             delta_s,
             self._adv_s,
             L2_dist_s,

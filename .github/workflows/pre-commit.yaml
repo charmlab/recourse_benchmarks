@@ -1,0 +1,24 @@
+name: Run pre-commit hooks
+
+on: [pull_request]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.7'
+
+      - name: Install dependencies
+        run: |
+          pip install pre-commit
+          pre-commit install-hooks
+
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files

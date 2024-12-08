@@ -5,10 +5,7 @@ import pandas as pd
 from recourse_methods.api import RecourseMethod
 from recourse_methods.autoencoder import CSVAE
 from recourse_methods.catalog.crud.library import counterfactual_search
-from recourse_methods.processing import (
-    check_counterfactuals,
-    merge_default_parameters,
-)
+from recourse_methods.processing import check_counterfactuals, merge_default_parameters
 
 
 class CRUD(RecourseMethod):

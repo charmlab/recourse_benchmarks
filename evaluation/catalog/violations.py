@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 from data.api import Data
-from evaluation.process_nans import remove_nans
 from evaluation.api import Evaluation
+from evaluation.process_nans import remove_nans
 
 
 def _intersection(list1: List, list2: List):

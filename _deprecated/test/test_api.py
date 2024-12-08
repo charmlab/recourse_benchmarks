@@ -1,7 +1,6 @@
 from abc import ABC
 
 import pytest
-
 from carla.data.api import Data
 from carla.data.catalog import DataCatalog, OnlineCatalog
 from carla.models.api import MLModel

@@ -1,5 +1,6 @@
-import numpy as np
 from random import seed
+
+import numpy as np
 
 SEED = 1122334455
 seed(

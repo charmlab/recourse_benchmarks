@@ -1,5 +1,5 @@
-import inspect
 import collections
+import inspect
 
 
 # See https://www.python-course.eu/python3_memoization.php

@@ -1,5 +1,4 @@
 import numpy as np
-
 from carla.data.load_scm.distributions import (
     Bernoulli,
     Gamma,

@@ -2,13 +2,8 @@ import pandas as pd
 
 from models.api import MLModel
 from recourse_methods.api import RecourseMethod
-from recourse_methods.catalog.growing_spheres.library import (
-    growing_spheres_search,
-)
-from recourse_methods.processing import (
-    check_counterfactuals,
-    encode_feature_names,
-)
+from recourse_methods.catalog.growing_spheres.library import growing_spheres_search
+from recourse_methods.processing import check_counterfactuals, encode_feature_names
 
 
 class GrowingSpheres(RecourseMethod):

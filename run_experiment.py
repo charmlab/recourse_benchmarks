@@ -210,8 +210,26 @@ def create_parser():
         "-d",
         "--dataset",
         nargs="*",
-        default=["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer", "boston_housing"],
-        choices=["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer", "boston_housing"],
+        default=[
+            "adult",
+            "compass",
+            "credit",
+            "german",
+            "mortgage",
+            "twomoon",
+            "breast_cancer",
+            "boston_housing",
+        ],
+        choices=[
+            "adult",
+            "compass",
+            "credit",
+            "german",
+            "mortgage",
+            "twomoon",
+            "breast_cancer",
+            "boston_housing",
+        ],
         help="Datasets for experiment",
     )
     parser.add_argument(
@@ -334,7 +352,15 @@ if __name__ == "__main__":
         results = pd.DataFrame()
 
     session_models = ["cem", "cem_vae", "greedy"]
-    torch_methods = ["cchvae", "claproar", "clue", "cruds", "gravitational", "wachter", "revise"]
+    torch_methods = [
+        "cchvae",
+        "claproar",
+        "clue",
+        "cruds",
+        "gravitational",
+        "wachter",
+        "revise",
+    ]
     sklearn_methods = ["feature_tweak", "focus", "mace"]
 
     for method_name in args.recourse_method:

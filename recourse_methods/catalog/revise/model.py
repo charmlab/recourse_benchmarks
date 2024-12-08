@@ -5,8 +5,8 @@ import pandas as pd
 import torch
 from torch import nn
 
-from logging_carla import log
 from data.api import Data
+from logging_carla import log
 from models.api import MLModel
 from recourse_methods.api import RecourseMethod
 from recourse_methods.autoencoder import VariationalAutoencoder

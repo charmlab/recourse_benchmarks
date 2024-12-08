@@ -1,5 +1,3 @@
-from sklearn.tree import _tree
-
 from carla.data.catalog import OnlineCatalog
 from carla.models.catalog import MLModelCatalog
 from carla.models.catalog.parse_xgboost import (
@@ -11,6 +9,7 @@ from carla.models.catalog.parse_xgboost import (
     re_feature,
     re_numbers,
 )
+from sklearn.tree import _tree
 
 
 def test_constants():
