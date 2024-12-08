@@ -25,7 +25,7 @@ EXEMPTED_METHODS = [
     "greedy",
 ]
 REQUIRED_FILES = ["__init__.py", "model.py", "reproduce.py"]
-ROOT_FOLDER = "recourse_methods\\catalog"
+ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "recourse_methods", "catalog")
 
 
 def check_folder_structure(folder_path):
