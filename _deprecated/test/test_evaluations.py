@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-
 from carla.data.catalog import OnlineCatalog
 from carla.evaluation import remove_nans
 from carla.evaluation.catalog import distance

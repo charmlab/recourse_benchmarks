@@ -4,10 +4,7 @@ import pandas as pd
 
 from recourse_methods.api import RecourseMethod
 from recourse_methods.catalog.wachter.library import wachter_recourse
-from recourse_methods.processing import (
-    check_counterfactuals,
-    merge_default_parameters,
-)
+from recourse_methods.processing import check_counterfactuals, merge_default_parameters
 
 
 class Wachter(RecourseMethod):

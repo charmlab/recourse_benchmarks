@@ -1,8 +1,6 @@
 import numpy as np
 import tensorflow as tf
 import torch
-from keras import backend as K
-
 from carla.data.catalog import OnlineCatalog
 from carla.models.catalog import MLModelCatalog
 from carla.recourse_methods.autoencoder import (
@@ -11,6 +9,7 @@ from carla.recourse_methods.autoencoder import (
     VariationalAutoencoder,
     train_autoencoder,
 )
+from keras import backend as K
 
 
 def test_cs_vae():

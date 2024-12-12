@@ -153,16 +153,20 @@ def growing_spheres_search(
         low = high
         high = low + step
 
-    candidate_counterfactual_star = feature_selection(instance, candidate_counterfactual_star, model,
-                                                       keys_mutable, feature_order)
-    
+    candidate_counterfactual_star = feature_selection(
+        instance, candidate_counterfactual_star, model, keys_mutable, feature_order
+    )
+
     return candidate_counterfactual_star
 
-def feature_selection(instance, candidate_counterfactual, model, keys_mutable, feature_order):
+
+def feature_selection(
+    instance, candidate_counterfactual, model, keys_mutable, feature_order
+):
     """
     Reduces the number of features changed in the counterfactual while keeping the prediction.
     """
-    
+
     instance = instance.values if isinstance(instance, pd.Series) else instance
 
     instance_label = np.argmax(model.predict_proba(instance.reshape(1, -1)))
@@ -171,7 +175,7 @@ def feature_selection(instance, candidate_counterfactual, model, keys_mutable, f
     mutable_indices = [feature_order.index(feature) for feature in keys_mutable]
 
     for idx in mutable_indices:
-       
+
         temp_counterfactual = candidate_counterfactual.copy()
         temp_counterfactual[idx] = instance[idx]
 

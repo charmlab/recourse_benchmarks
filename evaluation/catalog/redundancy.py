@@ -3,8 +3,8 @@ from typing import List
 import numpy as np
 import pandas as pd
 
-from evaluation.process_nans import remove_nans
 from evaluation.api import Evaluation
+from evaluation.process_nans import remove_nans
 
 
 class Redundancy(Evaluation):

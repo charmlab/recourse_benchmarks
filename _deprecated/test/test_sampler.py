@@ -1,5 +1,4 @@
 import numpy as np
-
 from carla.data.causal_model import CausalModel
 from carla.recourse_methods.catalog.causal_recourse.samplers import get_abduction_noise
 

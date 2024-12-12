@@ -3,16 +3,15 @@ from typing import Union
 import pandas as pd
 import torch
 import xgboost
-from sklearn.ensemble import RandomForestClassifier
-from torch import nn
-from torch.utils.data import DataLoader, Dataset
-
 from carla.models.catalog.ANN_TF import AnnModel
 from carla.models.catalog.ANN_TF import AnnModel as ann_tf
 from carla.models.catalog.ANN_TORCH import AnnModel as ann_torch
 from carla.models.catalog.Linear_TF import LinearModel
 from carla.models.catalog.Linear_TF import LinearModel as linear_tf
 from carla.models.catalog.Linear_TORCH import LinearModel as linear_torch
+from sklearn.ensemble import RandomForestClassifier
+from torch import nn
+from torch.utils.data import DataLoader, Dataset
 
 
 def train_model(
