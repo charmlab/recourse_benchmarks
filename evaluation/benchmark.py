@@ -4,8 +4,8 @@ from typing import List
 import pandas as pd
 
 from evaluation.api import Evaluation
+from methods.api import RecourseMethod
 from models.api import MLModel
-from recourse_methods.api import RecourseMethod
 
 
 class Benchmark:
@@ -20,7 +20,7 @@ class Benchmark:
     ----------
     mlmodel: models.MLModel
         Black Box model we want to explain.
-    recourse_method: recourse_methods.RecourseMethod
+    recourse_method: methods.RecourseMethod
         Recourse method we want to benchmark.
     factuals: pd.DataFrame
         Instances for which we want to find counterfactuals.
