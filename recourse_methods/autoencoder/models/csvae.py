@@ -10,9 +10,9 @@ import torch.nn as nn
 from torch import optim
 from tqdm import trange
 
-from logging_carla import log
 from recourse_methods.autoencoder.losses import csvae_loss
 from recourse_methods.autoencoder.save_load import get_home
+from tools.logging import log
 
 tf.compat.v1.disable_eager_execution()
 

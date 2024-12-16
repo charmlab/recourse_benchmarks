@@ -17,12 +17,12 @@ import evaluation.catalog as evaluation_catalog
 from data.api import Data
 from data.catalog import DataCatalog
 from evaluation import Benchmark
-from logging_carla import log
 from models.api import MLModel
 from models.catalog import ModelCatalog
 from models.negative_instances import predict_negative_instances
 from recourse_methods import *
 from recourse_methods.api import RecourseMethod
+from tools.logging import log
 
 RANDOM_SEED = 54321
 

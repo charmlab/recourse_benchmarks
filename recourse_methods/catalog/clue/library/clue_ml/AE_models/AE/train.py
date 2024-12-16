@@ -8,11 +8,11 @@ import torch.utils.data
 from numpy.random import normal
 from torchvision.utils import make_grid
 
-from logging_carla import log
 from recourse_methods.catalog.clue.library.clue_ml.src.utils import (
     humansize,
     torch_onehot,
 )
+from tools.logging import log
 
 
 def train_VAE(

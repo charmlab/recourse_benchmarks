@@ -191,7 +191,7 @@ Using python directly or within activated virtual environment:
 
 ```sh
 pip install -r requirements-dev.txt
-python -m pytest .\sanity_test.py
+python -m pytest .\tools\sanity_test.py
 ```
 
 ## Running Experiment

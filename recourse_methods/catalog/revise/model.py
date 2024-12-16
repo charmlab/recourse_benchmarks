@@ -6,7 +6,6 @@ import torch
 from torch import nn
 
 from data.api import Data
-from logging_carla import log
 from models.api import MLModel
 from recourse_methods.api import RecourseMethod
 from recourse_methods.autoencoder import VariationalAutoencoder
@@ -15,6 +14,7 @@ from recourse_methods.processing.counterfactuals import (
     merge_default_parameters,
     reconstruct_encoding_constraints,
 )
+from tools.logging import log
 
 
 class Revise(RecourseMethod):

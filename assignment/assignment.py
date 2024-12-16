@@ -21,11 +21,11 @@ import yaml
 
 # flake8: noqa
 from data.catalog import DataCatalog
-from logging_carla import log
 from models.catalog import ModelCatalog
 from models.negative_instances import predict_negative_instances
 from recourse_methods import Dice  # TO-DO: Replace with implemented recourse method
 from recourse_methods.processing import create_hash_dataframe
+from tools.logging import log
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 warnings.simplefilter(action="ignore", category=FutureWarning)

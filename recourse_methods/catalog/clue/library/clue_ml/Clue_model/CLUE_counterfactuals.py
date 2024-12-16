@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam
 
-from logging_carla import log
 from recourse_methods.catalog.clue.library.clue_ml.src.probability import (
     decompose_entropy_cat,
     decompose_std_gauss,
@@ -17,6 +16,7 @@ from recourse_methods.catalog.clue.library.clue_ml.src.utils import (
     MNIST_mean_std_norm,
     generate_ind_batch,
 )
+from tools.logging import log
 
 """
 Here we conduct the search for counterfactual explanations using CLUE.
