@@ -18,7 +18,7 @@ This repository is inspired and built on the CARLA library. CARLA is a python li
 - Benchmarking (notebook): [Source](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/notebooks/benchmark_example.html)
 - Adding your own Data: [Source](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#data)
 - Adding your own ML-Model: [Source](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#black-box-model)
-- Adding your own Recourse Method: [Source 1](recourse_addition.md) [Source 2](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#recourse-method)
+- Adding your own Recourse Method: [Source 1](documentation\recourse_addition.md) [Source 2](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#recourse-method)
 
 ### Available Datasets
 
@@ -183,7 +183,7 @@ pip install -r .\requirements.txt
 python .\server.py
 ```
 
-Read more from [here](livesite_amend.md) to learn about amending the live site tool.
+Read more from [here](documentation\livesite_amend.md) to learn about amending the live site tool.
 
 ## Testing
 
