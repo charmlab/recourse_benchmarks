@@ -7,7 +7,7 @@ import shapely
 from dash import Dash, Input, Output, State, callback, ctx, dcc, html
 
 # Global Variables
-df = pd.read_csv("../results.csv")
+df = pd.read_csv("../experiments/results.csv")
 categories = ["Similarity", "Coverage", "Runtime"]  # Metrics for Radar Chart
 methods_list = [
     "cchvae",

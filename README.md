@@ -114,7 +114,7 @@ This folder contains the implementation of all evaluation and benchmark metrics 
 
 ### Live Site Folder
 
-This folder contains the implementation of the frontend UI interface, which displays results stored in `results.csv` from executing `./run_experiment.py`.
+This folder contains the implementation of the frontend UI interface, which displays results stored in `results.csv` from executing `./experiments/run_experiment.py`.
 
 ### Models Folder
 
@@ -199,7 +199,7 @@ python -m pytest .\sanity_test.py
 Before running the command below, clear out all former computations from the `results.csv` file. Ensure to maintain the header (first line) of the csv file, and only delete the computation result.
 
 ```sh
-python .\run_experiment.py
+python -m experiments.run_experiment
 ```
 
 ## Linting and Styling

@@ -54,7 +54,7 @@ def load_setup() -> Dict:
     FileNotFoundError: If the experimental setup file ("experimental_setup.yaml") is not found.
     yaml.YAMLError: If there is an error while parsing the YAML file.
     """
-    with open("./experimental_setup.yaml", "r") as f:
+    with open("./experiments/experimental_setup.yaml", "r") as f:
         setup_catalog = yaml.safe_load(f)
 
     return setup_catalog["recourse_methods"]
@@ -345,7 +345,7 @@ if __name__ == "__main__":
     args = create_parser().parse_args()
     setup = load_setup()
 
-    path = "results.csv"  # args.path
+    path = file_path = os.path.join(os.path.dirname(__file__), "results.csv")
     if os.path.isfile(path):
         results = pd.read_csv(path)
     else:

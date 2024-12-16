@@ -64,7 +64,7 @@ def load_setup() -> Dict:
     FileNotFoundError: If the experimental setup file ("experimental_setup.yaml") is not found.
     yaml.YAMLError: If there is an error while parsing the YAML file.
     """
-    with open("./experimental_setup.yaml", "r") as f:
+    with open("./experiments/experimental_setup.yaml", "r") as f:
         setup_catalog = yaml.safe_load(f)
 
     return setup_catalog["recourse_methods"]
