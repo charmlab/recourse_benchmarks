@@ -122,7 +122,7 @@ This folder contains all implemented models/classifiers in the repository. It al
 
 ### Recourse Methods
 
-This folder contains all the implemented recourse methods in the repository. Each recourse method has its own subfolder within the catalog directory (`recourse_methods/catalog`) and is implemented using the `RecourseMethod` API class` interface.
+This folder contains all the implemented recourse methods in the repository. Each recourse method has its own subfolder within the catalog directory (`methods/catalog`) and is implemented using the `RecourseMethod` API class` interface.
 
 ## Quickstart
 
@@ -132,7 +132,7 @@ from evaluation import Benchmark
 import evaluation.catalog as evaluation_catalog
 from models.catalog import ModelCatalog
 from random import seed
-from recourse_methods import GrowingSpheres
+from methods import GrowingSpheres
 
 RANDOM_SEED = 54321
 seed(RANDOM_SEED) # set the random seed so that the random permutations can be reproduced again
@@ -253,7 +253,7 @@ Contributions of any kind are very much welcome! Take a look at the To-Do issues
 
 ### Reproducibility
 
-- It is essential that implemented algorithms closely match the research paper they are derived from. Therefore, every implemented algorithm must be accompanied by a `reproduce.py` test file (in the corresponding folder in `recourse_methods/catalog`). This file should contain unit tests that replicate the experiments presented in the corresponding research paper, ensuring that the results obtained are consistent with those reported in the paper, within an acceptable margin of error.
+- It is essential that implemented algorithms closely match the research paper they are derived from. Therefore, every implemented algorithm must be accompanied by a `reproduce.py` test file (in the corresponding folder in `methods/catalog`). This file should contain unit tests that replicate the experiments presented in the corresponding research paper, ensuring that the results obtained are consistent with those reported in the paper, within an acceptable margin of error.
 
 ## To-Do Issues
 

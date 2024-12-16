@@ -16,11 +16,11 @@ This document serves as a guideline that itemizes the steps required in adding a
 
 3. Conversely, if the algorithm does not exist as a published python package, then the counterfactual generation algorithm would be implemented, and stored locally in the repository.
 
-4. New recourse methods are added as a folder in the recourse_methods/catalog directory.
+4. New recourse methods are added as a folder in the methods/catalog directory.
 
-5. New additions come with customary `__init__.py`, `model.py` and `reproduce.py` files. The `__init__.py` file is simply an initialization file that allows the created recourse method class from `model.py` to be called on. For instance, here is the [dice](https://github.com/charmlab/recourse_benchmarks/tree/main/recourse_methods/catalog/dice) recourse method, added to the repository with these files defined.
+5. New additions come with customary `__init__.py`, `model.py` and `reproduce.py` files. The `__init__.py` file is simply an initialization file that allows the created recourse method class from `model.py` to be called on. For instance, here is the [dice](https://github.com/charmlab/recourse_benchmarks/tree/main/methods/catalog/dice) recourse method, added to the repository with these files defined.
 
-6. The `model.py` file is where the recourse method is explicitly defined, according to the `RecourseMethod` interface. Example usage is seen [here](https://github.com/charmlab/recourse_benchmarks/blob/main/recourse_methods/catalog/dice/model.py). As indicated above, implementation may differ if the algorithm/method exists as a python package in PYPI or otherwise.
+6. The `model.py` file is where the recourse method is explicitly defined, according to the `RecourseMethod` interface. Example usage is seen [here](https://github.com/charmlab/recourse_benchmarks/blob/main/methods/catalog/dice/model.py). As indicated above, implementation may differ if the algorithm/method exists as a python package in PYPI or otherwise.
 
    - If the former is the case:
 
@@ -28,7 +28,7 @@ This document serves as a guideline that itemizes the steps required in adding a
 
    - If the later is the case:
 
-     - Recourse methods whose algorithmic implementation do not exist as a published python package, may need to create a `/library` folder in the root directory of the associated recourse method that exists in the `recourse_methods/catalog `directory. For example: here’s the [library folder](https://github.com/charmlab/recourse_benchmarks/tree/main/recourse_methods/catalog/wachter/library) created for the watcher recourse method, to house its algorithmic implementation.
+     - Recourse methods whose algorithmic implementation do not exist as a published python package, may need to create a `/library` folder in the root directory of the associated recourse method that exists in the `methods/catalog `directory. For example: here’s the [library folder](https://github.com/charmlab/recourse_benchmarks/tree/main/methods/catalog/wachter/library) created for the watcher recourse method, to house its algorithmic implementation.
 
      - As highlighted in the previous paragraph, the library folder is intended to house the algorithmic implementation of the recourse method.Consequently, all associated implementations should be housed in this folder. However, there are exceptions where the algorithms are non-complex, and do not require a separation of files. If the implemented algorithm is short, and can be fit within the `model.py` file, then there is no need to create a separate library folder.
      - The final counterfactual generating function should be referenced in the `model.py file`, and specifically in the `get_counterfactuals` function.
