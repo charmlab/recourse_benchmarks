@@ -13,49 +13,61 @@ from data.catalog.debug import ipsh
 sys.path.insert(0, "_data_main")
 
 try:
-    from data.catalog._data_main.fair_adult_data import load_adult_data_new
+    from data.catalog._data_main.process_data.process_adult_data import (
+        load_adult_data_new,
+    )
 except Exception as e:
-    print(f"[ENV WARNING] fair_adult_data not available. Error: {e}")
+    print(f"[ENV WARNING] process_adult_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.fair_compas_data import load_compas_data_new
+    from data.catalog._data_main.process_data.process_compas_data import (
+        load_compas_data_new,
+    )
 except Exception as e:
-    print(f"[ENV WARNING] fair_compas_data not available. Error: {e}")
+    print(f"[ENV WARNING] process_compas_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_credit_data import load_credit_data
+    from data.catalog._data_main.process_data.process_credit_data import (
+        load_credit_data,
+    )
 except Exception as e:
     print(f"[ENV WARNING] process_credit_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_german_data import load_german_data
+    from data.catalog._data_main.process_data.process_german_data import (
+        load_german_data,
+    )
 except Exception as e:
     print(f"[ENV WARNING] process_german_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_mortgage_data import load_mortgage_data
+    from data.catalog._data_main.process_data.process_mortgage_data import (
+        load_mortgage_data,
+    )
 except Exception as e:
     print(f"[ENV WARNING] process_mortgage_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_twomoon_data import load_twomoon_data
+    from data.catalog._data_main.process_data.process_twomoon_data import (
+        load_twomoon_data,
+    )
 except Exception as e:
     print(f"[ENV WARNING] process_twomoon_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_test_data import load_test_data
+    from data.catalog._data_main.process_data.process_test_data import load_test_data
 except Exception as e:
     print(f"[ENV WARNING] process_test_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_breast_cancer_data import (
+    from data.catalog._data_main.process_data.process_breast_cancer_data import (
         load_breast_cancer_data,
     )
 except Exception as e:
     print(f"[ENV WARNING] process_breast_cancer_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_boston_housing_data import (
+    from data.catalog._data_main.process_data.process_boston_housing_data import (
         load_boston_housing_data,
     )
 except Exception as e:

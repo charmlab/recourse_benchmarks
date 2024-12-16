@@ -2,9 +2,9 @@ import os
 import urllib.request
 from random import seed, shuffle
 
-import fair_utils_data as ut
 import numpy as np
 import pandas as pd
+import process_data.process_utils_data as ut
 
 SEED = 1122334455
 seed(
