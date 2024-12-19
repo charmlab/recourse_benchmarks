@@ -18,7 +18,7 @@ This repository is inspired and built on the CARLA library. CARLA is a python li
 - Benchmarking (notebook): [Source](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/notebooks/benchmark_example.html)
 - Adding your own Data: [Source](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#data)
 - Adding your own ML-Model: [Source](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#black-box-model)
-- Adding your own Recourse Method: [Source 1](recourse_addition.md) [Source 2](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#recourse-method)
+- Adding your own Recourse Method: [Source 1](documentation\recourse_addition.md) [Source 2](https://carla-counterfactual-and-recourse-library.readthedocs.io/en/latest/examples.html#recourse-method)
 
 ### Available Datasets
 
@@ -114,7 +114,7 @@ This folder contains the implementation of all evaluation and benchmark metrics 
 
 ### Live Site Folder
 
-This folder contains the implementation of the frontend UI interface, which displays results stored in `results.csv` from executing `./run_experiment.py`.
+This folder contains the implementation of the frontend UI interface, which displays results stored in `results.csv` from executing `./experiments/run_experiment.py`.
 
 ### Models Folder
 
@@ -122,7 +122,7 @@ This folder contains all implemented models/classifiers in the repository. It al
 
 ### Recourse Methods
 
-This folder contains all the implemented recourse methods in the repository. Each recourse method has its own subfolder within the catalog directory (`recourse_methods/catalog`) and is implemented using the `RecourseMethod` API class` interface.
+This folder contains all the implemented recourse methods in the repository. Each recourse method has its own subfolder within the catalog directory (`methods/catalog`) and is implemented using the `RecourseMethod` API class` interface.
 
 ## Quickstart
 
@@ -132,7 +132,7 @@ from evaluation import Benchmark
 import evaluation.catalog as evaluation_catalog
 from models.catalog import ModelCatalog
 from random import seed
-from recourse_methods import GrowingSpheres
+from methods import GrowingSpheres
 
 RANDOM_SEED = 54321
 seed(RANDOM_SEED) # set the random seed so that the random permutations can be reproduced again
@@ -183,7 +183,7 @@ pip install -r .\requirements.txt
 python .\server.py
 ```
 
-Read more from [here](livesite_amend.md) to learn about amending the live site tool.
+Read more from [here](documentation\livesite_amend.md) to learn about amending the live site tool.
 
 ## Testing
 
@@ -191,7 +191,7 @@ Using python directly or within activated virtual environment:
 
 ```sh
 pip install -r requirements-dev.txt
-python -m pytest .\sanity_test.py
+python -m pytest .\tools\sanity_test.py
 ```
 
 ## Running Experiment
@@ -199,7 +199,7 @@ python -m pytest .\sanity_test.py
 Before running the command below, clear out all former computations from the `results.csv` file. Ensure to maintain the header (first line) of the csv file, and only delete the computation result.
 
 ```sh
-python .\run_experiment.py
+python -m experiments.run_experiment
 ```
 
 ## Linting and Styling
@@ -253,7 +253,7 @@ Contributions of any kind are very much welcome! Take a look at the To-Do issues
 
 ### Reproducibility
 
-- It is essential that implemented algorithms closely match the research paper they are derived from. Therefore, every implemented algorithm must be accompanied by a `reproduce.py` test file (in the corresponding folder in `recourse_methods/catalog`). This file should contain unit tests that replicate the experiments presented in the corresponding research paper, ensuring that the results obtained are consistent with those reported in the paper, within an acceptable margin of error.
+- It is essential that implemented algorithms closely match the research paper they are derived from. Therefore, every implemented algorithm must be accompanied by a `reproduce.py` test file (in the corresponding folder in `methods/catalog`). This file should contain unit tests that replicate the experiments presented in the corresponding research paper, ensuring that the results obtained are consistent with those reported in the paper, within an acceptable margin of error.
 
 ## To-Do Issues
 

@@ -22,14 +22,14 @@ repos:
     hooks:
       - id: clean-pytest-cache
         name: Remove pytest cache
-        entry: python clean_pytest_cache.py
+        entry: python tools/clean_pytest_cache.py
         language: system
         types: [python]
   - repo: local
     hooks:
       - id: check-new-methods-structure
         name: Check new_methods Folder Structure and Run Unit Tests
-        entry: python folder_structure_check.py
+        entry: python tools/folder_structure_check.py
         language: python
         types: [python]
         additional_dependencies:

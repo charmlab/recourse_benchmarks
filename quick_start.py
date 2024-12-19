@@ -3,8 +3,8 @@ from random import seed
 import evaluation.catalog as evaluation_catalog
 from data.catalog import DataCatalog
 from evaluation import Benchmark
+from methods import GrowingSpheres
 from models.catalog import ModelCatalog
-from recourse_methods import GrowingSpheres
 
 RANDOM_SEED = 54321
 seed(
