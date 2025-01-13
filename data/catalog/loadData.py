@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from tools.debug import ipsh
+from tools.utils.debug import ipsh
 
 sys.path.insert(0, "_data_main")
 

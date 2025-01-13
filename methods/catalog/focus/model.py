@@ -16,7 +16,7 @@ from methods.api import RecourseMethod
 from methods.catalog.focus.distances import distance_func
 from methods.processing import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
-from models.catalog import trees
+from models.utils import trees
 
 
 def _filter_hinge_loss(n_class, mask_vector, features, sigma, temperature, model_fn):

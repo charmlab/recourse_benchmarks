@@ -5,7 +5,7 @@ from data.catalog import DataCatalog
 from evaluation import Benchmark
 from methods import GrowingSpheres
 from models.catalog import ModelCatalog
-from models.negative_instances import predict_negative_instances
+from models.predict_factuals import predict_negative_instances
 
 
 @lru_cache(maxsize=None)

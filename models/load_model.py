@@ -13,8 +13,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 import data.catalog.loadData as loadData
-import models.catalog.utils as utils
-from models.catalog.modelConversion import (
+import tools.utils.memoize as utils
+from models.utils.implement_framework_model import (
     PyTorchLogisticRegression,
     PyTorchNeuralNetwork,
     TensorflowLogisticRegression,

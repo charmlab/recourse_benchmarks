@@ -10,7 +10,7 @@ import torch
 from data.catalog.online_catalog import DataCatalog
 from data.load_catalog import load
 from models.api import MLModel
-from models.catalog.loadModel import loadModelForDataset
+from models.load_model import loadModelForDataset
 
 
 class ModelCatalog(MLModel):
@@ -78,7 +78,7 @@ class ModelCatalog(MLModel):
         catalog_content = ["mlp", "linear", "forest"]
         lib_path = pathlib.Path(__file__).parent.resolve()
         catalog = load(
-            os.path.join(lib_path, "mlmodel_catalog.yaml"), data.name, catalog_content
+            os.path.join(lib_path, "catalog.yaml"), data.name, catalog_content
         )
 
         if model_type not in catalog:

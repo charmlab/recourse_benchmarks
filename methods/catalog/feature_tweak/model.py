@@ -15,7 +15,7 @@ import xgboost.core
 from methods.api import RecourseMethod
 from methods.processing import check_counterfactuals, merge_default_parameters
 from models.catalog import ModelCatalog
-from models.catalog.parse_xgboost import parse_booster
+from models.utils.parse_xgboost import parse_booster
 
 
 def _L1_cost_func(a, b):

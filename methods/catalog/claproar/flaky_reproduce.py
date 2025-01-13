@@ -5,7 +5,7 @@ from sklearn.metrics.pairwise import rbf_kernel
 from data.catalog import DataCatalog
 from methods import ClaPROAR
 from models.catalog import ModelCatalog
-from models.negative_instances import predict_negative_instances
+from models.predict_factuals import predict_negative_instances
 
 """
 This test is designed to replicate the standard deviation results described in the research paper.

@@ -4,7 +4,7 @@ import pytest
 from data.catalog import DataCatalog
 from methods import Gravitational
 from models.catalog import ModelCatalog
-from models.negative_instances import predict_negative_instances
+from models.predict_factuals import predict_negative_instances
 
 """
 The test is designed to replicate the standard deviation results described in the research paper.

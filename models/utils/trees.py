@@ -3,7 +3,7 @@ import tensorflow as tf
 import xgboost.core
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 
-from models.catalog.parse_xgboost import parse_booster
+from models.utils.parse_xgboost import parse_booster
 
 
 def _split_approx(node, feat_input, feat_index, threshold, sigma):

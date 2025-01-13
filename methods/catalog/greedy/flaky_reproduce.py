@@ -7,7 +7,7 @@ from tensorflow.keras.models import Model
 from data.catalog import DataCatalog
 from methods import Greedy
 from models.catalog import ModelCatalog
-from models.negative_instances import predict_negative_instances
+from models.predict_factuals import predict_negative_instances
 
 """
 The tests focus on two key aspects:
