@@ -1,7 +1,7 @@
 """
 Based on https://github.com/amirhk/recourse/blob/master/loadSCM.py
 """
-from data.load_scm.distributions import MixtureOfGaussians, Normal
+from data.utils.load_scm.distributions import MixtureOfGaussians, Normal
 
 
 def sanity_3_lin():

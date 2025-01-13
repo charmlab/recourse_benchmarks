@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 
 from data.api import Data
-from data.pipelining import order_data
+
+# from data.pipelining import order_data
 
 
 class MLModel(ABC):
@@ -148,7 +149,7 @@ class MLModel(ABC):
             Whole DataFrame with ordered feature
         """
         if isinstance(x, pd.DataFrame):
-            return order_data(self.feature_input_order, x)
+            return x[self.feature_input_order]
         else:
             warnings.warn(
                 f"cannot re-order features for non dataframe input: {type(x)}"

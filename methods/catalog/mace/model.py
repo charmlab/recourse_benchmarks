@@ -2,7 +2,7 @@ from typing import Dict, Optional
 
 import pandas as pd
 
-import data.catalog.loadData as loadData
+import data.load_data as loadData
 from methods import RecourseMethod
 from methods.catalog.mace.library.mace import generateExplanations
 from methods.processing import merge_default_parameters

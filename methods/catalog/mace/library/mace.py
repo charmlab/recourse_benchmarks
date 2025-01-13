@@ -3,13 +3,6 @@ import time
 from random import seed
 
 import numpy as np
-from loadCausalConstraints import (
-    getGermanCausalConsistencyConstraints,
-    getMortgageCausalConsistencyConstraints,
-    getRandomCausalConsistencyConstraints,
-    getTestCausalConsistencyConstraints,
-    getTwoMoonCausalConsistencyConstraints,
-)
 from pysmt.shortcuts import (
     GE,
     LE,
@@ -37,6 +30,14 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.tree import DecisionTreeClassifier
+
+from data.utils.load_causal_constraints import (
+    getGermanCausalConsistencyConstraints,
+    getMortgageCausalConsistencyConstraints,
+    getRandomCausalConsistencyConstraints,
+    getTestCausalConsistencyConstraints,
+    getTwoMoonCausalConsistencyConstraints,
+)
 
 from . import normalizedDistance
 from .modelConversion import forest2formula, lr2formula, mlp2formula, tree2formula

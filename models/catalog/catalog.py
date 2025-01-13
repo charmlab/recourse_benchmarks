@@ -7,8 +7,8 @@ import pandas as pd
 import tensorflow as tf
 import torch
 
-from data.catalog.online_catalog import DataCatalog
-from data.load_catalog import load
+from data.catalog.catalog import DataCatalog
+from data.utils.load_catalog import load
 from models.api import MLModel
 from models.load_model import loadModelForDataset
 

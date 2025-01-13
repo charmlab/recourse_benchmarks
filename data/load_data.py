@@ -798,7 +798,8 @@ def loadDataset(
     one_hot_string = "one_hot" if return_one_hot else "non_hot"
 
     save_file_path = os.path.join(
-        os.path.dirname(__file__), f"_data_main/_cached/{dataset_name}_{one_hot_string}"
+        os.path.dirname(__file__),
+        f"catalog/_data_main/_cached/{dataset_name}_{one_hot_string}",
     )
 
     if load_from_cache:

@@ -6,8 +6,8 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from data.api import Data
-from data.catalog.loadData import loadDataset
-from data.load_catalog import load
+from data.load_data import loadDataset
+from data.utils.load_catalog import load
 
 
 class DataCatalog(Data, ABC):
@@ -36,7 +36,7 @@ class DataCatalog(Data, ABC):
     ):
         catalog_content = ["default", "one-hot"]
         lib_path = pathlib.Path(__file__).parent.resolve()
-        catalog = load(os.path.join(lib_path, "data_catalog.yaml"), data_name, catalog_content)  # type: ignore
+        catalog = load(os.path.join(lib_path, "catalog.yaml"), data_name, catalog_content)  # type: ignore
 
         catalog_content = "default"
         if model_type in {"mlp", "linear"}:
