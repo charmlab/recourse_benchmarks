@@ -4,7 +4,7 @@ import pandas as pd
 import tensorflow as tf
 
 from methods.api import RecourseMethod
-from methods.processing import merge_default_parameters
+from methods.utils import merge_default_parameters
 from models.api import MLModel
 
 

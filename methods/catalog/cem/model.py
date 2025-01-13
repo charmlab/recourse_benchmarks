@@ -29,8 +29,8 @@ from methods.autoencoder import Autoencoder, train_autoencoder
 from models.api import MLModel
 
 from ...api import RecourseMethod
-from ...processing import check_counterfactuals
-from ...processing.counterfactuals import merge_default_parameters
+from ...utils import check_counterfactuals
+from ...utils.counterfactuals import merge_default_parameters
 
 
 class CEM(RecourseMethod):

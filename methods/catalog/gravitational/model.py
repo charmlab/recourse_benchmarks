@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from methods.api import RecourseMethod
-from methods.processing import check_counterfactuals, merge_default_parameters
+from methods.utils import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
 
 

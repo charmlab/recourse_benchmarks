@@ -12,8 +12,8 @@ from methods.catalog.clue.library import (
     training,
     vae_gradient_search,
 )
-from methods.processing import check_counterfactuals
-from methods.processing.counterfactuals import merge_default_parameters
+from methods.utils import check_counterfactuals
+from methods.utils.counterfactuals import merge_default_parameters
 from models.api import MLModel
 
 

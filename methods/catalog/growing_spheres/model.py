@@ -2,7 +2,7 @@ import pandas as pd
 
 from methods.api import RecourseMethod
 from methods.catalog.growing_spheres.library import growing_spheres_search
-from methods.processing import check_counterfactuals, encode_feature_names
+from methods.utils import check_counterfactuals, encode_feature_names
 from models.api import MLModel
 
 

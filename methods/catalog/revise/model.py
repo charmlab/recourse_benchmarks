@@ -8,7 +8,7 @@ from torch import nn
 from data.api import Data
 from methods.api import RecourseMethod
 from methods.autoencoder import VariationalAutoencoder
-from methods.processing.counterfactuals import (
+from methods.utils.counterfactuals import (
     check_counterfactuals,
     merge_default_parameters,
     reconstruct_encoding_constraints,

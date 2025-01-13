@@ -5,11 +5,11 @@ import pandas as pd
 from lime.lime_tabular import LimeTabularExplainer
 
 from methods.catalog.roar.library import roar_recourse
-from methods.processing import check_counterfactuals
+from methods.utils import check_counterfactuals
 from tools.logging import log
 
 from ...api import RecourseMethod
-from ...processing.counterfactuals import merge_default_parameters
+from ...utils.counterfactuals import merge_default_parameters
 
 
 class Roar(RecourseMethod):

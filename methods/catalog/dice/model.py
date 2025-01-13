@@ -3,11 +3,11 @@ from typing import Dict, Optional
 import dice_ml
 import pandas as pd
 
-from methods.processing import check_counterfactuals
+from methods.utils import check_counterfactuals
 from models.api import MLModel
 
 from ...api import RecourseMethod
-from ...processing import merge_default_parameters
+from ...utils import merge_default_parameters
 
 
 class Dice(RecourseMethod):

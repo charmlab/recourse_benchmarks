@@ -6,7 +6,7 @@ import torch
 import torch.optim as optim
 from torch.autograd import Variable
 
-from methods.processing import reconstruct_encoding_constraints
+from methods.utils import reconstruct_encoding_constraints
 from tools.logging import log
 
 DECISION_THRESHOLD = 0.5

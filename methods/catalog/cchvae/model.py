@@ -7,7 +7,7 @@ from numpy import linalg as LA
 
 from methods.api import RecourseMethod
 from methods.autoencoder import VariationalAutoencoder
-from methods.processing import (
+from methods.utils import (
     check_counterfactuals,
     merge_default_parameters,
     reconstruct_encoding_constraints,

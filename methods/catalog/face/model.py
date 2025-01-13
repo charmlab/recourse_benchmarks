@@ -4,7 +4,7 @@ import pandas as pd
 
 from methods.api import RecourseMethod
 from methods.catalog.face.library import graph_search
-from methods.processing import (
+from methods.utils import (
     check_counterfactuals,
     encode_feature_names,
     merge_default_parameters,

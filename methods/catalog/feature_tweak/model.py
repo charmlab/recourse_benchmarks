@@ -13,7 +13,7 @@ import xgboost
 import xgboost.core
 
 from methods.api import RecourseMethod
-from methods.processing import check_counterfactuals, merge_default_parameters
+from methods.utils import check_counterfactuals, merge_default_parameters
 from models.catalog import ModelCatalog
 from models.utils.parse_xgboost import parse_booster
 

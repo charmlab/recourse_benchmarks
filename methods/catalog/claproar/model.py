@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from methods.api import RecourseMethod
-from methods.processing import merge_default_parameters
+from methods.utils import merge_default_parameters
 from models.api import MLModel
 
 

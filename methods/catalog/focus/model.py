@@ -14,7 +14,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 from methods.api import RecourseMethod
 from methods.catalog.focus.distances import distance_func
-from methods.processing import check_counterfactuals, merge_default_parameters
+from methods.utils import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
 from models.utils import trees
 

@@ -5,11 +5,11 @@ import pandas as pd
 import recourse as rs
 from lime.lime_tabular import LimeTabularExplainer
 
-from methods.processing import check_counterfactuals, encode_feature_names
+from methods.utils import check_counterfactuals, encode_feature_names
 from tools.logging import log
 
 from ...api import RecourseMethod
-from ...processing.counterfactuals import merge_default_parameters
+from ...utils.counterfactuals import merge_default_parameters
 
 
 class ActionableRecourse(RecourseMethod):
