@@ -151,9 +151,10 @@ class Distance(Evaluation):
     Calculates the L0, L1, L2, and L-infty distance measures.
     """
 
-    def __init__(self, mlmodel):
+    def __init__(self, mlmodel, data):
         super().__init__(mlmodel)
         self.columns = ["L0_distance", "L1_distance", "L2_distance", "Linf_distance"]
+        self.data = data
 
     def get_evaluation(self, factuals, counterfactuals):
         # only keep the rows for which counterfactuals could be found
@@ -165,10 +166,8 @@ class Distance(Evaluation):
         if counterfactuals_without_nans.empty:
             return pd.DataFrame(columns=self.columns)
 
-        arr_f = self.mlmodel.get_ordered_features(factuals_without_nans).to_numpy()
-        arr_cf = self.mlmodel.get_ordered_features(
-            counterfactuals_without_nans
-        ).to_numpy()
+        arr_f = self.data.get_ordered_features(factuals_without_nans).to_numpy()
+        arr_cf = self.data.get_ordered_features(counterfactuals_without_nans).to_numpy()
 
         distances = _get_distances(arr_f, arr_cf)
 

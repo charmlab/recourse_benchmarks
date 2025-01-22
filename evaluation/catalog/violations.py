@@ -78,9 +78,10 @@ class ConstraintViolation(Evaluation):
     Computes the constraint violation per factual as dataframe
     """
 
-    def __init__(self, mlmodel):
+    def __init__(self, mlmodel, data):
         super().__init__(mlmodel)
         self.columns = ["Constraint_Violation"]
+        self.data = data
 
     def get_evaluation(self, factuals, counterfactuals):
         counterfactuals_without_nans, factual_without_nans = remove_nans(
@@ -91,7 +92,7 @@ class ConstraintViolation(Evaluation):
             violations = []
         else:
             violations = constraint_violation(
-                self.mlmodel.data, counterfactuals_without_nans, factual_without_nans
+                self.data, counterfactuals_without_nans, factual_without_nans
             )
 
         return pd.DataFrame(violations, columns=self.columns)

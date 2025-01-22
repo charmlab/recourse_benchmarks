@@ -5,7 +5,6 @@ import pandas as pd
 
 from evaluation.api import Evaluation
 from methods.api import RecourseMethod
-from models.api import MLModel
 
 
 class Benchmark:
@@ -28,13 +27,13 @@ class Benchmark:
 
     def __init__(
         self,
-        mlmodel: MLModel,
+        # mlmodel: MLModel,
         recourse_method: RecourseMethod,
         factuals: pd.DataFrame,
     ) -> None:
-        self.mlmodel = mlmodel
+        # self.mlmodel = mlmodel
         self._recourse_method = recourse_method
-        self._factuals = self.mlmodel.get_ordered_features(factuals.copy())
+        self._factuals = recourse_method._data.get_ordered_features(factuals.copy())
 
         start = timeit.default_timer()
         self._counterfactuals = recourse_method.get_counterfactuals(factuals)
