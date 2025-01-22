@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 from numpy import linalg as LA
 
+from data.api import Data
 from methods.api import RecourseMethod
 from methods.autoencoder import VariationalAutoencoder
 from methods.utils import (
@@ -13,7 +14,7 @@ from methods.utils import (
     reconstruct_encoding_constraints,
 )
 from models.api import MLModel
-from tools.logging import log
+from tools.logging_tools import log
 
 
 class CCHVAE(RecourseMethod):
@@ -91,14 +92,14 @@ class CCHVAE(RecourseMethod):
         },
     }
 
-    def __init__(self, mlmodel: MLModel, hyperparams: Dict = None) -> None:
+    def __init__(self, data: Data, mlmodel: MLModel, hyperparams: Dict = None) -> None:
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
         self._params = merge_default_parameters(hyperparams, self._DEFAULT_HYPERPARAMS)
 
         self._n_search_samples = self._params["n_search_samples"]
@@ -109,19 +110,19 @@ class CCHVAE(RecourseMethod):
 
         vae_params = self._params["vae_params"]
         self._generative_model = self._load_vae(
-            self._mlmodel.data.df, vae_params, self._mlmodel, self._params["data_name"]
+            self._data.df, vae_params, self._mlmodel, self._params["data_name"]
         )
 
     def _load_vae(
         self, data: pd.DataFrame, vae_params: Dict, mlmodel: MLModel, data_name: str
     ) -> VariationalAutoencoder:
         generative_model = VariationalAutoencoder(
-            data_name, vae_params["layers"], mlmodel.get_mutable_mask()
+            data_name, vae_params["layers"], data.get_mutable_mask()
         )
 
         if vae_params["train"]:
             generative_model.fit(
-                xtrain=data[mlmodel.feature_input_order],
+                xtrain=data[self.data.feature_input_order],
                 kl_weight=vae_params["kl_weight"],
                 lambda_reg=vae_params["lambda_reg"],
                 epochs=vae_params["epochs"],
@@ -251,9 +252,9 @@ class CCHVAE(RecourseMethod):
                 return candidate_counterfactuals[min_index]
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
-        factuals = self._mlmodel.get_ordered_features(factuals)
+        factuals = self._data.get_ordered_features(factuals)
 
-        encoded_feature_names = self._mlmodel.data.categorical
+        encoded_feature_names = self._data.categorical
         cat_features_indices = [
             factuals.columns.get_loc(feature) for feature in encoded_feature_names
         ]
@@ -267,5 +268,5 @@ class CCHVAE(RecourseMethod):
         )
 
         df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
-        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        df_cfs = self._data.get_ordered_features(df_cfs)
         return df_cfs

@@ -12,6 +12,7 @@ import sklearn
 import xgboost
 import xgboost.core
 
+from data.catalog import DataCatalog
 from methods.api import RecourseMethod
 from methods.utils import check_counterfactuals, merge_default_parameters
 from models.catalog import ModelCatalog
@@ -240,6 +241,7 @@ class FeatureTweak(RecourseMethod):
 
     def __init__(
         self,
+        data: DataCatalog,
         mlmodel: ModelCatalog,
         hyperparams: Optional[Dict] = None,
         cost_func=_L2_cost_func,
@@ -250,16 +252,14 @@ class FeatureTweak(RecourseMethod):
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
 
-        self.model = mlmodel
-        self.data = mlmodel.data
         self.eps = checked_hyperparams["eps"]
-        self.target_col = self.data.target
+        self.target_col = self._data.target
         self.cost_func = cost_func
 
     def esatisfactory_instance(self, x: np.ndarray, path_info):
@@ -283,7 +283,7 @@ class FeatureTweak(RecourseMethod):
 
             if isinstance(feature_idx, str):
                 feature_idx = np.where(
-                    np.array(self.model.feature_input_order) == feature_idx
+                    np.array(self._data.feature_input_order) == feature_idx
                 )
 
             threshold_value = path_info["threshold"][i]  # threshold in current node
@@ -329,7 +329,7 @@ class FeatureTweak(RecourseMethod):
                     classifier.predict(
                         xgboost.DMatrix(
                             x.reshape(1, -1),
-                            feature_names=self.model.feature_input_order,
+                            feature_names=self._data.feature_input_order,
                         )
                     )
                     > threshold
@@ -366,7 +366,7 @@ class FeatureTweak(RecourseMethod):
         instances = instances.reset_index(drop=True)
 
         # only works for continuous data
-        instances = self.model.get_ordered_features(instances)
+        instances = self._data.get_ordered_features(instances)
 
         class_labels = [0, 1]
 
@@ -381,5 +381,5 @@ class FeatureTweak(RecourseMethod):
         counterfactuals_df = check_counterfactuals(
             self._mlmodel, counterfactuals, factuals.index
         )
-        counterfactuals_df = self._mlmodel.get_ordered_features(counterfactuals_df)
+        counterfactuals_df = self._data.get_ordered_features(counterfactuals_df)
         return counterfactuals_df

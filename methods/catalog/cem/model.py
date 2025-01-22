@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+from data.api import Data
 from methods.autoencoder import Autoencoder, train_autoencoder
 from models.api import MLModel
 
@@ -107,7 +108,7 @@ class CEM(RecourseMethod):
         "ae_params": {"hidden_layer": [20, 10, 7], "train_ae": True, "epochs": 5},
     }
 
-    def __init__(self, sess, mlmodel: MLModel, hyperparams: Dict = None):
+    def __init__(self, sess, data: Data, mlmodel: MLModel, hyperparams: Dict = None):
         supported_backends = ["tensorflow"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
@@ -127,10 +128,10 @@ class CEM(RecourseMethod):
         beta = self._hyperparams["beta"]
         gamma = self._hyperparams["gamma"]
 
-        super().__init__(mlmodel)
-        shape_batch = (batch_size, len(mlmodel.feature_input_order))
+        super().__init__(data, mlmodel)
+        shape_batch = (batch_size, len(self._data.feature_input_order))
 
-        self._AE = self._load_ae(self._hyperparams, mlmodel)
+        self._AE = self._load_ae(self._hyperparams, self._mlmodel)
 
         self._initialize_tf_variables(batch_size, num_classes, shape_batch)
 
@@ -268,19 +269,19 @@ class CEM(RecourseMethod):
         ae_params = hyperparams["ae_params"]
         ae = Autoencoder(
             data_name=hyperparams["data_name"],
-            layers=[len(mlmodel.feature_input_order)] + ae_params["hidden_layer"],
+            layers=[len(self._data.feature_input_order)] + ae_params["hidden_layer"],
         )
         if ae_params["train_ae"]:
             return train_autoencoder(
                 ae,
-                self._mlmodel.data,
-                self._mlmodel.feature_input_order,
+                self._data,
+                self._data.feature_input_order,
                 epochs=ae_params["epochs"],
                 save=True,
             )
         else:
             try:
-                return ae.load(input_shape=len(mlmodel.feature_input_order))
+                return ae.load(input_shape=len(self._data.feature_input_order))
             except FileNotFoundError as exc:
                 raise FileNotFoundError(
                     "Loading of Autoencoder failed. {}".format(str(exc))
@@ -547,7 +548,7 @@ class CEM(RecourseMethod):
         """
         # normalize and one-hot-encoding
         factuals = factuals.reset_index(drop=True)
-        factuals = self._mlmodel.get_ordered_features(factuals)
+        factuals = self._data.get_ordered_features(factuals)
 
         # find counterfactuals
         df_cfs = factuals.apply(
@@ -555,5 +556,5 @@ class CEM(RecourseMethod):
         )
 
         df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
-        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        df_cfs = self._data.get_ordered_features(df_cfs)
         return df_cfs

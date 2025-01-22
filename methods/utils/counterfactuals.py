@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 
+from data.api import Data
 from models.api import MLModel
 
 
@@ -51,6 +52,7 @@ def create_hash_dataframe(counterfactuals_df):
 
 
 def check_counterfactuals(
+    data: Data,
     mlmodel: MLModel,
     counterfactuals: Union[List, pd.DataFrame],
     factuals_index: pd.Index,
@@ -80,15 +82,15 @@ def check_counterfactuals(
     if isinstance(counterfactuals, list):
         df_cfs = pd.DataFrame(
             np.array(counterfactuals),
-            columns=mlmodel.feature_input_order,
+            columns=data.feature_input_order,
             index=factuals_index.copy(),
         )
     else:
         df_cfs = counterfactuals.copy()
 
-    df_cfs[mlmodel.data.target] = np.argmax(mlmodel.predict_proba(df_cfs), axis=1)
+    df_cfs[data.target] = np.argmax(mlmodel.predict_proba(df_cfs), axis=1)
     # Change all wrong counterfactuals to nan
-    df_cfs.loc[df_cfs[mlmodel.data.target] == negative_label, :] = np.nan
+    df_cfs.loc[df_cfs[data.target] == negative_label, :] = np.nan
 
     return df_cfs
 

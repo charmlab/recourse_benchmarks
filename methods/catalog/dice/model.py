@@ -3,6 +3,7 @@ from typing import Dict, Optional
 import dice_ml
 import pandas as pd
 
+from data.api import Data
 from methods.utils import check_counterfactuals
 from models.api import MLModel
 
@@ -49,25 +50,26 @@ class Dice(RecourseMethod):
 
     _DEFAULT_HYPERPARAMS = {"num": 1, "desired_class": 1, "posthoc_sparsity_param": 0.1}
 
-    def __init__(self, mlmodel: MLModel, hyperparams: Optional[Dict] = None) -> None:
+    def __init__(
+        self, data: Data, mlmodel: MLModel, hyperparams: Optional[Dict] = None
+    ) -> None:
         supported_backends = ["tensorflow", "pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
-        self._continuous = mlmodel.data.continuous
-        self._categorical = mlmodel.data.categorical
-        self._target = mlmodel.data.target
-        self._model = mlmodel
+        super().__init__(data, mlmodel)
+        self._continuous = self._data.continuous
+        self._categorical = self._data.categorical
+        self._target = self._data.target
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
         # Prepare data for dice data structure
         self._dice_data = dice_ml.Data(
-            dataframe=mlmodel.data.df,
+            dataframe=self._data.df,
             continuous_features=self._continuous,
             outcome_name=self._target,
         )
@@ -82,7 +84,7 @@ class Dice(RecourseMethod):
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         # Prepare factuals
         querry_instances = factuals.copy()
-        querry_instances = self._model.get_ordered_features(querry_instances)
+        querry_instances = self.data.get_ordered_features(querry_instances)
 
         # check if querry_instances are not empty
         if not querry_instances.shape[0] > 0:
@@ -99,5 +101,5 @@ class Dice(RecourseMethod):
         list_cfs = dice_exp.cf_examples_list
         df_cfs = pd.concat([cf.final_cfs_df for cf in list_cfs], ignore_index=True)
         df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
-        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        df_cfs = self.data.get_ordered_features(df_cfs)
         return df_cfs

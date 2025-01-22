@@ -86,7 +86,7 @@ class Clue(RecourseMethod):
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
 
         # get hyperparameter
         checked_hyperparams = merge_default_parameters(
@@ -101,14 +101,13 @@ class Clue(RecourseMethod):
         self._epochs = checked_hyperparams["epochs"]
         self._lr = checked_hyperparams["lr"]
         self._early_stop = checked_hyperparams["early_stop"]
-        self._continuous = self._mlmodel.data.continuous
-        self._categorical = self._mlmodel.data.categorical
-        self._data = data
+        self._continuous = self._data.continuous
+        self._categorical = self._data.categorical
 
         # get input dimension
         # indicate dimensions of inputs -- input_dim_vec: (if binary = 2; if continuous = 1)
-        input_dims_continuous = list(np.repeat(1, len(self._mlmodel.data.continuous)))
-        input_dims_binary = list(np.repeat(1, len(self._mlmodel.data.categorical)))
+        input_dims_continuous = list(np.repeat(1, len(self._data.continuous)))
+        input_dims_binary = list(np.repeat(1, len(self._data.categorical)))
         self._input_dimension = input_dims_continuous + input_dims_binary
 
         # load autoencoder
@@ -162,11 +161,9 @@ class Clue(RecourseMethod):
         # Error message when training VAE using float 64: -> Change to: float 32
         # "Expected object of scalar type Float but got scalar type Double for argument #2 'mat1' in call to _th_addmm"
         x_train = np.float32(
-            self._mlmodel.get_ordered_features(self._data.df_train).values
+            self._data.get_ordered_features(self._data.df_train).values
         )
-        x_test = np.float32(
-            self._mlmodel.get_ordered_features(self._data.df_test).values
-        )
+        x_test = np.float32(self._data.get_ordered_features(self._data.df_test).values)
 
         training(
             x_train,
@@ -183,7 +180,7 @@ class Clue(RecourseMethod):
         )
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
-        factuals = self._mlmodel.get_ordered_features(factuals)
+        factuals = self._data.get_ordered_features(factuals)
 
         list_cfs = []
 
@@ -192,6 +189,8 @@ class Clue(RecourseMethod):
             list_cfs.append(counterfactual)
 
         # Convert output into correct format
-        df_cfs = check_counterfactuals(self._mlmodel, list_cfs, factuals.index)
-        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        df_cfs = check_counterfactuals(
+            self._data, self._mlmodel, list_cfs, factuals.index
+        )
+        df_cfs = self._data.get_ordered_features(df_cfs)
         return df_cfs

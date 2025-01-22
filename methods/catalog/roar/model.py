@@ -6,7 +6,7 @@ from lime.lime_tabular import LimeTabularExplainer
 
 from methods.catalog.roar.library import roar_recourse
 from methods.utils import check_counterfactuals
-from tools.logging import log
+from tools.logging_tools import log
 
 from ...api import RecourseMethod
 from ...utils.counterfactuals import merge_default_parameters
@@ -96,15 +96,14 @@ class Roar(RecourseMethod):
 
     def __init__(
         self,
+        data,
         mlmodel,
         hyperparams: Dict,
         coeffs: Optional[np.ndarray] = None,
         intercepts: Optional[np.ndarray] = None,
     ) -> None:
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
 
-        self._data = mlmodel.data
-        self._mlmodel = mlmodel
         self._coeffs = coeffs
         self._intercepts = intercepts
 
@@ -149,18 +148,18 @@ class Roar(RecourseMethod):
 
         coeffs = np.zeros(factuals.shape)
         intercepts = []
-        lime_data = self._data.df[self._mlmodel.feature_input_order]
+        lime_data = self._data.df[self._data.feature_input_order]
         lime_label = self._data.df[self._data.target]
 
         lime_exp = LimeTabularExplainer(
             training_data=lime_data.values,
             training_labels=lime_label,
-            feature_names=self._mlmodel.feature_input_order,
+            feature_names=self._data.feature_input_order,
             discretize_continuous=self._discretize_continuous,
             sample_around_instance=self._sample_around_instance,
             categorical_names=[
                 cat
-                for cat in self._mlmodel.feature_input_order
+                for cat in self._data.feature_input_order
                 if cat not in self._data.continuous
             ]
             # self._data.encoded_normalized's categorical features contain feature name and value, separated by '_'
@@ -172,7 +171,7 @@ class Roar(RecourseMethod):
             explanations = lime_exp.explain_instance(
                 factual,
                 self._mlmodel.predict_proba,
-                num_features=len(self._mlmodel.feature_input_order),
+                num_features=len(self._data.feature_input_order),
             )
             intercepts.append(explanations.intercept[1])
 
@@ -183,9 +182,9 @@ class Roar(RecourseMethod):
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         factuals = factuals.reset_index()
-        factuals = self._mlmodel.get_ordered_features(factuals)
+        factuals = self._data.get_ordered_features(factuals)
 
-        encoded_feature_names = self._mlmodel.data.categorical
+        encoded_feature_names = self._data.categorical
         cat_features_indices = [
             factuals.columns.get_loc(feature) for feature in encoded_feature_names
         ]
@@ -271,8 +270,8 @@ class Roar(RecourseMethod):
 
         # Convert output into correct format
         cfs = np.array(cfs)
-        df_cfs = pd.DataFrame(cfs, columns=self._mlmodel.feature_input_order)
+        df_cfs = pd.DataFrame(cfs, columns=self._data.feature_input_order)
         df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
-        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        df_cfs = self._data.get_ordered_features(df_cfs)
 
         return df_cfs

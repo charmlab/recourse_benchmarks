@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 from methods.autoencoder.save_load import get_home
-from tools.logging import log
+from tools.logging_tools import log
 
 tf.compat.v1.disable_eager_execution()
 

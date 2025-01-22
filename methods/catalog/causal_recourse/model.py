@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 
+from data.catalog import DataCatalog
 from methods.api import RecourseMethod
 from models.catalog import ModelCatalog
 
@@ -90,19 +91,18 @@ class CausalRecourse(RecourseMethod):
         "sampler_handle": samplers.sample_true_m0,
     }
 
-    def __init__(self, mlmodel: ModelCatalog, hyperparams: Dict):
+    def __init__(self, data: DataCatalog, mlmodel: ModelCatalog, hyperparams: Dict):
         supported_backends = ["tensorflow", "pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        self._mlmodel = mlmodel
-        self._dataset = mlmodel.data
-
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
+
+        super.__init__(data, mlmodel)
 
         self._optimization_approach = checked_hyperparams["optimization_approach"]
         self._num_samples = checked_hyperparams["num_samples"]
@@ -113,17 +113,13 @@ class CausalRecourse(RecourseMethod):
 
     def get_intervenable_nodes(self) -> dict:
         intervenable_nodes = {
-            "continuous": np.setdiff1d(
-                self._dataset.continuous, self._dataset.immutables
-            ),
-            "categorical": np.setdiff1d(
-                self._dataset.categorical, self._dataset.immutables
-            ),
+            "continuous": np.setdiff1d(self._data.continuous, self._data.immutables),
+            "categorical": np.setdiff1d(self._data.categorical, self._data.immutables),
         }
         return intervenable_nodes
 
     def _get_original_df(self):
-        return self._dataset.df
+        return self._data.df
 
     def _get_range_values(self):
         data_df = self._get_original_df()
@@ -151,7 +147,7 @@ class CausalRecourse(RecourseMethod):
             )
 
             # we need to make sure that actions don't go out of bounds [0, 1]
-            if isinstance(self._dataset.scaler, preprocessing.MinMaxScaler):
+            if isinstance(self._data.scaler, preprocessing.MinMaxScaler):
                 out_of_bounds_idx = []
                 for i, action_set in enumerate(valid_action_sets):
                     instance = _series_plus_dict(factual_instance, action_set)
@@ -188,7 +184,7 @@ class CausalRecourse(RecourseMethod):
         return min_action_set, min_cost
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
-        factual_df = factuals.drop(columns=self._dataset.target)
+        factual_df = factuals.drop(columns=self._data.target)
 
         cfs = []
         # actions = []

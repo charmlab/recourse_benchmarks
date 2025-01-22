@@ -7,7 +7,7 @@ from torch import nn
 from methods.autoencoder import CSVAE
 from methods.utils import reconstruct_encoding_constraints
 from models.api import MLModel
-from tools.logging import log
+from tools.logging_tools import log
 
 
 def compute_loss(cf_initialize, query_instance, target, i, lambda_param, mlmodel):

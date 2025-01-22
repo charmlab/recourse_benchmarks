@@ -24,6 +24,8 @@ from pysmt.shortcuts import (
     Symbol,
     Times,
     ToReal,
+    get_env,
+    reset_env,
 )
 from pysmt.typing import BOOL, INT, REAL
 from sklearn.ensemble import RandomForestClassifier
@@ -41,6 +43,10 @@ from data.utils.load_causal_constraints import (
 
 from . import normalizedDistance
 from .modelConversion import forest2formula, lr2formula, mlp2formula, tree2formula
+
+reset_env()
+env = get_env()
+env.enable_infix_notation = True
 
 RANDOM_SEED = 1122334455
 seed(

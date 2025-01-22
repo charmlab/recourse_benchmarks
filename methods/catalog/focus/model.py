@@ -12,6 +12,7 @@ import tensorflow as tf
 import tensorflow.contrib.eager as tfe
 from sklearn.tree import DecisionTreeClassifier
 
+from data.api import Data
 from methods.api import RecourseMethod
 from methods.catalog.focus.distances import distance_func
 from methods.utils import check_counterfactuals, merge_default_parameters
@@ -115,15 +116,16 @@ class FOCUS(RecourseMethod):
         "distance_func": "l1",
     }
 
-    def __init__(self, mlmodel: MLModel, hyperparams: Optional[Dict] = None) -> None:
+    def __init__(
+        self, data: Data, mlmodel: MLModel, hyperparams: Optional[Dict] = None
+    ) -> None:
         supported_backends = ["sklearn", "xgboost"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
-        self.model = mlmodel
+        super().__init__(data, mlmodel)
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
@@ -150,9 +152,9 @@ class FOCUS(RecourseMethod):
 
         def f(best_perturb):
             # doesn't work with categorical features, so they aren't used
-            original_input = self.model.get_ordered_features(factuals)
+            original_input = self._data.get_ordered_features(factuals)
             original_input = original_input.to_numpy()
-            ground_truth = self.model.predict(original_input)
+            ground_truth = self._mlmodel.predict(original_input)
 
             # these will be the perturbed features, i.e. counterfactuals
             perturbed = tf.Variable(
@@ -161,7 +163,7 @@ class FOCUS(RecourseMethod):
             to_optimize = [perturbed]
 
             class_index = np.zeros(len(original_input), dtype=np.int64)
-            for i, class_name in enumerate(self.model.raw_model.classes_):
+            for i, class_name in enumerate(self._mlmodel.raw_model.classes_):
                 mask = np.equal(ground_truth, class_name)
                 class_index[mask] = i
             class_index = tf.constant(class_index, dtype=tf.int64)
@@ -216,7 +218,7 @@ class FOCUS(RecourseMethod):
                     ).numpy()
 
                     # get the class predictions for the perturbed features
-                    current_predict = self.model.predict(perturbed.numpy())
+                    current_predict = self._mlmodel.predict(perturbed.numpy())
                     indicator = np.equal(ground_truth, current_predict).astype(
                         np.float64
                     )
@@ -244,22 +246,22 @@ class FOCUS(RecourseMethod):
             pf = tfe.py_func(f, [best_perturb], tf.float32)
             best_perturb = sess.run(pf)
 
-        df_cfs = pd.DataFrame(best_perturb, columns=self.model.data.continuous)
+        df_cfs = pd.DataFrame(best_perturb, columns=self._data.continuous)
         df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
-        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        df_cfs = self._data.get_ordered_features(df_cfs)
         return df_cfs
 
     def _prob_from_input(self, perturbed, sigma, temperature):
-        feat_columns = self.model.data.continuous
-        if not isinstance(self.model.raw_model, DecisionTreeClassifier):
+        feat_columns = self._data.continuous
+        if not isinstance(self._mlmodel.raw_model, DecisionTreeClassifier):
             return trees.get_prob_classification_forest(
-                self.model,
+                self._mlmodel,
                 feat_columns,
                 perturbed,
                 sigma=sigma,
                 temperature=temperature,
             )
-        elif isinstance(self.model.raw_model, DecisionTreeClassifier):
+        elif isinstance(self._mlmodel.raw_model, DecisionTreeClassifier):
             return trees.get_prob_classification_tree(
-                self.model.raw_model, feat_columns, perturbed, sigma=sigma
+                self._mlmodel.raw_model, feat_columns, perturbed, sigma=sigma
             )

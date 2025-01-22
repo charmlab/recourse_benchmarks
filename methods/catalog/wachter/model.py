@@ -67,14 +67,14 @@ class Wachter(RecourseMethod):
         "binary_cat_features": True,
     }
 
-    def __init__(self, mlmodel, hyperparams: Optional[Dict] = None):
+    def __init__(self, data, mlmodel, hyperparams: Optional[Dict] = None):
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
@@ -91,9 +91,9 @@ class Wachter(RecourseMethod):
         self._binary_cat_features = checked_hyperparams["binary_cat_features"]
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
-        factuals = self._mlmodel.get_ordered_features(factuals)
+        factuals = self._data.get_ordered_features(factuals)
 
-        encoded_feature_names = self._mlmodel.data.categorical
+        encoded_feature_names = self._data.categorical
         cat_features_indices = [
             factuals.columns.get_loc(feature) for feature in encoded_feature_names
         ]

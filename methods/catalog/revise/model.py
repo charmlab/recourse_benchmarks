@@ -14,7 +14,7 @@ from methods.utils.counterfactuals import (
     reconstruct_encoding_constraints,
 )
 from models.api import MLModel
-from tools.logging import log
+from tools.logging_tools import log
 
 
 class Revise(RecourseMethod):
@@ -94,17 +94,17 @@ class Revise(RecourseMethod):
         },
     }
 
-    def __init__(self, mlmodel: MLModel, data: Data, hyperparams: Dict = None) -> None:
+    def __init__(self, data: Data, mlmodel: MLModel, hyperparams: Dict = None) -> None:
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
         self._params = merge_default_parameters(hyperparams, self._DEFAULT_HYPERPARAMS)
 
-        self._target_column = data.target
+        self._target_column = self._data.target
         self._lambda = self._params["lambda"]
         self._optimizer = self._params["optimizer"]
         self._lr = self._params["lr"]
@@ -114,12 +114,12 @@ class Revise(RecourseMethod):
 
         vae_params = self._params["vae_params"]
         self.vae = VariationalAutoencoder(
-            self._params["data_name"], vae_params["layers"], mlmodel.get_mutable_mask()
+            self._params["data_name"], vae_params["layers"], data.get_mutable_mask()
         )
 
         if vae_params["train"]:
             self.vae.fit(
-                xtrain=data.df[mlmodel.feature_input_order],
+                xtrain=data.df[self.data.feature_input_order],
                 lambda_reg=vae_params["lambda_reg"],
                 epochs=vae_params["epochs"],
                 lr=vae_params["lr"],
@@ -136,10 +136,10 @@ class Revise(RecourseMethod):
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        factuals = self._mlmodel.get_ordered_features(factuals)
+        factuals = self._data.get_ordered_features(factuals)
 
         # pay attention to categorical features
-        encoded_feature_names = self._mlmodel.data.categorical
+        encoded_feature_names = self._data.categorical
         cat_features_indices = [
             factuals.columns.get_loc(feature) for feature in encoded_feature_names
         ]
@@ -149,7 +149,7 @@ class Revise(RecourseMethod):
         )
 
         cf_df = check_counterfactuals(self._mlmodel, list_cfs, factuals.index)
-        cf_df = self._mlmodel.get_ordered_features(cf_df)
+        cf_df = self._data.get_ordered_features(cf_df)
         return cf_df
 
     def _counterfactual_optimization(self, cat_features_indices, device, df_fact):
