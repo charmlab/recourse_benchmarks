@@ -25,7 +25,7 @@ from methods import Dice  # TO-DO: Replace with implemented recourse method
 from methods.utils import create_hash_dataframe
 from models.catalog import ModelCatalog
 from models.predict_factuals import predict_negative_instances
-from tools.logging import log
+from tools.logging_tools import log
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 warnings.simplefilter(action="ignore", category=FutureWarning)
