@@ -1,6 +1,4 @@
-import os
-import pathlib
-from typing import Any, List, Union
+from typing import Any, Union
 
 import numpy as np
 import pandas as pd
@@ -8,7 +6,6 @@ import tensorflow as tf
 import torch
 
 from data.catalog.catalog import DataCatalog
-from data.utils.load_catalog import load
 from models.api import MLModel
 from models.load_model import loadModelForDataset
 
@@ -65,8 +62,8 @@ class ModelCatalog(MLModel):
         """
         self._model_type = model_type
         self._backend = backend
-        self._continuous = data.continuous
-        self._categorical = data.categorical
+        # self._continuous = data.continuous
+        # self._categorical = data.categorical
 
         if self.backend not in {"pytorch", "tensorflow", "sklearn", "xgboost"}:
             raise ValueError(
@@ -75,25 +72,25 @@ class ModelCatalog(MLModel):
         super().__init__(data)
 
         # Load catalog from saved yaml file
-        catalog_content = ["mlp", "linear", "forest"]
-        lib_path = pathlib.Path(__file__).parent.resolve()
-        catalog = load(
-            os.path.join(lib_path, "catalog.yaml"), data.name, catalog_content
-        )
+        # catalog_content = ["mlp", "linear", "forest"]
+        # lib_path = pathlib.Path(__file__).parent.resolve()
+        # catalog = load(
+        #     os.path.join(lib_path, "catalog.yaml"), data.name, catalog_content
+        # )
 
-        if model_type not in catalog:
-            raise ValueError("Model type not in model catalog")
+        # if model_type not in catalog:
+        #     raise ValueError("Model type not in model catalog")
 
-        catalog_content = "default"
-        if model_type in {"mlp", "linear"}:
-            catalog_content = "one-hot"
+        # catalog_content = "default"
+        # if model_type in {"mlp", "linear"}:
+        #     catalog_content = "one-hot"
 
-        self._catalog = catalog[model_type][self._backend]
-        self._feature_input_order = self._catalog["feature_order"][catalog_content]
+        # self._catalog = catalog[model_type][self._backend]
+        # self._feature_input_order = self._catalog["feature_order"][catalog_content]
 
         self._model = loadModelForDataset(
             model_type,
-            data.name,
+            data,
             self._backend,
         )
         if self.backend == "pytorch":
@@ -111,19 +108,19 @@ class ModelCatalog(MLModel):
         correct = prediction == y_test
         print(f"test accuracy for model: {correct.mean()}")
 
-    @property
-    def feature_input_order(self) -> List[str]:
-        """
-        Saves the required order of feature as list.
+    # @property
+    # def feature_input_order(self) -> List[str]:
+    #     """
+    #     Saves the required order of feature as list.
 
-        Prevents confusion about correct order of input features in evaluation
+    #     Prevents confusion about correct order of input features in evaluation
 
-        Returns
-        -------
-        ordered_features : list of str
-            Correct order of input features for ml model
-        """
-        return self._feature_input_order
+    #     Returns
+    #     -------
+    #     ordered_features : list of str
+    #         Correct order of input features for ml model
+    #     """
+    #     return self._feature_input_order
 
     @property
     def model_type(self) -> str:
@@ -194,10 +191,10 @@ class ModelCatalog(MLModel):
         elif self._backend == "tensorflow":
             # keep output in shape N x 1
             # order data (column-wise) before prediction
-            x = self.get_ordered_features(x)
+            x = self.data.get_ordered_features(x)
             return self._model.predict(x)[:, 1].reshape((-1, 1))
         elif self._backend == "sklearn" or self._backend == "xgboost":
-            return self._model.predict(self.get_ordered_features(x))
+            return self._model.predict(self.data.get_ordered_features(x))
         else:
             raise ValueError(
                 'Incorrect backend value. Please use only "pytorch" or "tensorflow".'
@@ -223,7 +220,7 @@ class ModelCatalog(MLModel):
         """
 
         # order data (column-wise) before prediction
-        x = self.get_ordered_features(x)
+        x = self.data.get_ordered_features(x)
 
         if len(x.shape) != 2:
             raise ValueError("Input shape has to be two-dimensional")
@@ -284,5 +281,5 @@ class ModelCatalog(MLModel):
             booster_it = [booster for booster in self.raw_model.get_booster()]
             # set the feature names
             for booster in booster_it:
-                booster.feature_names = self.feature_input_order
+                booster.feature_names = self.data.feature_input_order
             return booster_it
