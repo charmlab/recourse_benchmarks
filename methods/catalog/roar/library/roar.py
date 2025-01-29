@@ -7,8 +7,8 @@ import torch.optim as optim
 from scipy.optimize import linprog
 from torch.autograd import Variable, grad
 
-from methods.processing import reconstruct_encoding_constraints
-from tools.logging import log
+from methods.utils import reconstruct_encoding_constraints
+from tools.logging_tools import log
 
 
 def _calc_max_perturbation(

@@ -2,10 +2,11 @@ from typing import Dict, Optional
 
 import pandas as pd
 
-import data.catalog.loadData as loadData
+import data.load_data as loadData
+from data.catalog import DataCatalog
 from methods import RecourseMethod
 from methods.catalog.mace.library.mace import generateExplanations
-from methods.processing import merge_default_parameters
+from methods.utils import merge_default_parameters
 from models.catalog import ModelCatalog
 
 # Custom recourse implementations need to
@@ -47,18 +48,22 @@ class MACE(RecourseMethod):
 
     _DEFAULT_HYPERPARAMS = {"norm_type": ["zero_norm"]}
 
-    def __init__(self, mlmodel: ModelCatalog, hyperparameters: Optional[Dict] = None):
+    def __init__(
+        self,
+        data: DataCatalog,
+        mlmodel: ModelCatalog,
+        hyperparameters: Optional[Dict] = None,
+    ):
         supported_backends = ["sklearn"]
 
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
-        super().__init__(mlmodel)
-        self._continuous = mlmodel.data.continuous
-        self._categorical = mlmodel.data.categorical
-        self._target = mlmodel.data.target
-        self._model = mlmodel
+        super().__init__(data, mlmodel)
+        self._continuous = self._data.continuous
+        self._categorical = self._data.categorical
+        self._target = self._data.target
 
         checked_hyperparams = merge_default_parameters(
             hyperparameters, self._DEFAULT_HYPERPARAMS
@@ -73,8 +78,8 @@ class MACE(RecourseMethod):
     def get_counterfactuals(self, factuals: pd.DataFrame):
         # Prepare factuals
         querry_instances = factuals.copy()
-        querry_instances = self._model.get_ordered_features(querry_instances)
-        dataset_string = self._model.data.name
+        querry_instances = self._data.get_ordered_features(querry_instances)
+        dataset_string = self._data.name
 
         # check if querry_instances are not empty
         if not querry_instances.shape[0] > 0:
@@ -88,7 +93,7 @@ class MACE(RecourseMethod):
         dataset_obj = loadData.loadDataset(
             dataset_string, return_one_hot=True, load_from_cache=False, debug_flag=False
         )
-        X_test_pred_labels = self._model.predict(querry_instances)
+        X_test_pred_labels = self._mlmodel.predict(querry_instances)
 
         all_pred_data_df = querry_instances
         # IMPORTANT: note that 'y' is actually 'pred_y', not 'true_y'
@@ -119,7 +124,7 @@ class MACE(RecourseMethod):
                 mace_counterfactuals = generateExplanations(
                     self._approach_string,
                     explanation_file_name,
-                    self._model._model,
+                    self._mlmodel._model,
                     dataset_obj,
                     factual_sample,
                     norm_type_string,

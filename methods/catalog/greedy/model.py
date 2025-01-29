@@ -3,8 +3,9 @@ from typing import Dict
 import pandas as pd
 import tensorflow as tf
 
+from data.api import Data
 from methods.api import RecourseMethod
-from methods.processing import merge_default_parameters
+from methods.utils import merge_default_parameters
 from models.api import MLModel
 
 
@@ -56,20 +57,19 @@ class Greedy(RecourseMethod):
         "target_class": 1,
     }
 
-    def __init__(self, mlmodel: MLModel = None, hyperparams: Dict = None):
+    def __init__(self, data: Data, mlmodel: MLModel = None, hyperparams: Dict = None):
         supported_backends = ["tensorflow"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
 
-        self.mlmodel = mlmodel
         self.lambda_param = checked_hyperparams["lambda_param"]
         self.step_size = checked_hyperparams["step_size"]
         self.max_iter = checked_hyperparams["max_iter"]
@@ -104,7 +104,7 @@ class Greedy(RecourseMethod):
                 sess.run(tf.global_variables_initializer())
 
                 for i in range(self.max_iter):
-                    predictions = self.mlmodel.raw_model(x)
+                    predictions = self._mlmodel.raw_model(x)
                     distance_loss = tf.reduce_sum(tf.square(x - original_instance))
                     predictions = sess.run(predictions)
                     classification_loss = self.cross_entropy_loss(
@@ -121,7 +121,7 @@ class Greedy(RecourseMethod):
                         sess.run(tf.assign(x[:, feature], original_instance[feature]))
 
                     # Check stopping condition
-                    current_prediction = sess.run(self.mlmodel.raw_model(x))[0, 1]
+                    current_prediction = sess.run(self._mlmodel.raw_model(x))[0, 1]
                     if (current_prediction >= 0.5 and self.target_class == 1) or (
                         current_prediction < 0.5 and self.target_class == 0
                     ):
@@ -137,6 +137,6 @@ class Greedy(RecourseMethod):
 
         # Concatenate all counterfactuals into a single DataFrame
         final_counterfactuals_df = pd.concat(counterfactuals_list, ignore_index=True)
-        df_cfs = self._mlmodel.get_ordered_features(final_counterfactuals_df)
+        df_cfs = self._data.get_ordered_features(final_counterfactuals_df)
 
         return df_cfs

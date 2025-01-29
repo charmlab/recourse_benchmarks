@@ -21,8 +21,8 @@ from methods import *
 from methods.api import RecourseMethod
 from models.api import MLModel
 from models.catalog import ModelCatalog
-from models.negative_instances import predict_negative_instances
-from tools.logging import log
+from models.predict_factuals import predict_negative_instances
+from tools.logging_tools import log
 
 RANDOM_SEED = 54321
 
@@ -120,7 +120,7 @@ def initialize_recourse_method(
     elif method == "cchvae":
         hyperparams["data_name"] = data_name
         hyperparams["vae_params"]["layers"] = [
-            sum(mlmodel.get_mutable_mask())
+            sum(dataset.get_mutable_mask())
         ] + hyperparams["vae_params"]["layers"]
         return CCHVAE(mlmodel, hyperparams)
     elif "cem" in method:
@@ -136,30 +136,30 @@ def initialize_recourse_method(
         hyperparams["data_name"] = data_name
         # variable input layer dimension is first time here available
         hyperparams["vae_params"]["layers"] = [
-            sum(mlmodel.get_mutable_mask())
+            sum(dataset.get_mutable_mask())
         ] + hyperparams["vae_params"]["layers"]
-        return CRUD(mlmodel, hyperparams)
+        return CRUD(data, mlmodel, hyperparams)
     elif method == "dice":
-        return Dice(mlmodel, hyperparams)
+        return Dice(data, mlmodel, hyperparams)
     elif "face" in method:
-        return Face(mlmodel, hyperparams)
+        return Face(data, mlmodel, hyperparams)
     elif method == "feature_tweak":
-        return FeatureTweak(mlmodel)
+        return FeatureTweak(data, mlmodel)
     elif method == "focus":
-        return FOCUS(mlmodel)
+        return FOCUS(data, mlmodel)
     elif method == "gravitational":
-        return Gravitational(mlmodel, hyperparams)
+        return Gravitational(data, mlmodel, hyperparams)
     elif method == "greedy":
-        return Greedy(mlmodel, hyperparams)
+        return Greedy(data, mlmodel, hyperparams)
     elif method == "gs":
-        return GrowingSpheres(mlmodel)
+        return GrowingSpheres(data, mlmodel)
     elif method == "mace":
-        return MACE(mlmodel)
+        return MACE(data, mlmodel)
     elif method == "revise":
         hyperparams["data_name"] = data_name
         # variable input layer dimension is first time here available
         hyperparams["vae_params"]["layers"] = [
-            sum(mlmodel.get_mutable_mask())
+            sum(dataset.get_mutable_mask())
         ] + hyperparams["vae_params"]["layers"]
         return Revise(mlmodel, data, hyperparams)
     elif "wachter" in method:
@@ -389,7 +389,12 @@ if __name__ == "__main__":
                 # face_knn requires datasets with immutable features.
                 if exists_already or (
                     "face" in method_name
-                    and (data_name == "mortgage" or data_name == "twomoon")
+                    and (
+                        data_name == "mortgage"
+                        or data_name == "twomoon"
+                        or data_name == "boston_housing"
+                        or data_name == "breast_cancer"
+                    )
                 ):
                     continue
 
@@ -428,9 +433,7 @@ if __name__ == "__main__":
                                 )
 
                             factuals_sess = factuals_sess.reset_index(drop=True)
-                            benchmark = Benchmark(
-                                mlmodel_sess, recourse_method_sess, factuals_sess
-                            )
+                            benchmark = Benchmark(recourse_method_sess, factuals_sess)
                             evaluation_measures = [
                                 evaluation_catalog.YNN(
                                     benchmark.mlmodel, {"y": 5, "cf_label": 1}
@@ -463,17 +466,15 @@ if __name__ == "__main__":
                         method_name, mlmodel, dataset, data_name, model_name, setup
                     )
 
-                    benchmark = Benchmark(mlmodel, recourse_method, factuals)
+                    benchmark = Benchmark(recourse_method, factuals)
                     evaluation_measures = [
                         evaluation_catalog.YNN(
-                            benchmark.mlmodel, {"y": 5, "cf_label": 1}
+                            mlmodel, dataset, {"y": 5, "cf_label": 1}
                         ),
-                        evaluation_catalog.Distance(benchmark.mlmodel),
+                        evaluation_catalog.Distance(mlmodel, dataset),
                         evaluation_catalog.SuccessRate(),
-                        evaluation_catalog.Redundancy(
-                            benchmark.mlmodel, {"cf_label": 1}
-                        ),
-                        evaluation_catalog.ConstraintViolation(benchmark.mlmodel),
+                        evaluation_catalog.Redundancy(mlmodel, {"cf_label": 1}),
+                        evaluation_catalog.ConstraintViolation(mlmodel, dataset),
                         evaluation_catalog.AvgTime({"time": benchmark.timer}),
                     ]
                     df_benchmark = benchmark.run_benchmark(evaluation_measures)

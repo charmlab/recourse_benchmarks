@@ -6,8 +6,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from data.api import Data
 from methods.api import RecourseMethod
-from methods.processing import check_counterfactuals, merge_default_parameters
+from methods.utils import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
 
 
@@ -85,6 +86,7 @@ class Gravitational(RecourseMethod):
 
     def __init__(
         self,
+        data: Data = None,
         mlmodel: MLModel = None,
         hyperparams: Dict = None,
         x_center: np.array = None,
@@ -95,14 +97,13 @@ class Gravitational(RecourseMethod):
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.mlmodel = mlmodel
         self.prediction_loss_lambda = checked_hyperparams["prediction_loss_lambda"]
         self.original_dist_lambda = checked_hyperparams["original_dist_lambda"]
         self.grav_penalty_lambda = checked_hyperparams["grav_penalty_lambda"]
@@ -115,9 +116,8 @@ class Gravitational(RecourseMethod):
         self.x_center = x_center
 
         if self.x_center is None:
-            data = self.mlmodel.data
-            x_train = data.df_train.drop(data.target, axis=1)
-            y_train = data.df_train[data.target]
+            x_train = self._data.df_train.drop(self._data.target, axis=1)
+            y_train = self._data.df_train[self._data.target]
             self.x_center = np.mean(x_train[y_train == self.target_class], axis=0)
 
         self.criterion = nn.CrossEntropyLoss()
@@ -139,7 +139,7 @@ class Gravitational(RecourseMethod):
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
         factuals = factuals.reset_index()
-        factuals = self._mlmodel.get_ordered_features(factuals)
+        factuals = self._data.get_ordered_features(factuals)
         x_cf = torch.tensor(factuals.values, dtype=torch.float32, requires_grad=True)
 
         optimizer = optim.Adam([x_cf], lr=self.learning_rate)
@@ -151,7 +151,7 @@ class Gravitational(RecourseMethod):
             optimizer.zero_grad()
 
             prediction_loss_value = self.prediction_loss(
-                self.mlmodel, x_cf, self.target_class
+                self._mlmodel, x_cf, self.target_class
             )
             original_dist = self.cost(
                 torch.tensor(factuals.values, dtype=torch.float32), x_cf
@@ -170,8 +170,10 @@ class Gravitational(RecourseMethod):
 
         x_cf = x_cf.detach().numpy()
         x_cf_df = pd.DataFrame(x_cf, columns=factuals.columns)
-        df_cfs = check_counterfactuals(self.mlmodel, x_cf_df, factuals.index)
-        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        df_cfs = check_counterfactuals(
+            self._data, self._mlmodel, x_cf_df, factuals.index
+        )
+        df_cfs = self._data.get_ordered_features(df_cfs)
 
         return df_cfs
 
@@ -179,8 +181,7 @@ class Gravitational(RecourseMethod):
         self.x_center = x_center
 
     def reset_x_center(self):
-        data = self.mlmodel.data()
-        x_train = data.df_train().drop(data.target())
-        y_train = data.df_train()[data.target()]
+        x_train = self._data.df_train().drop(self._data.target())
+        y_train = self._data.df_train()[self._data.target()]
         self.x_center = np.mean(x_train[y_train == self.target_class], axis=0)
         return self.x_center

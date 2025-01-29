@@ -20,14 +20,15 @@ class YNN(Evaluation):
             What class to use as a target.
     """
 
-    def __init__(self, mlmodel, hyperparameters):
+    def __init__(self, mlmodel, data, hyperparameters):
         super().__init__(mlmodel, hyperparameters)
         self.y = self.hyperparameters["y"]
         self.cf_label = self.hyperparameters["cf_label"]
         self.columns = ["y-Nearest-Neighbours"]
+        self.data = data
 
     def _ynn(self, counterfactuals):
-        factuals = self.mlmodel.get_ordered_features(self.mlmodel.data.df)
+        factuals = self.data.get_ordered_features(self.data.df)
 
         number_of_diff_labels = 0
         nbrs = NearestNeighbors(n_neighbors=self.y).fit(factuals.values)

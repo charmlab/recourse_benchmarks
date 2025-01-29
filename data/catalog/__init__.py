@@ -1,3 +1,3 @@
 # flake8: noqa
 
-from .online_catalog import DataCatalog
+from .catalog import DataCatalog

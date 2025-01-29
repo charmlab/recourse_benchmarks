@@ -5,8 +5,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from data.api import Data
 from methods.api import RecourseMethod
-from methods.processing import merge_default_parameters
+from methods.utils import merge_default_parameters
 from models.api import MLModel
 
 
@@ -70,21 +71,20 @@ class ClaPROAR(RecourseMethod):
         "target_class": 1,
     }
 
-    def __init__(self, mlmodel: MLModel = None, hyperparams: Dict = None):
+    def __init__(self, data: Data, mlmodel: MLModel = None, hyperparams: Dict = None):
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.mlmodel = mlmodel
         self.individual_cost_lambda = checked_hyperparams["individual_cost_lambda"]
         self.external_cost_lambda = checked_hyperparams["external_cost_lambda"]
         self.learning_rate = checked_hyperparams["learning_rate"]
@@ -96,7 +96,7 @@ class ClaPROAR(RecourseMethod):
 
     def compute_yloss(self, x_prime):
         x_prime = x_prime.to(self.device)
-        output = self.mlmodel.predict_proba(x_prime)
+        output = self._mlmodel.predict_proba(x_prime)
         target_class = torch.tensor(
             [self.target_class] * output.size(0), dtype=torch.long
         ).to(self.device)
@@ -108,7 +108,7 @@ class ClaPROAR(RecourseMethod):
 
     def compute_external_cost(self, x_prime):
         x_prime = x_prime.to(self.device)
-        output = self.mlmodel.predict_proba(x_prime)
+        output = self._mlmodel.predict_proba(x_prime)
         target_class = torch.tensor(
             [1 - self.target_class] * output.size(0), dtype=torch.long
         ).to(self.device)

@@ -1,4 +1,8 @@
+import warnings
 from abc import ABC, abstractmethod
+
+import numpy as np
+import pandas as pd
 
 
 class Data(ABC):
@@ -102,6 +106,20 @@ class Data(ABC):
         """
         pass
 
+    @property
+    @abstractmethod
+    def feature_input_order(self):
+        """
+        Saves the required order of features as list.
+
+        Prevents confusion about correct order of input features in evaluation
+
+        Returns
+        -------
+        list of str
+        """
+        pass
+
     @abstractmethod
     def transform(self, df):
         """
@@ -131,3 +149,58 @@ class Data(ABC):
         pd.Dataframe
         """
         pass
+
+    def get_ordered_features(self, x):
+        """
+        Restores the correct input feature order for the ML model, this also drops the columns not in the
+        feature order. So it drops the target column, and possibly other features, e.g. categorical.
+
+        Only works for encoded data
+
+        Parameters
+        ----------
+        x : pd.DataFrame
+            Data we want to order
+
+        Returns
+        -------
+        output : pd.DataFrame
+            Whole DataFrame with ordered feature
+        """
+        if isinstance(x, pd.DataFrame):
+            return x[self.feature_input_order]
+        else:
+            warnings.warn(
+                f"cannot re-order features for non dataframe input: {type(x)}"
+            )
+            return x
+
+    def get_mutable_mask(self):
+        """
+        Get mask of mutable features.
+
+        For example with mutable feature "income" and immutable features "age", the
+        mask would be [True, False] for feature_input_order ["income", "age"].
+
+        This mask can then be used to index data to only get the columns that are (im)mutable.
+
+        Returns
+        -------
+        mutable_mask: np.array(bool)
+        """
+        # get categorical features
+        categorical = self.categorical
+        # get the binary encoded categorical features
+        encoded_categorical = categorical
+        # get the immutables, where the categorical features are in encoded format
+        immutable = [
+            encoded_categorical[categorical.index(i)] if i in categorical else i
+            for i in self.immutables
+        ]
+        # find the index of the immutables in the feature input order
+        immutable = [self.feature_input_order.index(col) for col in immutable]
+        # make a mask
+        mutable_mask = np.ones(len(self.feature_input_order), dtype=bool)
+        # set the immutables to False
+        mutable_mask[immutable] = False
+        return mutable_mask

@@ -1,3 +1,3 @@
 # flake8: noqa
 
-from .mlmodel import MLModel
+from .model import MLModel

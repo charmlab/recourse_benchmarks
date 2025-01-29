@@ -5,7 +5,7 @@ import torch
 import torch.utils.data as data
 from torch.autograd import Variable
 
-from tools.logging import log
+from tools.logging_tools import log
 
 suffixes = ["B", "KB", "MB", "GB", "TB", "PB"]
 

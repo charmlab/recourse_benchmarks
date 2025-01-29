@@ -9,8 +9,10 @@ class RecourseMethod(ABC):
 
     Parameters
     ----------
-    mlmodel: models.MLModel
+    mlmodel: models.Model
         Black-box-classifier we want to discover.
+    data : data.catalog.DataCatalog Class
+        Dataset object.
 
     Methods
     -------
@@ -24,8 +26,13 @@ class RecourseMethod(ABC):
     None
     """
 
-    def __init__(self, mlmodel):
+    def __init__(
+        self,
+        data,
+        mlmodel,
+    ):
         self._mlmodel = mlmodel
+        self._data = data
 
     @abstractmethod
     def get_counterfactuals(self, factuals: pd.DataFrame):

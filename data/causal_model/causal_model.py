@@ -4,7 +4,7 @@ import networkx as nx
 from causalgraphicalmodels import CausalGraphicalModel, StructuralCausalModel
 
 from data.causal_model.synthethic_data import ScmDataset
-from data.load_scm import load_scm_equations
+from data.utils.load_scm import load_scm_equations
 
 
 class CausalModel:

@@ -2,9 +2,10 @@ from typing import Dict, Optional
 
 import pandas as pd
 
+from data.api import Data
 from methods.api import RecourseMethod
 from methods.catalog.face.library import graph_search
-from methods.processing import (
+from methods.utils import (
     check_counterfactuals,
     encode_feature_names,
     merge_default_parameters,
@@ -45,14 +46,16 @@ class Face(RecourseMethod):
 
     _DEFAULT_HYPERPARAMS = {"mode": "knn", "fraction": 0.05}
 
-    def __init__(self, mlmodel: MLModel, hyperparams: Optional[Dict] = None) -> None:
+    def __init__(
+        self, data: Data, mlmodel: MLModel, hyperparams: Optional[Dict] = None
+    ) -> None:
         supported_backends = ["tensorflow", "pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
@@ -61,7 +64,7 @@ class Face(RecourseMethod):
         self.fraction = checked_hyperparams["fraction"]
 
         self._immutables = encode_feature_names(
-            self._mlmodel.data.immutables, self._mlmodel.feature_input_order
+            self._data.immutables, self._data.feature_input_order
         )
 
     @property
@@ -103,13 +106,13 @@ class Face(RecourseMethod):
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         # >drop< factuals from dataset to prevent duplicates,
         # >reorder< and >add< factuals to top; necessary in order to use the index
-        df = self._mlmodel.data.df.copy()
+        df = self._data.df.copy()
         cond = df.isin(factuals).values
         df = df.drop(df[cond].index)
         df = pd.concat([factuals, df], ignore_index=True)
 
-        df = self._mlmodel.get_ordered_features(df)
-        factuals = self._mlmodel.get_ordered_features(factuals)
+        df = self._data.get_ordered_features(df)
+        factuals = self._data.get_ordered_features(factuals)
 
         list_cfs = []
         for i in range(factuals.shape[0]):

@@ -5,7 +5,7 @@ import pandas as pd
 from methods.api import RecourseMethod
 from methods.autoencoder import CSVAE
 from methods.catalog.crud.library import counterfactual_search
-from methods.processing import check_counterfactuals, merge_default_parameters
+from methods.utils import check_counterfactuals, merge_default_parameters
 
 
 class CRUD(RecourseMethod):
@@ -80,14 +80,14 @@ class CRUD(RecourseMethod):
         },
     }
 
-    def __init__(self, mlmodel, hyperparams: Dict = None):
+    def __init__(self, data, mlmodel, hyperparams: Dict = None):
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
                 f"{mlmodel.backend} is not in supported backends {supported_backends}"
             )
 
-        super().__init__(mlmodel)
+        super().__init__(data, mlmodel)
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
@@ -104,13 +104,13 @@ class CRUD(RecourseMethod):
         self._csvae = CSVAE(
             checked_hyperparams["data_name"],
             vae_params["layers"],
-            mlmodel.get_mutable_mask(),
+            data.get_mutable_mask(),
         )
 
         if vae_params["train"]:
             self._csvae.fit(
-                data=mlmodel.data.df[
-                    mlmodel.feature_input_order + [mlmodel.data.target]
+                data=self._data.df[
+                    self._data.feature_input_order + [self._data.target]
                 ],
                 epochs=vae_params["epochs"],
                 lr=vae_params["lr"],
@@ -118,7 +118,7 @@ class CRUD(RecourseMethod):
             )
         else:
             try:
-                self._csvae.load(self._mlmodel.data.df.shape[1] - 1)
+                self._csvae.load(self._data.df.shape[1] - 1)
             except FileNotFoundError as exc:
                 raise FileNotFoundError(
                     "Loading of Autoencoder failed. {}".format(str(exc))
@@ -127,14 +127,14 @@ class CRUD(RecourseMethod):
     def get_counterfactuals(self, factuals: pd.DataFrame):
         factuals = pd.concat(
             [
-                self._mlmodel.get_ordered_features(factuals),
-                factuals[self._mlmodel.data.target],
+                self._data.get_ordered_features(factuals),
+                factuals[self._data.target],
             ],
             axis=1,
         )
 
         # pay attention to categorical features
-        encoded_feature_names = self._mlmodel.data.categorical
+        encoded_feature_names = self._data.categorical
         cat_features_indices = [
             factuals.columns.get_loc(feature) for feature in encoded_feature_names
         ]
@@ -157,9 +157,10 @@ class CRUD(RecourseMethod):
         )
 
         cf_df = check_counterfactuals(
+            self._data,
             self._mlmodel,
-            df_cfs.drop(self._mlmodel.data.target, axis=1),
+            df_cfs.drop(self._data.target, axis=1),
             factuals.index,
         )
-        cf_df = self._mlmodel.get_ordered_features(cf_df)
+        cf_df = self._data.get_ordered_features(cf_df)
         return cf_df
