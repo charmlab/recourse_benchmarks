@@ -6,7 +6,7 @@ import recourse as rs
 from lime.lime_tabular import LimeTabularExplainer
 
 from methods.processing import check_counterfactuals, encode_feature_names
-from tools.logging import log
+from tools.log import log
 
 from ...api import RecourseMethod
 from ...processing.counterfactuals import merge_default_parameters
