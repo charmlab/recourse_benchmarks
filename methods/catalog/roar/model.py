@@ -199,17 +199,18 @@ class Roar(RecourseMethod):
         if (coeffs is None) or (intercepts is None):
             if self._mlmodel.model_type == "linear":
                 coeffs_neg = (
-                    self._mlmodel.raw_model.output.weight.cpu().detach()[0].numpy()
+                    # self._mlmodel.raw_model.output.weight.cpu().detach()[0].numpy()
+                    self._mlmodel.raw_model.linear.weight.cpu().detach()[0].numpy()
                 )
                 coeffs_pos = (
-                    self._mlmodel.raw_model.output.weight.cpu().detach()[1].numpy()
+                    self._mlmodel.raw_model.linear.weight.cpu().detach()[1].numpy()
                 )
 
                 intercepts_neg = np.array(
-                    self._mlmodel.raw_model.output.bias.cpu().detach()[0].numpy()
+                    self._mlmodel.raw_model.linear.bias.cpu().detach()[0].numpy()
                 )
                 intercepts_pos = np.array(
-                    self._mlmodel.raw_model.output.bias.cpu().detach()[1].numpy()
+                    self._mlmodel.raw_model.linear.bias.cpu().detach()[1].numpy()
                 )
 
                 self._coeffs = coeffs_pos - coeffs_neg
