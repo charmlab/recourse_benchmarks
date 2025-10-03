@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+from data.catalog._data_main.process_data.process_sba_data import load_sba_data_modified, load_sba_data_original
 from tools.debug import ipsh
 
 sys.path.insert(0, "_data_main")
@@ -1375,6 +1376,82 @@ def loadDataset(
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
 
+        attributes_non_hot[output_col] = DatasetAttribute(
+            attr_name_long=output_col,
+            attr_name_kurz="y",
+            attr_type="numeric-real",
+            node_type="output",
+            actionability="none",
+            mutability=False,
+            parent_name_long=-1,
+            parent_name_kurz=-1,
+            lower_bound=data_frame_non_hot[output_col].min(),
+            upper_bound=data_frame_non_hot[output_col].max(),
+        )
+    elif dataset_name == "sba":
+        data_frame_non_hot = load_sba_data_original().reset_index(drop=True)
+        attributes_non_hot = {}
+
+        input_cols, output_col = getInputOutputColumns(data_frame=data_frame_non_hot)
+
+        for col_idx, col_name in enumerate(input_cols):
+            if col_name == "RevLineCr":
+                attr_type = "categorical"
+            else:
+                attr_type = "numeric-real"
+            # print('col_idx ', col_idx)
+            # print('col_type ', data_frame_non_hot[col_name].dtype)
+            attributes_non_hot[col_name] = DatasetAttribute(
+                attr_name_long=col_name,
+                attr_name_kurz=f"x{col_idx}",
+                attr_type=attr_type,
+                node_type="input",
+                actionability="any",
+                mutability=True,
+                parent_name_long=-1,
+                parent_name_kurz=-1,
+                lower_bound=data_frame_non_hot[col_name].min(),
+                upper_bound=data_frame_non_hot[col_name].max(),
+            )
+        
+        attributes_non_hot[output_col] = DatasetAttribute(
+            attr_name_long=output_col,
+            attr_name_kurz="y",
+            attr_type="numeric-real",
+            node_type="output",
+            actionability="none",
+            mutability=False,
+            parent_name_long=-1,
+            parent_name_kurz=-1,
+            lower_bound=data_frame_non_hot[output_col].min(),
+            upper_bound=data_frame_non_hot[output_col].max(),
+        )
+    elif dataset_name == "sba_modified":
+        data_frame_non_hot = load_sba_data_modified().reset_index(drop=True)
+        attributes_non_hot = {}
+
+        input_cols, output_col = getInputOutputColumns(data_frame=data_frame_non_hot)
+
+        for col_idx, col_name in enumerate(input_cols):
+            if col_name == "RevLineCr":
+                attr_type = "categorical"
+            else:
+                attr_type = "numeric-real"
+            # print('col_idx ', col_idx)
+            # print('col_type ', data_frame_non_hot[col_name].dtype)
+            attributes_non_hot[col_name] = DatasetAttribute(
+                attr_name_long=col_name,
+                attr_name_kurz=f"x{col_idx}",
+                attr_type=attr_type,
+                node_type="input",
+                actionability="any",
+                mutability=True,
+                parent_name_long=-1,
+                parent_name_kurz=-1,
+                lower_bound=data_frame_non_hot[col_name].min(),
+                upper_bound=data_frame_non_hot[col_name].max(),
+            )
+        
         attributes_non_hot[output_col] = DatasetAttribute(
             attr_name_long=output_col,
             attr_name_kurz="y",
