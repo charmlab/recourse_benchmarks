@@ -1,6 +1,6 @@
 # methods/catalog/rbr/library.py
 import math
-from typing import Callable, Dict, Optional, Sequence, Tuple, Any
+from typing import Optional, Sequence, Any
 
 import numpy as np
 import torch
@@ -238,15 +238,7 @@ def robust_bayesian_recourse(
     random_state: Optional[int] = None,
     verbose: bool = False,
 ) -> np.ndarray:
-    """
-    High-level function that matches the CARLA library-call pattern.
-    Parameters largely mirror the original code you provided.
-    - raw_model: object with .predict(np.ndarray) -> labels/probs
-    - x0: 1D numpy array (a single factual)
-    - cat_features_indices: indices of encoded categorical features to clamp/round
-    - train_data: numpy array (N, d) required (used to find boundary and feasible set)
-    Returns counterfactual as numpy array same shape as x0.
-    """
+    
     # helper to call raw_model.predict consistently
     def predict_fn_np(arr: np.ndarray) -> np.ndarray:
         # raw_model might accept (n,d) and return probs or labels
@@ -425,6 +417,4 @@ def robust_bayesian_recourse(
 
     # ----------------------------- end of optimize() -----------------------
 
-    # final clamping for feature valid ranges [0,1] if raw_model expects that (user may want different behaviour)
-    # NOTE: the CARLA wrapper can do final "check_counterfactuals" conversions; here we return raw vector
     return cf

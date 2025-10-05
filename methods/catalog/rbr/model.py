@@ -1,8 +1,6 @@
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Dict, Optional
 
-import numpy as np
 import pandas as pd
-import torch
 
 from methods.catalog.rbr.library.rbr_loss import robust_bayesian_recourse
 from methods.processing.counterfactuals import merge_default_parameters
