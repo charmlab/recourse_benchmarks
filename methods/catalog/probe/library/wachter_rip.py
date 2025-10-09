@@ -86,7 +86,7 @@ def compute_invalidation_rate(torch_model, random_samples):
     return ir
 
 
-def wachter_rip_recourse(
+def probe_recourse(
     torch_model,
     x: np.ndarray,
     cat_feature_indices: List[int],
@@ -96,7 +96,7 @@ def wachter_rip_recourse(
     lambda_param: float = 5,
     y_target: List[int] = [0.45, 0.55],
     n_iter: int = 500,
-    t_max_min: float = 0.15,
+    t_max_min: float = 1.0,
     norm: int = 1,
     clamp: bool = False,
     loss_type: str = "MSE",
@@ -134,6 +134,8 @@ def wachter_rip_recourse(
 
     if feature_costs is not None:
         feature_costs = torch.from_numpy(feature_costs).float().to(device)
+
+    #print("x:", x)
 
     x = torch.from_numpy(x).float().to(device)
     y_target = torch.tensor(y_target).float().to(device)
@@ -253,5 +255,7 @@ def wachter_rip_recourse(
         costs = torch.tensor(costs)
         min_idx = int(torch.argmin(costs).numpy())
         x_new_enc = ces[min_idx]
-            
+    
+    #print("x_prime ", x_new_enc.cpu().detach().numpy().squeeze(axis=0))
+
     return x_new_enc.cpu().detach().numpy().squeeze(axis=0)

@@ -1,7 +1,9 @@
+from typing import List
 import pandas as pd
+from sklearn.base import BaseEstimator
 
 from ...api import RecourseMethod
-from methods.catalog.roar.library import wachter_rip_recourse
+from methods.catalog.probe.library import probe_recourse
 from methods.processing import (
     check_counterfactuals,
     merge_default_parameters,
@@ -34,7 +36,7 @@ class Probe(RecourseMethod):
         "lr": 0.001,
         "lambda_": 0.01,
         "n_iter": 1000,
-        "t_max_min": 0.5,
+        "t_max_min": 1.0,
         "norm": 1,
         "clamp": True,
         "loss_type": "MSE",
@@ -67,18 +69,17 @@ class Probe(RecourseMethod):
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         # Normalize and encode data
-        df_enc_norm_fact = self.encode_normalize_order_factuals(factuals)
+        # df_enc_norm_fact = self.encode_normalize_order_factuals(factuals)
+        
+        factuals = self._mlmodel.get_ordered_features(factuals)
 
-        encoded_feature_names = self._mlmodel.encoder.get_feature_names(
-            self._mlmodel.data.categoricals
-        )
+        encoded_feature_names = self._mlmodel.data.categorical
         cat_features_indices = [
-            df_enc_norm_fact.columns.get_loc(feature)
-            for feature in encoded_feature_names
+            factuals.columns.get_loc(feature) for feature in encoded_feature_names
         ]
 
-        df_cfs = df_enc_norm_fact.apply(
-            lambda x: wachter_rip_recourse(
+        df_cfs = factuals.apply(
+            lambda x: probe_recourse(
                 self._mlmodel.raw_model,
                 x.reshape((1, -1)),
                 cat_features_indices,
@@ -99,6 +100,6 @@ class Probe(RecourseMethod):
             axis=1,
         )
 
-        df_cfs = check_counterfactuals(self._mlmodel, df_cfs)
-
+        df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
+        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
         return df_cfs
