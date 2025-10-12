@@ -20,4 +20,5 @@ from .catalog import (
     Revise,
     Roar,
     Wachter,
+    CFVAE,
 )

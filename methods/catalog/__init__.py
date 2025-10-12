@@ -17,3 +17,4 @@ from .mace import MACE
 from .revise import Revise
 from .roar import Roar
 from .wachter import Wachter
+from .cfvae import CFVAE

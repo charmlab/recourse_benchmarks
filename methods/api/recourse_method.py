@@ -42,4 +42,4 @@ class RecourseMethod(ABC):
         pd.DataFrame
             Encoded and normalised counterfactual examples.
         """
-        pass
+        return pd.DataFrame()
