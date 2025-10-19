@@ -138,3 +138,7 @@ recourse_methods:
     hyperparams:
       loss_type: "BCE"
       binary_cat_features: True
+  cfvae:
+    hyperparams:
+       encoded_size: 10
+       train: True
