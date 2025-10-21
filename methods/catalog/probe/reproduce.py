@@ -177,7 +177,7 @@ if __name__ == "__main__":
     hidden_widths = [[50]]
     backend = "pytorch"
     methods = ["probe"]  # "arar", "roar", "wachter"
-    datasets = ["adult"] # ["compass", "credit", "adult"]
+    datasets = ["compass"] # ["compass", "credit", "adult"]
     models = ["mlp", "linear"]
 
     n_cfs = 5 # just try 50 for faster results
