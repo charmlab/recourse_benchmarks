@@ -15,5 +15,6 @@ from .greedy import Greedy
 from .growing_spheres import GrowingSpheres
 from .mace import MACE
 from .revise import Revise
+from .probe import Probe
 from .roar import Roar
 from .wachter import Wachter

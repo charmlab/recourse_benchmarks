@@ -1,3 +1,3 @@
 # flake8: noqa
 
-from .wachter_rip import probe_recourse
+from .probe import probe_recourse

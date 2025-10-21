@@ -1,8 +1,10 @@
+# Description
+# This file contains the implementation of the Probe method, along with required helper functions
+
 import datetime
 from typing import List, Optional
 
 import numpy as np
-import math
 import torch
 import torch.optim as optim
 import torch.distributions.normal as normal_distribution
