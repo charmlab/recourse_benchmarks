@@ -1,6 +1,3 @@
-# Description
-# This file contains the implementation of the Probe method, along with required helper functions
-
 import datetime
 from typing import List, Optional
 
@@ -13,6 +10,10 @@ from torch import nn
 from torch.autograd import Variable
 
 from methods.processing import reconstruct_encoding_constraints
+
+""" 
+This file contains the implementation of the Probe method, along with required helper functions 
+"""
 
 DECISION_THRESHOLD = 0.5
 
@@ -129,7 +130,7 @@ def probe_recourse(
     -------
     Counterfactual example as np.ndarray
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu" # for simplicity and to avoid Runtime error.
     # returns counterfactual instance
     torch.manual_seed(0)
     noise_variance = torch.tensor(noise_variance)

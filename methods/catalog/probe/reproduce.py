@@ -1,5 +1,5 @@
 import os
-
+import pytest
 import numpy as np
 import pandas as pd
 import torch
@@ -9,6 +9,11 @@ from data.catalog import DataCatalog
 from models.catalog import ModelCatalog
 from models.negative_instances import predict_negative_instances
 from methods.catalog.probe import Probe
+
+"""
+This file aims to reproduce the results obtained by Pawelczyk et.al. as reported in the main paper.
+This file structurely tries to follow the format in the original codebase.
+"""
 
 
 training_params_linear = {
@@ -143,25 +148,13 @@ def run_experiment(cf_method,
     test_factual["prediction"] = factual_predictions
 
     df = pd.DataFrame(result)
-    # df.to_csv(
-    #     f"recourse_invalidation_results/{folder_name}/delta_testtest.csv",
-    #     sep=",",
-    #     index=False,
-    # )
-    # test_factual.to_csv(
-    #     f"recourse_invalidation_results/{folder_name}/factual_testtest.csv",
-    #     sep=",",
-    #     index=False,
-    # )
-    # df_cfs.to_csv(
-    #     f"recourse_invalidation_results/{folder_name}/counterfactual_testtest.csv",
-    #     sep=",",
-    #     index=False,
-    # )
+
+    ar = df_cfs["prediction"].mean()
+    air = df.mean().values[0]
 
     # this is the average Invalidation rate
-    print("Average Recourse Accuracy (AR): ", df_cfs["prediction"].mean())
-    print("Average Invalidation Rate (AIR): ", df.mean().values[0])
+    print("Average Recourse Accuracy (AR): ", ar)
+    print("Average Invalidation Rate (AIR): ", air)
     # compare each row of factual and cf to get the l1 cost
     test_factual = test_factual.drop(columns=['y'])[df_cfs.columns]
     print("test_factual columns ", test_factual.columns)
@@ -169,50 +162,56 @@ def run_experiment(cf_method,
     cost = np.mean(np.abs(test_factual.drop(columns=["prediction"]).values - df_cfs.drop(columns=["prediction"]).values).sum(axis=1))
     print("Average Cost (AC): ", cost)
 
-if __name__ == "__main__":
+    return ar, air
+
+@pytest.mark.parametrize(
+    "dataset_name, model_type, backend",
+    [
+        ("compass", "mlp", "pytorch"),
+        ("compass", "linear", "pytorch"),
+    ],
+)
+def test_probe(dataset_name, model_type, backend):
     # below is to recreate the results in the table just for the PROBE method
     sigmas2 = [0.01] #[0.005, 0.01, 0.015, 0.02, 0.025]
-    invalidation_targets = [0.35] #[0.15, 0.20, 0.25, 0.30]
+    invalidation_target = 0.35 #[0.15, 0.20, 0.25, 0.30]
     # cost_weights = [0.0, 0.25, 0.5, 0.75, 1] unused in the experiment
     hidden_widths = [[50]]
-    backend = "pytorch"
-    methods = ["probe"]  # "arar", "roar", "wachter"
-    datasets = ["compass"] # ["compass", "credit", "adult"]
-    models = ["mlp", "linear"]
+    backend = backend
+    method = "probe"  # "arar", "roar", "wachter"
+    dataset = dataset_name # ["compass", "credit", "adult"]
+    model = model_type
 
-    n_cfs = 5 # just try 50 for faster results
+    n_cfs = 5 # just try 5 for faster results
     n_samples = 10000
 
-    for method in methods:
-        if method == 'probe':
-            for model in models:
-                for dataset in datasets:
-                    if model == "mlp":
-                        for hidden_width in hidden_widths:
-                            for sigma2 in sigmas2:
-                                print(f'Generating recourses for sigma2={sigma2}')
-                                for invalidation_target in invalidation_targets:
-                                    run_experiment(
-                                        method,
-                                        hidden_width,
-                                        dataset,
-                                        model,
-                                        backend,
-                                        n_cfs=n_cfs,
-                                        n_samples=n_samples,
-                                        sigma2=sigma2,
-                                        invalidation_target=invalidation_target)
-                    else:
-                        for sigma2 in sigmas2:
-                            hidden_width = [0]
-                            for invalidation_target in invalidation_targets:
-                                run_experiment(
-                                    method,
-                                    hidden_width,
-                                    dataset,
-                                    model,
-                                    backend,
-                                    n_cfs=n_cfs,
-                                    n_samples=n_samples,
-                                    sigma2=sigma2,
-                                    invalidation_target=invalidation_target)
+    if model == "mlp":
+        for hidden_width in hidden_widths:
+            for sigma2 in sigmas2:
+                print(f'Generating recourses for sigma2={sigma2}')
+                ar, air = run_experiment(
+                    method,
+                    hidden_width,
+                    dataset,
+                    model,
+                    backend,
+                    n_cfs=n_cfs,
+                    n_samples=n_samples,
+                    sigma2=sigma2,
+                    invalidation_target=invalidation_target)
+    else:
+        for sigma2 in sigmas2:
+            hidden_width = [0]
+            ar, air = run_experiment(
+                method,
+                hidden_width,
+                dataset,
+                model,
+                backend,
+                n_cfs=n_cfs,
+                n_samples=n_samples,
+                sigma2=sigma2,
+                invalidation_target=invalidation_target)
+    
+    assert ar == 1.0
+    assert air <= (invalidation_target + 0.01)
