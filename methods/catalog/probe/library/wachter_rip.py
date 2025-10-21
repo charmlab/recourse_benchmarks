@@ -144,9 +144,9 @@ def probe_recourse(
     x_new = Variable(x.clone(), requires_grad=True)
     # x_new_enc is a copy of x_new with reconstructed encoding constraints of x_new
     # such that categorical data is either 0 or 1
-    x_new_enc = reconstruct_encoding_constraints(
-        x_new, cat_feature_indices, binary_cat_features
-    )
+    # x_new_enc = reconstruct_encoding_constraints( #TODO: check if this is needed here, i believe that the encoding is done in the model prediction
+    #     x_new, cat_feature_indices, binary_cat_features
+    # )
 
     optimizer = optim.Adam([x_new], lr, amsgrad=True)
     softmax = nn.Softmax()
@@ -224,18 +224,18 @@ def probe_recourse(
                 x_new.clone().clamp_(0, 1)
             # it += 1
             
-            x_new_enc = reconstruct_encoding_constraints(
-                x_new, cat_feature_indices, binary_cat_features
-            )
+            # x_new_enc = reconstruct_encoding_constraints(
+            #     x_new, cat_feature_indices, binary_cat_features
+            # )
             # f_x_new = torch_model(x_new_enc)[:, 1]
             f_x_new = torch_model(x_new)[:, 1]
 
         if (f_x_new > DECISION_THRESHOLD) and (invalidation_rate < invalidation_target + inval_target_eps):
-                #print('--------------------------------------')
-                #print('invalidation rate:', invalidation_rate)
-                #print('emp invalidation rate', invalidation_rate_empirical)
-                #print('cost:', cost)
-                #print('classifier output:', f_x_new_binary)
+                print('--------------------------------------')
+                print('invalidation rate:', invalidation_rate)
+                # print('emp invalidation rate', invalidation_rate_empirical)
+                print('cost:', cost)
+                print('classifier output:', f_x_new_binary)
                 
                 costs.append(cost)
                 ces.append(x_new)
@@ -250,6 +250,7 @@ def probe_recourse(
 
     if not ces:
         print("No Counterfactual Explanation Found at that Target Rate - Try Different Target")
+        return x_new.cpu().detach().numpy().squeeze(axis=0)
     else:
         print("Counterfactual Explanation Found")
         costs = torch.tensor(costs)
