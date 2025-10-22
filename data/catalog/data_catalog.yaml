@@ -182,6 +182,29 @@ german:
     immutable:
       - x0
       - x1
+german_modified:
+  default:
+    target: y
+    continuous:
+      - x1
+      - x2
+      - x3
+    categorical:
+      - x0
+    immutable:
+      - x0
+      - x1
+  one-hot:
+    target: y
+    continuous:
+      - x1
+      - x2
+      - x3
+    categorical:
+      - x0
+    immutable:
+      - x0
+      - x1
 mortgage:
   default:
     target: y

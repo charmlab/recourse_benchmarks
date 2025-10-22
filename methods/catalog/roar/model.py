@@ -195,7 +195,7 @@ class Roar(RecourseMethod):
 
         # Calculate coefficients and intercept (if not given) and reshape to match the shape that LIME generates
         # If Model linear then extract coefficients and intercepts from raw model directly
-        # If Molel ANN then use LIME to generate the coefficients
+        # If Model mlp then use LIME to generate the coefficients
         if (coeffs is None) or (intercepts is None):
             if self._mlmodel.model_type == "linear":
                 coeffs_neg = (
@@ -222,7 +222,7 @@ class Roar(RecourseMethod):
                 intercepts = np.vstack([self._intercepts] * factuals.shape[0]).squeeze(
                     axis=1
                 )
-            elif self._mlmodel.model_type == "ann":
+            elif self._mlmodel.model_type == "mlp":
                 log.info("Start generating LIME coefficients")
                 coeffs, intercepts = self._get_lime_coefficients(factuals)
                 log.info("Finished generating LIME coefficients")
