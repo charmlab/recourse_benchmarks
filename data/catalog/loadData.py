@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from data.catalog._data_main.process_data.process_sba_data import load_sba_data_modified, load_sba_data_original
+from data.catalog._data_main.process_data.process_german_data import load_german_data_modified
+from data.catalog._data_main.process_data.process_sba_data import load_sba_data_modified, load_sba_data
 from tools.debug import ipsh
 
 sys.path.insert(0, "_data_main")
@@ -970,6 +971,58 @@ def loadDataset(
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
 
+    elif dataset_name == "german_modified":
+        data_frame_non_hot = load_german_data_modified()
+        data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
+        attributes_non_hot = {}
+
+        input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
+
+        col_name = output_col
+        attributes_non_hot[col_name] = DatasetAttribute(
+            attr_name_long=col_name,
+            attr_name_kurz="y",
+            attr_type="binary",
+            node_type="output",
+            actionability="none",
+            mutability=False,
+            parent_name_long=-1,
+            parent_name_kurz=-1,
+            lower_bound=data_frame_non_hot[col_name].min(),
+            upper_bound=data_frame_non_hot[col_name].max(),
+        )
+
+        for col_idx, col_name in enumerate(input_cols):
+            if col_name == "Sex":  # This is not binary in the modified. Even in the original used in the paper, it is not binary
+                attr_type = "binary" # I need to ask why this is like this
+                actionability = "any"
+                mutability = True
+            elif col_name == "Age":
+                attr_type = "numeric-int"  # 'numeric-real'
+                actionability = "same-or-increase"
+                mutability = True
+            elif col_name == "Credit":
+                attr_type = "numeric-real"
+                actionability = "any"
+                mutability = True
+            elif col_name == "LoanDuration":
+                attr_type = "numeric-int"
+                actionability = "none"
+                mutability = True
+
+            attributes_non_hot[col_name] = DatasetAttribute(
+                attr_name_long=col_name,
+                attr_name_kurz=f"x{col_idx}",
+                attr_type=attr_type,
+                node_type="input",
+                actionability=actionability,
+                mutability=mutability,
+                parent_name_long=-1,
+                parent_name_kurz=-1,
+                lower_bound=data_frame_non_hot[col_name].min(),
+                upper_bound=data_frame_non_hot[col_name].max(),
+            )
+
     elif dataset_name == "credit":
         data_frame_non_hot = load_credit_data()
         data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
@@ -1389,7 +1442,7 @@ def loadDataset(
             upper_bound=data_frame_non_hot[output_col].max(),
         )
     elif dataset_name == "sba":
-        data_frame_non_hot = load_sba_data_original().reset_index(drop=True)
+        data_frame_non_hot = load_sba_data().reset_index(drop=True)
         attributes_non_hot = {}
 
         input_cols, output_col = getInputOutputColumns(data_frame=data_frame_non_hot)

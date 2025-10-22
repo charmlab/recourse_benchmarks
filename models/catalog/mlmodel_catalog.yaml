@@ -1083,6 +1083,107 @@ german:
           - x2
           - x3
 
+german_modified:
+  mlp:
+    tensorflow:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+    pytorch:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+    sklearn:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+  linear:
+    tensorflow:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+    pytorch:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+    sklearn:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+  forest:
+    sklearn:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+    xgboost:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+        one-hot:
+          - x0
+          - x1
+          - x2
+          - x3
+
 mortgage:
   mlp:
     tensorflow:

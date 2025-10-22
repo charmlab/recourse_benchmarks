@@ -22,7 +22,7 @@ def get_feat_types(df):
 				num_feat.append(key)
 		return cat_feat,num_feat
 
-def load_sba_data_original():
+def load_sba_data():
     # Define attributes of interest
     attrs = [
         'Zip', 'NAICS', 'ApprovalDate', 'ApprovalFY', 'Term', 'NoEmp',
@@ -43,6 +43,7 @@ def load_sba_data_original():
     df = df.fillna(-1)  # replace NaNs with sentinel
     df = df.sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
     
+    # print(df['RevLineCr'].value_counts())
 
     # Define target
     y = 1 - df["Default"].values
@@ -69,9 +70,9 @@ def load_sba_data_original():
 
     _, num_feat = get_feat_types(df_all)
 
-    for key in num_feat:
-        scaler = StandardScaler()
-        df_all[key] = scaler.fit_transform(df_all[key].values.reshape(-1,1))
+    # for key in num_feat:
+    #     scaler = StandardScaler()
+    #     df_all[key] = scaler.fit_transform(df_all[key].values.reshape(-1,1))
 
     # ---- Create processed dataframe with integer encodings ----
     processed_df = pd.DataFrame()
@@ -89,6 +90,9 @@ def load_sba_data_original():
     processed_df.loc[df_all["RevLineCr"] == "N", "RevLineCr"] = 2
     processed_df.loc[df_all["RevLineCr"] == "T", "RevLineCr"] = 3
     processed_df.loc[df_all["RevLineCr"] == "0", "RevLineCr"] = 4
+    # processed_df.loc[df_all["RevLineCr"] == -1, "RevLineCr"] = 5
+
+    # print(processed_df['RevLineCr'].value_counts())
     # cant think of what to do, can just drop the Nas actaully.
 
     # processed_df['RevLineCr'] = pd.Categorical(processed_df['RevLineCr'])
@@ -103,7 +107,7 @@ def load_sba_data_original():
 
     processed_df = processed_df[processed_df["ApprovalFY"]<2006]
 
-    processed_df = processed_df.dropna() 
+    processed_df = processed_df[processed_df['RevLineCr'].notna()] 
 
     return processed_df.astype("float64")
 
@@ -154,9 +158,9 @@ def load_sba_data_modified():
 
     _, num_feat = get_feat_types(df_all)
 
-    for key in num_feat:
-        scaler = StandardScaler()
-        df_all[key] = scaler.fit_transform(df_all[key].values.reshape(-1,1))
+    # for key in num_feat:
+    #     scaler = StandardScaler()
+    #     df_all[key] = scaler.fit_transform(df_all[key].values.reshape(-1,1))
 
     # ---- Create processed dataframe with integer encodings ----
     processed_df = pd.DataFrame()
@@ -174,6 +178,7 @@ def load_sba_data_modified():
     processed_df.loc[df_all["RevLineCr"] == "N", "RevLineCr"] = 2
     processed_df.loc[df_all["RevLineCr"] == "T", "RevLineCr"] = 3
     processed_df.loc[df_all["RevLineCr"] == "0", "RevLineCr"] = 4
+    # processed_df.loc[df_all["RevLineCr"] == -1, "RevLineCr"] = 5
     # cant think of what to do, can just drop the Nas actaully.
 
     # processed_df['RevLineCr'] = pd.Categorical(processed_df['RevLineCr'])
@@ -186,6 +191,6 @@ def load_sba_data_modified():
 
     processed_df["Label"] = df_all["label"]
 
-    processed_df = processed_df.dropna() 
+    processed_df = processed_df[processed_df['RevLineCr'].notna()]
 
     return processed_df.astype("float64")

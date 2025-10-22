@@ -87,6 +87,7 @@ def loadModelForDataset(
             "mortgage",
             "twomoon",
             "german",
+            "german_modified",
             "credit",
             "compass",
             "adult",
