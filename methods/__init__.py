@@ -17,7 +17,11 @@ from .catalog import (
     Gravitational,
     Greedy,
     GrowingSpheres,
+<<<<<<< HEAD
     Probe,
+=======
+    NICE,
+>>>>>>> 75c2660 (complete nice implementation and update inits)
     Revise,
     Roar,
     Wachter,

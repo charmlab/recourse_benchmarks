@@ -14,7 +14,11 @@ from .gravitational import Gravitational
 from .greedy import Greedy
 from .growing_spheres import GrowingSpheres
 from .mace import MACE
+<<<<<<< HEAD
 from .probe import Probe
+=======
+from .nice import NICE
+>>>>>>> 75c2660 (complete nice implementation and update inits)
 from .revise import Revise
 from .roar import Roar
 from .wachter import Wachter
