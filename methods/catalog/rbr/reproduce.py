@@ -2,9 +2,11 @@ from collections import namedtuple
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from data.catalog.online_catalog import DataCatalog
+from methods.catalog.rbr.model import RBR
 from models.catalog.catalog import ModelCatalog
 from ...api import RecourseMethod
 
@@ -55,7 +57,13 @@ def run_single_instance(
     return RecourseResult(l1_cost, float(cur_valid), fut_valid, True)
 
 
-def test_rbr():
+@pytest.mark.parametrize(
+    "dataset_name, model_type, backend",
+    [
+        ("german", "mlp", "pytorch"),
+    ],
+)
+def test_rbr(dataset_name, model_type, backend):
 
     np.random.seed(RANDOM_SEED)
     torch.manual_seed(RANDOM_SEED)
@@ -69,4 +77,29 @@ def test_rbr():
 
     model = ModelCatalog(dataset, "mlp", "tensorflow")
 
+    rbr = RBR(model, hyperparams={})
 
+    X_test = dataset._df_test.drop(columns=['y'], axis=1)
+    y_test = dataset._df_test['y']
+
+    X_test = X_test[y_test == 0]  # only negative class
+
+    factuals = X_test.sample(n=10, random_state=RANDOM_SEED)
+
+    for idx in range(len(factuals)):
+        x0_df = factuals.iloc[[idx]]
+        x0_numpy = x0_df.to_numpy()
+
+        result = run_single_instance(
+            idx,
+            rbr,
+            x0_numpy,
+            x0_df,
+            shifted_models=[],
+        )
+
+        print(f"Instance {idx}: L1 cost = {result.l1_cost}, Current Validity = {result.cur_valid}, Future Validity = {result.fut_valid}, Feasible = {result.feasible}")
+
+
+if __name__ == "__main__":
+    test_rbr("german", "mlp", "pytorch")
