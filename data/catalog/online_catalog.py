@@ -37,6 +37,7 @@ class DataCatalog(Data, ABC):
         train_split: float,
         modified: bool = False,
     ):
+        self.modified = modified
         catalog_content = ["default", "one-hot"]
         lib_path = pathlib.Path(__file__).parent.resolve()
         catalog = load(os.path.join(lib_path, "data_catalog.yaml"), data_name, catalog_content)  # type: ignore

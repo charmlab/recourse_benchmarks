@@ -95,6 +95,7 @@ class ModelCatalog(MLModel):
             model_type,
             data.name,
             self._backend,
+            modified=data.modified,
         )
         if self.backend == "pytorch":
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
