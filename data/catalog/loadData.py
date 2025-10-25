@@ -8,8 +8,6 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from data.catalog._data_main.process_data.process_german_data import load_german_data_modified
-from data.catalog._data_main.process_data.process_sba_data import load_sba_data_modified, load_sba_data
 from tools.debug import ipsh
 
 sys.path.insert(0, "_data_main")
@@ -74,6 +72,11 @@ try:
     )
 except Exception as e:
     print(f"[ENV WARNING] process_boston_housing_data not available. Error: {e}")
+
+try:
+    from data.catalog._data_main.process_data.process_sba_data import load_sba_data_modified, load_sba_data
+except Exception as e:
+    print(f"[ENV WARNING] process_sba_data not available. Error: {e}")
 
 
 VALID_ATTRIBUTE_DATA_TYPES = {
@@ -933,7 +936,7 @@ def loadDataset(
 
         for col_idx, col_name in enumerate(input_cols):
             if col_name == "Sex":  # TODO: make sex and race immutable in all datasets!
-                attr_type = "binary"
+                attr_type = "categorical"
                 actionability = "any"
                 mutability = True
             elif col_name == "Age":
@@ -948,18 +951,6 @@ def loadDataset(
                 attr_type = "numeric-int"
                 actionability = "none"
                 mutability = True
-            # elif col_name == 'CheckingAccountBalance':
-            #   attr_type = 'ordinal' # 'numeric-real'
-            #   actionability = 'any'
-            #   mutability = True
-            # elif col_name == 'SavingsAccountBalance':
-            #   attr_type = 'ordinal'
-            #   actionability = 'any'
-            #   mutability = True
-            # elif col_name == 'HousingStatus':
-            #   attr_type = 'ordinal'
-            #   actionability = 'any'
-            #   mutability = True
 
             attributes_non_hot[col_name] = DatasetAttribute(
                 attr_name_long=col_name,
@@ -1572,6 +1563,8 @@ def getOneHotEquivalent(data_frame_non_hot, attributes_non_hot):
         for col_idx in range(len(new_col_names_long)):
             new_col_name_long = new_col_names_long[col_idx]
             new_col_name_kurz = new_col_names_kurz[col_idx]
+            # print(col_idx)
+            # print("upper bound: ", data_frame[new_col_name_long].max())
             attributes[new_col_name_long] = DatasetAttribute(
                 attr_name_long=new_col_name_long,
                 attr_name_kurz=new_col_name_kurz,
