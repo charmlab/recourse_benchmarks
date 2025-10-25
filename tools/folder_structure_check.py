@@ -20,9 +20,9 @@ EXEMPTED_METHODS = [
     "revise",
     "roar",
     "wachter",
-    "claproar",
-    "gravitational",
-    "greedy",
+    # "claproar",
+    # "gravitational",
+    # "greedy",
 ]
 REQUIRED_FILES = ["__init__.py", "model.py", "reproduce.py"]
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "methods", "catalog")
