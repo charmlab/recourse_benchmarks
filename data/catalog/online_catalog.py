@@ -22,6 +22,8 @@ class DataCatalog(Data, ABC):
         The model architecture. Multi-Layer Perceptron, Logistic Regression, and Random Forest respectively.
     train_split : float
         Specifies the split of the available data used for training the model.
+    modified : bool
+        Specifies if we want the modified or original data (common for robustness techniques)
 
     Returns
     -------
@@ -33,6 +35,7 @@ class DataCatalog(Data, ABC):
         data_name: str,
         model_type: str,
         train_split: float,
+        modified: bool = False,
     ):
         catalog_content = ["default", "one-hot"]
         lib_path = pathlib.Path(__file__).parent.resolve()
@@ -53,8 +56,8 @@ class DataCatalog(Data, ABC):
         if model_type in {"mlp", "linear"}:
             return_one_hot = True
         dataset_obj = loadDataset(
-            data_name,
-            return_one_hot=return_one_hot,
+            data_name+"_modified" if modified else data_name, # this will let the load dataset know which dataset. Could also just
+            return_one_hot=return_one_hot,                    # pass modified as a param.
             load_from_cache=True,
             debug_flag=False,
         )

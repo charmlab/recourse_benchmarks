@@ -10,13 +10,6 @@ from models.catalog.catalog import ModelCatalog
 
 RANDOM_SEED = 54321
 
-# Get the absolute path to the directory containing this script
-SCRIPT_DIR = Path(__file__).parent
-
-# Construct the path to your data directory, relative to the script location
-DATA_DIR = SCRIPT_DIR.parent.parent.parent / "data" / "catalog" / "_data_main" / "raw_data"
-
-
 #Find indices where recourse is needed
 def recourse_needed(predict_fn, X, target=1):
 	return np.where(predict_fn(X) == 1-target)[0]
@@ -46,13 +39,13 @@ def l1_cost(xs, rs):
 
 #TODO make sure to update mlmodel_catalog.yaml
 #TODO make sure to update reproduce to match above statement, get permission for this as well.
-#TODO add the SBA and Student datasets and make them accessible
 
+# This will only test with the german dataset as it is the easiest to run
 @pytest.mark.parametrize(
     "dataset_name, model_type, backend",
     [
-        ("sba", "linear", "pytorch"),
-        ("sba", "mlp", "pytorch"),
+        ("german", "linear", "pytorch"),
+        ("german", "mlp", "pytorch"),
     ],
 )
 def test_roar(dataset_name, model_type, backend):
@@ -64,36 +57,16 @@ def test_roar(dataset_name, model_type, backend):
         'lamb': 0.1,
     }
     
-    # for i in range(args['n_trials']): Wont do trials, just one run
-    # print("Trail %d" % i)
-    
-    # results_i = {}
-    # fold = i
-    
-    # print("loading %s dataset" % args['data']) # TODO update this to use the existing pipeline, not the code above
-    # if args["data"] == 'correction':
-    #     data_name = 'german'
-    #     #data1, data2 = data.get_data()
-    # elif args["data"] == "temporal":
-    #     data_name = 'sba'
-    #     #data1, data2 = data.get_data()
-    # elif args["data"] == "geospatial":
-    #     data_name = 'student'
-    #     #data1, data2 = data.get_data()
-    
-    # X1_train, y1_train, X1_test, y1_test = data1 # unsure if we acually recive data like this, may need changing
-    # X2_train, y2_train, X2_test, y2_test = data2
-    
-    print("Training %s models" % model_type) #TODO as compromise, I will only run on m1(s)
+    print("Training %s models" % model_type) 
     if model_type == "linear":
         data = DataCatalog(dataset_name, model_type='linear', train_split=0.8)
         m1 = ModelCatalog(data, model_type="linear", backend=backend) # m1 = LR()
-        data2 = DataCatalog(dataset_name+"_modified", model_type='linear', train_split=0.8)
+        data2 = DataCatalog(dataset_name, model_type='linear', train_split=0.8, modified=True)
         m2 = ModelCatalog(data2, model_type="linear", backend=backend)
     if model_type == "mlp":
         data = DataCatalog(dataset_name, model_type='mlp', train_split=0.8)
         m1 = ModelCatalog(data, model_type="mlp", backend=backend)# m1 = NN(X1_train.shape[1])
-        data2 = DataCatalog(dataset_name+"_modified", model_type='mlp', train_split=0.8)
+        data2 = DataCatalog(dataset_name, model_type='mlp', train_split=0.8, modified=True)
         m2 = ModelCatalog(data2, model_type="mlp", backend=backend)
         # m2 = NN(X1_train.shape[1])
 
@@ -106,10 +79,6 @@ def test_roar(dataset_name, model_type, backend):
         feature_costs = None
     
     coefficients=intercept=None
-
-    # if args['base_model'] != "nn":
-    #     coefficients=m1.sklearn_model.coef_[0]
-    #     intercept = m1.sklearn_model.intercept_
     
     roar = Roar(mlmodel=m1, hyperparams={}, coeffs=coefficients, intercepts=intercept)          
 
@@ -147,26 +116,11 @@ def test_roar(dataset_name, model_type, backend):
     # results_i["cost"] = cost
     print("%s cost: %f" % (args['cost'], cost))
 
-    assert m1_validity >= 0.9
-    assert m2_validity >= 0.9
-
-    # results[i] = results_i
-
-    # results_i["recourses"] = recourses
-
-    # -------------- end of for loop ----------------------------
-
-    # agg_m1_validity = []
-    # agg_m2_validity = []
-    # agg_cost = []
-    # for i in range(args['n_trials']):
-    #     agg_m1_validity.append(results[i]["m1_validity"])
-    #     agg_m2_validity.append(results[i]["m2_validity"])
-    #     agg_cost.append(results[i]["cost"])
-
-    # print("Average M1 validity: %f +- %f" % (np.mean(agg_m1_validity), np.std(agg_m1_validity)))
-    # print("Average M2 validity: %f +- %f" % (np.mean(agg_m2_validity), np.std(agg_m2_validity)))
-    # print("Average cost: %f +- %f" % (np.mean(agg_cost), np.std(agg_cost)))
+    assert m1_validity >= 0.99
+    assert m2_validity >= 0.92
+    assert cost >= 2.80 and cost <= 3.6
 
 if __name__ == '__main__':
-    test_roar("sba", "linear", "pytorch")
+    test_roar("german", "linear", "pytorch")
+    test_roar("german", "mlp", "pytorch")
+    
