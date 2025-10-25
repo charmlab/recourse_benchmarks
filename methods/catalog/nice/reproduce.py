@@ -28,6 +28,7 @@ from models.negative_instances import predict_negative_instances
     "optimization",
     ["none", "sparsity", "proximity", "plausibility"],
 )
+
 def test_nice_adult_coverage(optimization):
     """
     Test that NICE achieves 100% coverage on adult dataset.
@@ -35,12 +36,11 @@ def test_nice_adult_coverage(optimization):
     This is a critical requirement - NICE should always find a counterfactual.
     Uses 200 instances to match paper experiments.
     """
-    # Load adult dataset with Random Forest
-    # Use forest (not mlp/linear) to get non-one-hot encoded data
-    # data = DataCatalog("adult", model_type="forest", train_split=0.7)
-    # model = ModelCatalog(data, model_type="forest", backend="sklearn")
-    data = DataCatalog("adult", model_type="mlp", train_split=0.7)
-    model = ModelCatalog(data, model_type="mlp", backend="sklearn")
+    # Load adult dataset with Random Forest OR MLP
+    data = DataCatalog("adult", model_type="forest", train_split=0.7)
+    model = ModelCatalog(data, model_type="forest", backend="sklearn")
+    # data = DataCatalog("adult", model_type="mlp", train_split=0.7)
+    # model = ModelCatalog(data, model_type="mlp", backend="sklearn")
     
     # Initialize NICE with specified optimization
     nice = NICE(
@@ -72,6 +72,7 @@ def test_nice_adult_coverage(optimization):
     "optimization",
     ["none", "sparsity", "proximity", "plausibility"],
 )
+
 def test_nice_adult_quality(optimization):
     """
     Test that NICE produces quality counterfactuals.
@@ -118,12 +119,36 @@ def test_nice_adult_quality(optimization):
     std_sparsity = sparsity.std()
     
     # ============================================
-    # Metric 2: PROXIMITY (L1 distance)
+    # Metric 2: PROXIMITY (HEOM dostance)
     # ============================================
-    proximity_per_instance = np.abs(factuals_ordered.values - counterfactuals.values).sum(axis=1)
-    avg_proximity = proximity_per_instance.mean()
-    std_proximity = proximity_per_instance.std()
+    X_train = data.df_train.drop(columns=["y"]).values
+    ranges = {}
+    for idx in nice.num_feat_idx:
+        ranges[idx] = X_train[:, idx].max() - X_train[:, idx].min()
     
+    # Calculate HEOM distance for each instance
+    proximities = []
+    for i in range(len(factuals)):
+        distance = 0
+        
+        # Categorical features: 0/1
+        for idx in nice.cat_feat_idx:
+            if factuals_ordered.values[i, idx] != counterfactuals.values[i, idx]:
+                distance += 1
+        
+        # Numerical features: normalized by range
+        for idx in nice.num_feat_idx:
+            diff = abs(
+                factuals_ordered.values[i, idx] - 
+                counterfactuals.values[i, idx]
+            )
+            distance += diff / ranges[idx]
+        
+        proximities.append(distance)
+    
+    avg_proximity = np.mean(proximities)
+    std_proximity = np.std(proximities)
+
     # ============================================
     # Metric 3: PLAUSIBILITY (AE reconstruction error)
     # ============================================
@@ -189,8 +214,7 @@ def test_nice_adult_quality(optimization):
         # But we allow some tolerance since we measure on test set
         assert avg_ae_error <= 0.02, \
             f"NICE(none) should be very plausible, got: {avg_ae_error:.4f}"
-
-
+        
 def test_nice_variants_comparison():
     """
     Compare all 4 NICE variants on the same instances.
@@ -227,6 +251,11 @@ def test_nice_variants_comparison():
         verbose=0
     )
     
+    # Calculate ranges once for HEOM
+    ranges = {}
+    for idx in num_feat_idx:
+        ranges[idx] = X_train[:, idx].max() - X_train[:, idx].min()
+    
     results = {}
     
     for opt in ["none", "sparsity", "proximity", "plausibility"]:
@@ -246,8 +275,24 @@ def test_nice_variants_comparison():
         # Sparsity
         sparsity = (factuals_ordered.values != cfs.values).sum(axis=1)
         
-        # Proximity (L1)
-        proximity = np.abs(factuals_ordered.values - cfs.values).sum(axis=1)
+        # Proximity (HEOM)
+        heom_proximities = []
+        for i in range(len(factuals)):
+            distance = 0
+            
+            # Categorical features: 0/1
+            for idx in cat_feat_idx:
+                if factuals_ordered.values[i, idx] != cfs.values[i, idx]:
+                    distance += 1
+            
+            # Numerical features: normalized by range
+            for idx in num_feat_idx:
+                diff = abs(factuals_ordered.values[i, idx] - cfs.values[i, idx])
+                distance += diff / ranges[idx]
+            
+            heom_proximities.append(distance)
+        
+        proximity = np.array(heom_proximities)
         
         # Plausibility (AE error)
         ae_errors = ae(cfs.values)
@@ -273,7 +318,7 @@ def test_nice_variants_comparison():
     print(f"{'='*100}")
     print(f"Dataset: adult, Model: Random Forest, n={len(factuals)}")
     print(f"{'-'*100}")
-    print(f"{'Variant':<15} {'Coverage':<12} {'CPU (ms)':<12} {'Sparsity':<20} {'Proximity':<20} {'Plausibility':<15}")
+    print(f"{'Variant':<15} {'Coverage':<12} {'CPU (ms)':<12} {'Sparsity':<20} {'Proximity (HEOM)':<20} {'Plausibility':<15}")
     print(f"{'-'*100}")
     
     for opt, metrics in results.items():
@@ -293,37 +338,30 @@ def test_nice_variants_comparison():
               f"({metrics['cpu_time_avg_ms']:>6.2f} ms per instance)")
     
     # Verify expectations
-    # All should have 100% coverage
     for opt, metrics in results.items():
         assert metrics["coverage"] == len(factuals), \
             f"NICE({opt}) failed coverage: {metrics['coverage']}/{len(factuals)}"
     
-    # NICE(sparsity) should have lowest or near-lowest sparsity
     spars_sparsity = results["sparsity"]["avg_sparsity"]
     for opt in ["none", "proximity", "plausibility"]:
-        # Allow small tolerance for statistical variation
         assert spars_sparsity <= results[opt]["avg_sparsity"] + 0.5, \
             f"NICE(sparsity) should have best sparsity, but NICE({opt}) is better"
     
-    # NICE(proximity) should have lowest or near-lowest proximity
     prox_proximity = results["proximity"]["avg_proximity"]
     for opt in ["none", "plausibility"]:
         assert prox_proximity <= results[opt]["avg_proximity"] + 0.3, \
             f"NICE(proximity) should have best proximity, but NICE({opt}) is better"
     
-    # NICE(none) should have very good plausibility (it's actual instances!)
     none_plausibility = results["none"]["avg_plausibility"]
     assert none_plausibility <= 0.02, \
         f"NICE(none) should be very plausible: {none_plausibility:.4f}"
     
-    # NICE(none) should be fastest
     none_time = results["none"]["cpu_time_avg_ms"]
     for opt in ["sparsity", "proximity", "plausibility"]:
         assert none_time <= results[opt]["cpu_time_avg_ms"], \
             f"NICE(none) should be fastest, but NICE({opt}) is faster"
     
     print("\n✓ All variant comparisons passed!")
-
 
 @pytest.mark.parametrize(
     "dataset_name, model_type",
