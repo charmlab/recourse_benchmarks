@@ -1383,8 +1383,11 @@ def loadDataset(
             lower_bound=data_frame_non_hot[output_col].min(),
             upper_bound=data_frame_non_hot[output_col].max(),
         )
-    elif dataset_name == "sba":
-        data_frame_non_hot = load_sba_data().reset_index(drop=True)
+    elif dataset_name == "sba" or dataset_name == "sba_modified":
+        modified = False
+        if dataset_name == "sba_modified":
+            modified = True
+        data_frame_non_hot = load_sba_data(modified=modified).reset_index(drop=True)
         attributes_non_hot = {}
 
         input_cols, output_col = getInputOutputColumns(data_frame=data_frame_non_hot)
@@ -1421,44 +1424,7 @@ def loadDataset(
             lower_bound=data_frame_non_hot[output_col].min(),
             upper_bound=data_frame_non_hot[output_col].max(),
         )
-    elif dataset_name == "sba_modified":
-        data_frame_non_hot = load_sba_data_modified().reset_index(drop=True)
-        attributes_non_hot = {}
-
-        input_cols, output_col = getInputOutputColumns(data_frame=data_frame_non_hot)
-
-        for col_idx, col_name in enumerate(input_cols):
-            if col_name == "RevLineCr":
-                attr_type = "categorical"
-            else:
-                attr_type = "numeric-real"
-            # print('col_idx ', col_idx)
-            # print('col_type ', data_frame_non_hot[col_name].dtype)
-            attributes_non_hot[col_name] = DatasetAttribute(
-                attr_name_long=col_name,
-                attr_name_kurz=f"x{col_idx}",
-                attr_type=attr_type,
-                node_type="input",
-                actionability="any",
-                mutability=True,
-                parent_name_long=-1,
-                parent_name_kurz=-1,
-                lower_bound=data_frame_non_hot[col_name].min(),
-                upper_bound=data_frame_non_hot[col_name].max(),
-            )
-        
-        attributes_non_hot[output_col] = DatasetAttribute(
-            attr_name_long=output_col,
-            attr_name_kurz="y",
-            attr_type="numeric-real",
-            node_type="output",
-            actionability="none",
-            mutability=False,
-            parent_name_long=-1,
-            parent_name_kurz=-1,
-            lower_bound=data_frame_non_hot[output_col].min(),
-            upper_bound=data_frame_non_hot[output_col].max(),
-        )
+    
 
     else:
         raise Exception(f"{dataset_name} not recognized as a valid dataset.")
