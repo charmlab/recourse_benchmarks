@@ -37,8 +37,10 @@ def test_nice_adult_coverage(optimization):
     """
     # Load adult dataset with Random Forest
     # Use forest (not mlp/linear) to get non-one-hot encoded data
-    data = DataCatalog("adult", model_type="forest", train_split=0.7)
-    model = ModelCatalog(data, model_type="forest", backend="sklearn")
+    # data = DataCatalog("adult", model_type="forest", train_split=0.7)
+    # model = ModelCatalog(data, model_type="forest", backend="sklearn")
+    data = DataCatalog("adult", model_type="mlp", train_split=0.7)
+    model = ModelCatalog(data, model_type="mlp", backend="sklearn")
     
     # Initialize NICE with specified optimization
     nice = NICE(
