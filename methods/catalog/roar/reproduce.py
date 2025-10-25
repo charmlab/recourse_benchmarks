@@ -67,7 +67,7 @@ def test_roar(dataset_name, model_type, backend):
     # for i in range(args['n_trials']): Wont do trials, just one run
     # print("Trail %d" % i)
     
-    results_i = {}
+    # results_i = {}
     # fold = i
     
     # print("loading %s dataset" % args['data']) # TODO update this to use the existing pipeline, not the code above
@@ -125,7 +125,7 @@ def test_roar(dataset_name, model_type, backend):
     r = roar.get_counterfactuals(factuals=factuals)
     recourses.append(r)
     
-    results_i["recourses"] = recourses
+    # results_i["recourses"] = recourses
 
     recourses = np.array(recourses)
     print(factuals.columns)
@@ -133,23 +133,26 @@ def test_roar(dataset_name, model_type, backend):
 
     # For model 1, ran on og dataset
     m1_validity = recourse_validity(m1.predict, r)
-    results_i["m1_validity"] = m1_validity
+    # results_i["m1_validity"] = m1_validity
     print("M1 validity: %f" % m1_validity)
 
     # For model 2, ran on modified dataset
     m2_validity = recourse_validity(m2.predict, r)
-    results_i["m2_validity"] = m2_validity
+    # results_i["m2_validity"] = m2_validity
     print("M2 validity: %f" % m2_validity)
 
     if args['cost'] == "l1":
         cost = l1_cost(factuals, r)
         
-    results_i["cost"] = cost
+    # results_i["cost"] = cost
     print("%s cost: %f" % (args['cost'], cost))
+
+    assert m1_validity >= 0.9
+    assert m2_validity >= 0.9
 
     # results[i] = results_i
 
-    results_i["recourses"] = recourses
+    # results_i["recourses"] = recourses
 
     # -------------- end of for loop ----------------------------
 

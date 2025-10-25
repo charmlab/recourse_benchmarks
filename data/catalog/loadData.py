@@ -907,8 +907,11 @@ def loadDataset(
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
 
-    elif dataset_name == "german":
-        data_frame_non_hot = load_german_data()
+    elif dataset_name == "german" or dataset_name == "german_modified":
+        modified = False
+        if dataset_name == "german_modified":
+            modified = True
+        data_frame_non_hot = load_german_data(modified=modified)
         data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
         attributes_non_hot = {}
 
@@ -957,58 +960,6 @@ def loadDataset(
             #   attr_type = 'ordinal'
             #   actionability = 'any'
             #   mutability = True
-
-            attributes_non_hot[col_name] = DatasetAttribute(
-                attr_name_long=col_name,
-                attr_name_kurz=f"x{col_idx}",
-                attr_type=attr_type,
-                node_type="input",
-                actionability=actionability,
-                mutability=mutability,
-                parent_name_long=-1,
-                parent_name_kurz=-1,
-                lower_bound=data_frame_non_hot[col_name].min(),
-                upper_bound=data_frame_non_hot[col_name].max(),
-            )
-
-    elif dataset_name == "german_modified":
-        data_frame_non_hot = load_german_data_modified()
-        data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
-        attributes_non_hot = {}
-
-        input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
-
-        col_name = output_col
-        attributes_non_hot[col_name] = DatasetAttribute(
-            attr_name_long=col_name,
-            attr_name_kurz="y",
-            attr_type="binary",
-            node_type="output",
-            actionability="none",
-            mutability=False,
-            parent_name_long=-1,
-            parent_name_kurz=-1,
-            lower_bound=data_frame_non_hot[col_name].min(),
-            upper_bound=data_frame_non_hot[col_name].max(),
-        )
-
-        for col_idx, col_name in enumerate(input_cols):
-            if col_name == "Sex":  # This is not binary in the modified. Even in the original used in the paper, it is not binary
-                attr_type = "binary" # I need to ask why this is like this
-                actionability = "any"
-                mutability = True
-            elif col_name == "Age":
-                attr_type = "numeric-int"  # 'numeric-real'
-                actionability = "same-or-increase"
-                mutability = True
-            elif col_name == "Credit":
-                attr_type = "numeric-real"
-                actionability = "any"
-                mutability = True
-            elif col_name == "LoanDuration":
-                attr_type = "numeric-int"
-                actionability = "none"
-                mutability = True
 
             attributes_non_hot[col_name] = DatasetAttribute(
                 attr_name_long=col_name,
