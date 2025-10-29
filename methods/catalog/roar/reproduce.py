@@ -44,7 +44,7 @@ def l1_cost(xs, rs):
 @pytest.mark.parametrize(
     "dataset_name, model_type, backend",
     [
-        ("german", "linear", "pytorch"),
+        ("german", "linear", "sklearn"),
         ("german", "mlp", "pytorch"),
     ],
 )
@@ -126,5 +126,5 @@ def test_roar(dataset_name, model_type, backend):
         #assert cost >= 1.60 and cost <= 2.10
 
 if __name__ == '__main__':
-    test_roar("german", "linear", "pytorch")
+    test_roar("german", "linear", "sklearn")
     test_roar("german", "mlp", "pytorch")
