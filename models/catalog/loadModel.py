@@ -50,6 +50,9 @@ def loadModelForDataset(
     backend="sklearn",
     scm_class=None,
     experiment_folder_name=None,
+    epochs: int = 1,
+    batch_size: int = 1000,
+    learning_rate: float = 0.001,
 ):
     """
     Loads and returns a model with trained data.
@@ -66,6 +69,12 @@ def loadModelForDataset(
         SCM Class of the retrieved dataset.
     experiment_folder_name : str
         Folder name to save model in.
+    epochs : int
+        Number of training epochs (pytorch only).
+    batch_size : int
+        Size of each training batch (pytorch only)
+    learning_rate : float
+        Learning rate for the optimizer (pytorch only)
 
     Returns
     -------
@@ -120,13 +129,13 @@ def loadModelForDataset(
         "sklearn": LogisticRegression(
             solver="liblinear"
         ),  # IMPORTANT: The default solver changed from ‘liblinear’ to ‘lbfgs’ in 0.22; therefore, results may differ slightly from paper.
-        "pytorch": PyTorchLogisticRegression(X_train.shape[1], 2),
+        "pytorch": PyTorchLogisticRegression(X_train.shape[1], 2, batch_size=batch_size, epochs=epochs, learning_rate=learning_rate),
         "tensorflow": TensorflowLogisticRegression(X_train.shape[1], 2),
     }
 
     neuralNetworksMap = {
         "sklearn": MLPClassifier(hidden_layer_sizes=(10, 10)),
-        "pytorch": PyTorchNeuralNetwork(X_train.shape[1], 2, 10),
+        "pytorch": PyTorchNeuralNetwork(X_train.shape[1], 2, 10, batch_size=batch_size, epochs=epochs, learning_rate=learning_rate),
         "tensorflow": TensorflowNeuralNetwork(X_train.shape[1], 2, 10),
     }
 

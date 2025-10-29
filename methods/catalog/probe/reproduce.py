@@ -24,10 +24,10 @@ training_params_linear = {
                "epochs": 25,
                "batch_size": 128},
     "credit": {"lr": 0.002,
-                            "epochs": 50,
-                            "batch_size": 2048},
+                "epochs": 50,
+                "batch_size": 2048},
 }
-training_params_ann = {
+training_params_mlp = {
     "adult": {"lr": 0.002,
               "epochs": 30,
               "batch_size": 1024},
@@ -35,12 +35,12 @@ training_params_ann = {
                "epochs": 25,
                "batch_size": 25},
     "credit": {"lr": 0.002,
-                            "epochs": 50,
-                            "batch_size": 2048},
+                "epochs": 50,
+                "batch_size": 2048},
 }
 
 training_params = {"linear": training_params_linear,
-                   "mlp": training_params_ann}
+                   "mlp": training_params_mlp}
 
 def expect(model, test_factual, sigma2, invalidation_target):
     hyperparams = {"loss_type": "BCE",
@@ -82,15 +82,15 @@ def run_experiment(cf_method,
         f"Running experiments with: {cf_method} {data_name} {model_type} {hidden_width}"
     )
 
-    if model_type == 'mlp':
-        data = DataCatalog(data_name, model_type='mlp', train_split=0.8)
-    else:
-        data = DataCatalog(data_name, model_type='linear', train_split=0.8)
+    data = DataCatalog(data_name=data_name, model_type=model_type, train_split=0.8)
 
-    params = training_params[model_type][data_name]
-    model = ModelCatalog(
-        data, model_type, load_online=False, backend=backend
-    )
+    # params = training_params[model_type][data_name]
+    model = ModelCatalog(data=data, 
+                         model_type=model_type, 
+                         backend=backend,
+                         batch_size=training_params[model_type][data_name]["batch_size"],
+                         epochs=training_params[model_type][data_name]["epochs"],
+                         learning_rate=training_params[model_type][data_name]["lr"],)
     # model.train(
     #     learning_rate=params["lr"],
     #     epochs=params["epochs"],
@@ -101,6 +101,8 @@ def run_experiment(cf_method,
 
     factuals = predict_negative_instances(model, data)
     test_factual = factuals.iloc[:n_cfs]
+
+    print(test_factual)
 
     # print the list of factuals
     # for test_factual in test_factual.itertuples():
@@ -215,3 +217,8 @@ def test_probe(dataset_name, model_type, backend):
     
     assert ar == 1.0
     assert air <= (invalidation_target + 0.01)
+
+if __name__ == '__main__':
+    test_probe("compass", "linear", "pytorch")
+    test_probe("compass", "mlp", "pytorch")
+    

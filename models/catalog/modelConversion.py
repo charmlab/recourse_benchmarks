@@ -29,11 +29,20 @@ class PyTorchNeuralNetwork(torch.nn.Module):
     """
 
     # Constructor
-    def __init__(self, n_inputs, n_outputs, n_neurons):
+    def __init__(self, 
+                 n_inputs, 
+                 n_outputs, 
+                 n_neurons,
+                 batch_size=1000,
+                 epochs=1,
+                 learning_rate=0.001):
         super(PyTorchNeuralNetwork, self).__init__()
         self.fc1 = torch.nn.Linear(n_inputs, n_neurons)
         self.fc2 = torch.nn.Linear(n_neurons, n_neurons)
         self.fc3 = torch.nn.Linear(n_neurons, n_outputs)
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.learning_rate = learning_rate
 
     # Predictions
     def forward(self, x):
@@ -57,7 +66,10 @@ class PyTorchNeuralNetwork(torch.nn.Module):
         y_pred = torch.nn.functional.softmax(self.fc3(x))
         return y_pred
 
-    def fit(self, x_train, y_train):
+    # Adding extra parameters for training
+    def fit(self, 
+            x_train, 
+            y_train):
         """
         Fits the neural network to the training data.
 
@@ -79,15 +91,17 @@ class PyTorchNeuralNetwork(torch.nn.Module):
 
         train_dataset = torch.utils.data.TensorDataset(x_train_tensor, y_train_tensor)
         train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset, batch_size=1000, shuffle=True
+            dataset=train_dataset, 
+            batch_size=self.batch_size, 
+            shuffle=True
         )
 
         # defining the optimizer
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         # defining Cross-Entropy loss
         criterion = torch.nn.NLLLoss()
 
-        epochs = 1
+        epochs = self.epochs
         for _ in range(epochs):
             for i, (data, target) in enumerate(train_loader):
                 optimizer.zero_grad()
@@ -147,9 +161,17 @@ class PyTorchLogisticRegression(torch.nn.Module):
     """
 
     # Constructor
-    def __init__(self, n_inputs, n_outputs):
+    def __init__(self,
+                 n_inputs,
+                 n_outputs,
+                 batch_size=1000,
+                 epochs=1,
+                 learning_rate=0.001):
         super(PyTorchLogisticRegression, self).__init__()
         self.linear = torch.nn.Linear(n_inputs, n_outputs)
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.learning_rate = learning_rate
 
     # Predictions
     def forward(self, x):
@@ -171,7 +193,9 @@ class PyTorchLogisticRegression(torch.nn.Module):
         y_pred = torch.nn.functional.softmax(self.linear(x))
         return y_pred
 
-    def fit(self, x_train, y_train):
+    def fit(self, 
+            x_train, 
+            y_train):
         """
         Fits the logistic regression model to the training data.
 
@@ -179,6 +203,9 @@ class PyTorchLogisticRegression(torch.nn.Module):
         ----------
         x_train (array-like): Input training data.
         y_train (array-like): Target training data.
+        batch_size (int): Size of each training batch.
+        epochs (int): Number of training epochs.
+        learning_rate (float): Learning rate for the optimizer.
 
         Returns
         -------
@@ -193,15 +220,15 @@ class PyTorchLogisticRegression(torch.nn.Module):
 
         train_dataset = torch.utils.data.TensorDataset(x_train_tensor, y_train_tensor)
         train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset, batch_size=1000, shuffle=True
+            dataset=train_dataset, batch_size=self.batch_size, shuffle=True
         )
 
         # Defining the optimizer
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         # Defining Cross-Entropy loss
         criterion = torch.nn.NLLLoss()
 
-        epochs = 1
+        epochs = self.epochs
         for _ in range(epochs):
             for i, (data, target) in enumerate(train_loader):
                 optimizer.zero_grad()

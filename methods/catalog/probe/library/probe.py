@@ -21,7 +21,7 @@ DECISION_THRESHOLD = 0.5
 # see in here : http://journal-sfds.fr/article/view/669
 
 
-def compute_jacobian(inputs, output, num_classes=1):
+def compute_jacobian(inputs, output):
     """
     :param inputs: Batch X Size (e.g. Depth X Width X Height)
     :param output: Batch X Classes
@@ -45,7 +45,7 @@ def compute_invalidation_rate_closed(torch_model, x, sigma2):
     prob = torch_model(x)
     logit_x = torch.log(prob[0][1] / prob[0][0])
     Sigma2 = sigma2 * torch.eye(x.shape[0])
-    jacobian_x = compute_jacobian(x, logit_x, num_classes=1).reshape(-1)
+    jacobian_x = compute_jacobian(x, logit_x).reshape(-1)
     denom = torch.sqrt(sigma2) * torch.norm(jacobian_x, 2)
     arg = logit_x / denom
     
@@ -71,7 +71,6 @@ def perturb_sample(x, n_samples, sigma2):
     return X + eps
 
 def reparametrization_trick(mu, sigma2, n_samples):
-    
     #var = torch.eye(mu.shape[1]) * sigma2
     std = torch.sqrt(sigma2)
     epsilon = MultivariateNormal(loc=torch.zeros(mu.shape[1]), covariance_matrix=torch.eye(mu.shape[1]))
@@ -125,6 +124,9 @@ def probe_recourse(
     norm: L-norm to calculate cost
     clamp: If true, feature values will be clamped to (0, 1)
     loss_type: String for loss function (MSE or BCE)
+    Invalidation_target: target invalidation rate
+    inval_target_eps: epsilon for invalidation rate
+    noise_variance: variance of the normal distribution for sampling
 
     Returns
     -------
@@ -147,6 +149,7 @@ def probe_recourse(
     x_new = Variable(x.clone(), requires_grad=True)
     # x_new_enc is a copy of x_new with reconstructed encoding constraints of x_new
     # such that categorical data is either 0 or 1
+    
     # x_new_enc = reconstruct_encoding_constraints( #TODO: check if this is needed here, i believe that the encoding is done in the model prediction
     #     x_new, cat_feature_indices, binary_cat_features
     # )
