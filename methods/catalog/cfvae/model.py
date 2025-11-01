@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import torch
@@ -7,6 +7,7 @@ from torch import nn, optim
 import torch.nn.functional as F
 from tqdm import tqdm
 
+from data.catalog.loadData import loadDataset
 from methods.api import RecourseMethod
 from methods.processing import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
@@ -196,7 +197,7 @@ class CFVAE(RecourseMethod):
         constraint_reg: float = 1,
         preference_reg: float = 1,
         device: torch.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
+            "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
         ),
     ):
         """
@@ -240,9 +241,63 @@ class CFVAE(RecourseMethod):
         ].values
         train_dataset = torch.tensor(train_dataset).float()
         dataset_size = train_dataset.size(0)
-        train_loader = torch.utils.data.DataLoader(
+        train_loader = torch.utils.data.DataLoader(  # pyright: ignore[reportAttributeAccessIssue]
             train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True
         )
+
+        feature_order = self._mlmodel.feature_input_order
+        data_catalog = self._mlmodel.data
+        continuous_features = [
+            feature for feature in feature_order if feature in data_catalog.continuous
+        ]
+        categorical_features = [
+            feature for feature in feature_order if feature in data_catalog.categorical
+        ]
+        categorical_indices = [
+            feature_order.index(feature) for feature in categorical_features
+        ]
+
+        # Prepare categorical sibling groups for enforcing one-hot plausibility
+        dataset_one_hot = None
+        encoded_categorical_feature_indexes: List[List[int]] = []
+        try:
+            dataset_one_hot = loadDataset(
+                data_catalog.name,
+                return_one_hot=True,
+                load_from_cache=True,
+                debug_flag=False,
+            )
+            dict_of_siblings = dataset_one_hot.getDictOfSiblings("kurz")
+            for siblings in dict_of_siblings.get("cat", {}).values():
+                indices = [feature_order.index(col) for col in siblings if col in feature_order]
+                if indices:
+                    encoded_categorical_feature_indexes.append(indices)
+        except Exception:
+            encoded_categorical_feature_indexes = []
+
+        # Calculate original value ranges for continuous features
+        normalise_weights: Dict[int, Tuple[float, float]] = {}
+        attribute_lookup = {}
+        if dataset_one_hot is not None:
+            raw_attributes = getattr(dataset_one_hot, "attributes_kurz", {})
+            if isinstance(raw_attributes, dict):
+                attribute_lookup = raw_attributes
+        decoded_train = None
+        for feature in continuous_features:
+            idx = feature_order.index(feature)
+            attr = attribute_lookup.get(feature)
+            if attr is not None:
+                min_val = float(attr.lower_bound)
+                max_val = float(attr.upper_bound)
+            else:
+                if decoded_train is None:
+                    decoded_train = data_catalog.inverse_transform(
+                        data_catalog.df_train[feature_order]
+                    )
+                column = decoded_train[feature]
+                min_val = float(column.min())
+                max_val = float(column.max())
+            normalise_weights[idx] = (min_val, max_val)
 
         self._cf_model.train().to(device)
         optimizer = optim.SGD(
@@ -272,43 +327,37 @@ class CFVAE(RecourseMethod):
                         )
 
                         # Reconstruction Term
-                        # Proximity: L1 Loss
-                        # Implemented as written in paper (pure L1), but not the same as the companion code
-                        reconstruction_loss += -torch.sum(
-                            torch.abs(train_x - x_pred), dim=1
+                        reconstruction_increment = torch.zeros(
+                            train_x.size(0), device=device
                         )
 
-                        # categorical features
-                        # Implemented inside the L1 loss above
-                        """
-                        reconstruction_loss += -torch.sum(
-                            torch.abs(
-                                train_x[:, encoded_start_cat:-1]
-                                - x_pred[:, encoded_start_cat:-1]
-                            ),
-                            dim=1,
-                        )
-                        """
-
-                        # continuous features  # Quirk
-                        # Not implemented since de-normalization range information cannot be obtained
-                        """
-                        for key in normalise_weights.keys():
-                            reconstruction_loss += -(
-                                normalise_weights[key][1] - normalise_weights[key][0]
-                            ) * torch.abs(train_x[:, key] - x_pred[:, key])
-                        """
-                        # TODO
-
-                        # Sum to 1 over the categorical indexes of a feature  # Quirk
-                        # Not implemented since the loss for current ordinal categorical features is undefined
-                        """
-                        for v in encoded_categorical_feature_indexes:
-                            reconstruction_loss += -torch.abs(
-                                1.0 - torch.sum(x_pred[:, v[0] : v[-1] + 1], dim=1)
+                        # Categorical features
+                        if categorical_indices:
+                            reconstruction_increment += -torch.sum(
+                                torch.abs(
+                                    train_x[:, categorical_indices]
+                                    - x_pred[:, categorical_indices]
+                                ),
+                                dim=1,
                             )
-                        """
-                        # TODO
+
+                        # Continuous features
+                        for key, (min_val, max_val) in normalise_weights.items():
+                            range_val = max_val - min_val
+                            if range_val <= 0:
+                                range_val = 1.0
+                            reconstruction_increment += -range_val * torch.abs(
+                                train_x[:, key] - x_pred[:, key]
+                            )
+
+                        # Sum to 1 over the categorical indexes of a feature
+                        for index_group in encoded_categorical_feature_indexes:
+                            if index_group:
+                                reconstruction_increment += -torch.abs(
+                                    1.0 - torch.sum(x_pred[:, index_group], dim=1)
+                                )
+
+                        reconstruction_loss += reconstruction_increment
 
                         # Validity
                         y_pred = self._mlmodel.forward(x_pred)
@@ -445,7 +494,7 @@ class CFVAE(RecourseMethod):
         self,
         factuals: pd.DataFrame,
         device: torch.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
+            "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
         ),
     ) -> pd.DataFrame:
         assert self._trained, "Error: Run train() or load() first!"
