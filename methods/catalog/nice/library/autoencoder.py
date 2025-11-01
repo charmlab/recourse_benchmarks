@@ -8,6 +8,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras.callbacks import EarlyStopping
+from math import ceil
 
 
 class AutoEncoder:
@@ -54,32 +56,53 @@ class AutoEncoder:
         X_train: np.ndarray,
         cat_feat_idx: list = None,
         num_feat_idx: list = None,
-        encoding_dim: int = 32,
-        epochs: int = 50,
+        epochs: int = 100,
         batch_size: int = 32,
+        validation_split: float = 0.2,
+        early_stopping: bool = True,
+        patience: int = 5,
         verbose: int = 0
     ):
         self.cat_feat_idx = cat_feat_idx if cat_feat_idx is not None else []
         self.num_feat_idx = num_feat_idx if num_feat_idx is not None else []
-        self.encoding_dim = encoding_dim
+        
         self.input_dim = X_train.shape[1]  # ✅ FIXED! Number of features, not instances
         self.batch_size = batch_size
         
+        # Sizes
+        latent_size = 2 if int(ceil(self.input_dim / 4)) < 4 else 4
+        hidden_1 = int(ceil(self.input_dim / 2))
+        hidden_2 = int(ceil(self.input_dim / 4))
+
         # Build autoencoder architecture
         input_layer = layers.Input(shape=(self.input_dim,))
         
-        # Encoder
-        encoded = layers.Dense(64, activation='relu')(input_layer)
-        encoded = layers.Dense(encoding_dim, activation='relu')(encoded)
+        # Encoder: input → input/2 → input/4 → latent
+        encoded = layers.Dense(hidden_1, activation='tanh', name='encoder_1')(input_layer)
+        encoded = layers.Dense(hidden_2, activation='tanh', name='encoder_2')(encoded)
+        encoded = layers.Dense(latent_size, activation='tanh', name='latent')(encoded)
         
-        # Decoder
-        decoded = layers.Dense(64, activation='relu')(encoded)
-        decoded = layers.Dense(self.input_dim, activation='sigmoid')(decoded)
+        # Decoder: latent → input/4 → input/2 → input (symmetric)
+        decoded = layers.Dense(hidden_2, activation='tanh', name='decoder_1')(encoded)
+        decoded = layers.Dense(hidden_1, activation='tanh', name='decoder_2')(decoded)
+        decoded = layers.Dense(self.input_dim, activation='sigmoid', name='output')(decoded)
         
         # Create model
         self.autoencoder = keras.Model(input_layer, decoded)
-        self.autoencoder.compile(optimizer='adam', loss='mse')
-        
+        self.autoencoder.compile(optimizer='adam', loss='mse', metrics=['mae'])
+
+        # Setup callbacks
+        callbacks = []
+        if early_stopping:
+            early_stop = EarlyStopping(
+                monitor='val_loss',
+                patience=patience,
+                restore_best_weights=True,
+                verbose=verbose,
+                mode='min'
+            )
+            callbacks.append(early_stop)
+
         # Train autoencoder on training data
         self.autoencoder.fit(
             X_train, 
@@ -88,12 +111,30 @@ class AutoEncoder:
             batch_size=batch_size,
             verbose=verbose,
             shuffle=True,
-            validation_split=0.1
+            validation_split=validation_split,
+            callbacks=callbacks
         )
         
         if verbose > 0:
-            print(f"Autoencoder trained on {X_train.shape[0]} instances")
-            print(f"Architecture: {self.input_dim} → 64 → {encoding_dim} → 64 → {self.input_dim}")
+            final_epoch = len(self.history.history['loss'])
+            final_loss = self.history.history['loss'][-1]
+            final_val_loss = self.history.history['val_loss'][-1]
+            
+            print(f"\n{'='*70}")
+            print("Autoencoder Training Summary")
+            print(f"{'='*70}")
+            print(f"Training instances:    {X_train.shape[0]}")
+            print(f"Input dimension:       {self.input_dim}")
+            print(f"Architecture:          {self.input_dim} → {hidden_1} → {hidden_2} → "
+                  f"{latent_size} → {hidden_2} → {hidden_1} → {self.input_dim}")
+            print(f"Epochs completed:      {final_epoch}/{epochs}")
+            print(f"Final training loss:   {final_loss:.6f}")
+            print(f"Final validation loss: {final_val_loss:.6f}")
+            
+            if early_stopping and final_epoch < epochs:
+                print(f"Early stopping triggered (patience={patience})")
+            
+            print(f"{'='*70}\n")
     
     def __call__(self, X: np.ndarray) -> np.ndarray:
         """
@@ -123,15 +164,13 @@ class AutoEncoder:
     def reconstruct(self, X: np.ndarray) -> np.ndarray:
         """
         Reconstruct instances through the autoencoder.
-        
-        Parameters
-        ----------
-        X : np.ndarray
-            Instances to reconstruct (N x M)
-        
-        Returns
-        -------
-        np.ndarray
-            Reconstructed instances (N x M)
         """
         return self.autoencoder.predict(X, verbose=0)
+    
+    def get_latent_representation(self, X: np.ndarray) -> np.ndarray:
+        """Get the latent (encoded) representation of instances."""
+        encoder = keras.Model(
+            inputs=self.autoencoder.input,
+            outputs=self.autoencoder.get_layer('latent').output
+        )
+        return encoder.predict(X, verbose=0)
