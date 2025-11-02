@@ -12,7 +12,7 @@ from data.catalog.loadData import loadDataset
 from methods.api import RecourseMethod
 from methods.processing import merge_default_parameters
 from models.api import MLModel
-from tools.logging import log
+from tools.log import log
 
 from .cfrl_tabular import CounterfactualRLTabular as CFRLExplainer
 from .cfrl_tabular import get_he_preprocessor

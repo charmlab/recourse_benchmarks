@@ -10,7 +10,7 @@ from tqdm import tqdm
 from methods.api import RecourseMethod
 from methods.processing import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
-from tools.logging import log
+from tools.log import log
 
 
 class _CFVAE(nn.Module):
