@@ -19,49 +19,30 @@ from .cfrl_tabular import get_he_preprocessor
 
 
 class HeterogeneousEncoder(nn.Module):
-    """Simple feed-forward encoder used for the heterogeneous auto-encoder."""
+    """PyTorch replica of the ADULT encoder from the Keras CFRL implementation."""
 
-    def __init__(self, input_dim: int, hidden_dim: int, latent_dim: int) -> None:
+    def __init__(self, hidden_dim: int, latent_dim: int) -> None:
         super().__init__()
-        self.network = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, latent_dim),
-        )
+        self.fc1 = nn.LazyLinear(hidden_dim)
+        self.fc2 = nn.LazyLinear(latent_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D401
-        return self.network(x)
+        x = F.relu(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        return x
 
 
 class HeterogeneousDecoder(nn.Module):
-    """Decoder with one head for numerical features and one head per categorical feature."""
+    """PyTorch replica of the ADULT decoder from the Keras CFRL implementation."""
 
-    def __init__(self, latent_dim: int, hidden_dim: int, output_dims: List[int]) -> None:
+    def __init__(self, hidden_dim: int, output_dims: List[int]) -> None:
         super().__init__()
-        self.shared = nn.Sequential(
-            nn.Linear(latent_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-        )
-
-        self.num_dim = output_dims[0] if output_dims else 0
-        self.num_head = (
-            nn.Linear(hidden_dim, self.num_dim) if self.num_dim > 0 else None
-        )
-        self.cat_heads = nn.ModuleList(
-            nn.Linear(hidden_dim, dim) for dim in output_dims[1:]
-        )
+        self.fc1 = nn.LazyLinear(hidden_dim)
+        self.heads = nn.ModuleList([nn.LazyLinear(dim) for dim in output_dims])
 
     def forward(self, z: torch.Tensor) -> List[torch.Tensor]:  # noqa: D401
-        h = self.shared(z)
-        outputs: List[torch.Tensor] = []
-        if self.num_head is not None:
-            outputs.append(self.num_head(h))
-        outputs.extend(head(h) for head in self.cat_heads)
-        return outputs
+        h = F.relu(self.fc1(z))
+        return [head(h) for head in self.heads]
 
 
 @dataclass
@@ -394,25 +375,24 @@ class CFRL(RecourseMethod):
         )
 
         X_pre = self._encoder_preprocessor(X_zero).astype(np.float32)
-        input_dim = X_pre.shape[1]
-
         latent_dim = int(self._params["latent_dim"])
         hidden_dim = int(self._params["encoder_hidden_dim"])
 
         self._encoder = HeterogeneousEncoder(
-            input_dim=input_dim,
             hidden_dim=hidden_dim,
             latent_dim=latent_dim,
         ).to(self._device)
 
-        output_dims = [len(self._metadata.numerical_indices)]
+        num_dim = len(self._metadata.numerical_indices)
+        output_dims: List[int] = []
+        if num_dim > 0:
+            output_dims.append(num_dim)
         output_dims += [
             len(self._metadata.category_map[idx])
             for idx in self._metadata.categorical_indices
         ]
 
         self._decoder = HeterogeneousDecoder(
-            latent_dim=latent_dim,
             hidden_dim=hidden_dim,
             output_dims=output_dims,
         ).to(self._device)
