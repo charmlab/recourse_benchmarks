@@ -4,21 +4,24 @@ on: [pull_request]
 
 jobs:
   pre-commit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v5
         with:
           python-version: '3.7'
+          cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install project deps (same as local)
         run: |
+          python -m pip install -U pip setuptools wheel
+          pip install -r requirements-dev.txt
+          pip install -e .
           pip install pre-commit
-          pre-commit install-hooks
 
       - name: Run pre-commit hooks
-        run: pre-commit run --all-files
+        run: pre-commit run --all-files --show-diff-on-failure
