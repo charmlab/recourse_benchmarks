@@ -1,48 +1,70 @@
 import os
-from random import seed
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
-import numpy as np
-from random import shuffle
+from random import seed, shuffle
 
+import numpy as np
+import pandas as pd
 import process_data.process_utils_data as ut
+from sklearn.preprocessing import StandardScaler
 
 RANDOM_SEED = 54321
 seed(
     RANDOM_SEED
 )  # set the random seed so that the random permutations can be reproduced again
 
+
 def get_feat_types(df):
-		cat_feat = []
-		num_feat = []
-		for key in list(df):
-			if df[key].dtype==object:
-				cat_feat.append(key)
-			elif len(set(df[key]))>2:
-				num_feat.append(key)
-		return cat_feat,num_feat
+    cat_feat = []
+    num_feat = []
+    for key in list(df):
+        if df[key].dtype == object:
+            cat_feat.append(key)
+        elif len(set(df[key])) > 2:
+            num_feat.append(key)
+    return cat_feat, num_feat
+
 
 def load_sba_data(modified=False):
     # Define attributes of interest
     attrs = [
-        'Zip', 'NAICS', 'ApprovalDate', 'ApprovalFY', 'Term', 'NoEmp',
-        'NewExist', 'CreateJob', 'RetainedJob', 'FranchiseCode', 'UrbanRural',
-        'RevLineCr', 'ChgOffDate', 'DisbursementDate', 'DisbursementGross',
-        'ChgOffPrinGr', 'GrAppv', 'SBA_Appv', 'New', 'RealEstate', 'Portion',
-        'Recession', 'daysterm', 'xx'
+        "Zip",
+        "NAICS",
+        "ApprovalDate",
+        "ApprovalFY",
+        "Term",
+        "NoEmp",
+        "NewExist",
+        "CreateJob",
+        "RetainedJob",
+        "FranchiseCode",
+        "UrbanRural",
+        "RevLineCr",
+        "ChgOffDate",
+        "DisbursementDate",
+        "DisbursementGross",
+        "ChgOffPrinGr",
+        "GrAppv",
+        "SBA_Appv",
+        "New",
+        "RealEstate",
+        "Portion",
+        "Recession",
+        "daysterm",
+        "xx",
     ]
-    sensitive_attrs = []   # just an example, pick what matters for fairness
-    attrs_to_ignore = [] # IDs or very sparse high-cardinality
+    sensitive_attrs = []  # just an example, pick what matters for fairness
+    attrs_to_ignore = []  # IDs or very sparse high-cardinality
 
     # Path to raw SBA file
     this_files_directory = os.path.dirname(os.path.realpath(__file__))
-    file_name = os.path.join(this_files_directory, "..", "raw_data", "SBAcase.11.13.17.csv")
+    file_name = os.path.join(
+        this_files_directory, "..", "raw_data", "SBAcase.11.13.17.csv"
+    )
 
     # Load file
     df = pd.read_csv(file_name)
     df = df.fillna(-1)  # replace NaNs with sentinel
     df = df.sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
-    
+
     # print(df['RevLineCr'].value_counts())
 
     # Define target
@@ -79,8 +101,17 @@ def load_sba_data(modified=False):
 
     # Numeric attributes: keep directly
     num_attrs = [
-        'Zip', 'NAICS', 'ApprovalDate', 'ApprovalFY', 'Term', 'NoEmp',
-        'NewExist', 'CreateJob', 'RetainedJob', 'FranchiseCode', 'UrbanRural'
+        "Zip",
+        "NAICS",
+        "ApprovalDate",
+        "ApprovalFY",
+        "Term",
+        "NoEmp",
+        "NewExist",
+        "CreateJob",
+        "RetainedJob",
+        "FranchiseCode",
+        "UrbanRural",
     ]
     for a in num_attrs:
         processed_df[a] = df_all[a]
@@ -98,16 +129,27 @@ def load_sba_data(modified=False):
     # processed_df['RevLineCr'] = pd.Categorical(processed_df['RevLineCr'])
 
     # Add recession, real estate, portion, etc. directly
-    for a in ['ChgOffDate', 'DisbursementDate', 'DisbursementGross',
-        'ChgOffPrinGr', 'GrAppv', 'SBA_Appv', 'New', 'RealEstate', 'Portion',
-        'Recession', 'daysterm', 'xx']:
+    for a in [
+        "ChgOffDate",
+        "DisbursementDate",
+        "DisbursementGross",
+        "ChgOffPrinGr",
+        "GrAppv",
+        "SBA_Appv",
+        "New",
+        "RealEstate",
+        "Portion",
+        "Recession",
+        "daysterm",
+        "xx",
+    ]:
         processed_df[a] = df_all[a]
 
     processed_df["Label"] = df_all["label"]
 
-    if modified == False:
-        processed_df = processed_df[processed_df["ApprovalFY"]<2006]
+    if modified is False:
+        processed_df = processed_df[processed_df["ApprovalFY"] < 2006]
 
-    processed_df = processed_df[processed_df['RevLineCr'].notna()] 
+    processed_df = processed_df[processed_df["RevLineCr"].notna()]
 
     return processed_df.astype("float64")

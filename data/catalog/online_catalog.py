@@ -57,8 +57,10 @@ class DataCatalog(Data, ABC):
         if model_type in {"mlp", "linear"}:
             return_one_hot = True
         dataset_obj = loadDataset(
-            data_name+"_modified" if modified else data_name, # this will let the load dataset know which dataset. Could also just
-            return_one_hot=return_one_hot,                    # pass modified as a param.
+            data_name + "_modified"
+            if modified
+            else data_name,  # this will let the load dataset know which dataset. Could also just
+            return_one_hot=return_one_hot,  # pass modified as a param.
             load_from_cache=True,
             debug_flag=False,
         )

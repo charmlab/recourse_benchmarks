@@ -74,7 +74,10 @@ except Exception as e:
     print(f"[ENV WARNING] process_boston_housing_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_data.process_sba_data import load_sba_data_modified, load_sba_data
+    from data.catalog._data_main.process_data.process_sba_data import (
+        load_sba_data,
+        load_sba_data_modified,
+    )
 except Exception as e:
     print(f"[ENV WARNING] process_sba_data not available. Error: {e}")
 
@@ -1411,7 +1414,7 @@ def loadDataset(
                 lower_bound=data_frame_non_hot[col_name].min(),
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
-        
+
         attributes_non_hot[output_col] = DatasetAttribute(
             attr_name_long=output_col,
             attr_name_kurz="y",
@@ -1424,7 +1427,6 @@ def loadDataset(
             lower_bound=data_frame_non_hot[output_col].min(),
             upper_bound=data_frame_non_hot[output_col].max(),
         )
-    
 
     else:
         raise Exception(f"{dataset_name} not recognized as a valid dataset.")

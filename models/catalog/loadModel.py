@@ -109,7 +109,7 @@ def loadModelForDataset(
         raise Exception(f"{model_class} not recognized as a valid `model_class`.")
 
     dataset_obj = loadData.loadDataset(
-        dataset_string+"_modified" if modified else dataset_string,
+        dataset_string + "_modified" if modified else dataset_string,
         return_one_hot=one_hot,
         load_from_cache=True,
         meta_param=scm_class,

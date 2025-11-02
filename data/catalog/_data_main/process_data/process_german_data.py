@@ -17,11 +17,19 @@ def load_german_data(modified=False):
     # input vars
     this_files_directory = os.path.dirname(os.path.realpath(__file__))
     if modified == False:
-        raw_data_file = os.path.join(this_files_directory, "..", "raw_data", "german_v1.csv")
-        processed_file = os.path.join(this_files_directory, "..", "raw_data", "german_v1_processed.csv")
+        raw_data_file = os.path.join(
+            this_files_directory, "..", "raw_data", "german_v1.csv"
+        )
+        processed_file = os.path.join(
+            this_files_directory, "..", "raw_data", "german_v1_processed.csv"
+        )
     else:
-        raw_data_file = os.path.join(this_files_directory, "..", "raw_data", "german_v2.csv")
-        processed_file = os.path.join(this_files_directory, "..", "raw_data", "german_v2_processed.csv")
+        raw_data_file = os.path.join(
+            this_files_directory, "..", "raw_data", "german_v2.csv"
+        )
+        processed_file = os.path.join(
+            this_files_directory, "..", "raw_data", "german_v2_processed.csv"
+        )
 
     # German Data Processing
     raw_df = pd.read_csv(raw_data_file)  # , index_col = 0)
