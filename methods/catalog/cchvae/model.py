@@ -13,7 +13,7 @@ from methods.processing import (
     reconstruct_encoding_constraints,
 )
 from models.api import MLModel
-from tools.logging import log
+from tools.log import log
 
 
 class CCHVAE(RecourseMethod):
