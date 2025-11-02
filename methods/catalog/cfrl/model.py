@@ -21,10 +21,22 @@ from .cfrl_tabular import get_he_preprocessor
 class HeterogeneousEncoder(nn.Module):
     """PyTorch replica of the ADULT encoder from the Keras CFRL implementation."""
 
-    def __init__(self, hidden_dim: int, latent_dim: int) -> None:
+    def __init__(
+        self, hidden_dim: int, latent_dim: int, input_dim: Optional[int] = None
+    ) -> None:
         super().__init__()
-        self.fc1 = nn.LazyLinear(hidden_dim)
-        self.fc2 = nn.LazyLinear(latent_dim)
+        use_lazy = hasattr(nn, "LazyLinear") and input_dim is None
+        if input_dim is None and not use_lazy:
+            raise ValueError(
+                "input_dim must be provided when torch.nn.LazyLinear is unavailable."
+            )
+        if use_lazy:
+            self.fc1 = nn.LazyLinear(hidden_dim)  # type: ignore[attr-defined]
+            self.fc2 = nn.LazyLinear(latent_dim)  # type: ignore[attr-defined]
+        else:
+            assert input_dim is not None  # for type checking
+            self.fc1 = nn.Linear(input_dim, hidden_dim)
+            self.fc2 = nn.Linear(hidden_dim, latent_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D401
         x = F.relu(self.fc1(x))
@@ -35,10 +47,29 @@ class HeterogeneousEncoder(nn.Module):
 class HeterogeneousDecoder(nn.Module):
     """PyTorch replica of the ADULT decoder from the Keras CFRL implementation."""
 
-    def __init__(self, hidden_dim: int, output_dims: List[int]) -> None:
+    def __init__(
+        self,
+        hidden_dim: int,
+        output_dims: List[int],
+        latent_dim: Optional[int] = None,
+    ) -> None:
         super().__init__()
-        self.fc1 = nn.LazyLinear(hidden_dim)
-        self.heads = nn.ModuleList([nn.LazyLinear(dim) for dim in output_dims])
+        use_lazy = hasattr(nn, "LazyLinear") and latent_dim is None
+        if latent_dim is None and not use_lazy:
+            raise ValueError(
+                "latent_dim must be provided when torch.nn.LazyLinear is unavailable."
+            )
+        if use_lazy:
+            self.fc1 = nn.LazyLinear(hidden_dim)  # type: ignore[attr-defined]
+            self.heads = nn.ModuleList(
+                [nn.LazyLinear(dim) for dim in output_dims]  # type: ignore[attr-defined]
+            )
+        else:
+            assert latent_dim is not None
+            self.fc1 = nn.Linear(latent_dim, hidden_dim)
+            self.heads = nn.ModuleList(
+                [nn.Linear(hidden_dim, dim) for dim in output_dims]
+            )
 
     def forward(self, z: torch.Tensor) -> List[torch.Tensor]:  # noqa: D401
         h = F.relu(self.fc1(z))
@@ -50,6 +81,7 @@ class _FeatureMetadata:
     feature_names: List[str]
     long_to_short: Dict[str, str]
     short_to_long: Dict[str, str]
+    attr_types: Dict[str, str]
     attr_bounds: Dict[str, List[float]]
     categorical_indices: List[int]
     numerical_indices: List[int]
@@ -136,7 +168,7 @@ class CFRL(RecourseMethod):
         for key in self._OPTIONAL_HYPERPARAMS:
             if self._params[key] == "_optional_":
                 self._params[key] = None
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # pyright: ignore[reportAttributeAccessIssue]
 
         self._metadata = self._prepare_metadata()
 
@@ -177,16 +209,20 @@ class CFRL(RecourseMethod):
         idx_to_raw: Dict[str, Dict[int, int]] = {}
         category_map: Dict[int, List[str]] = {}
         feature_types: Dict[str, type] = {}
+        attr_types: Dict[str, str] = {}
 
         df = dataset.data_frame_long[feature_names]
 
         for idx, name in enumerate(feature_names):
             attr = dataset.attributes_long[name]
             attr_bounds[name] = [attr.lower_bound, attr.upper_bound]
+            attr_types[name] = attr.attr_type
 
-            if attr.attr_type in {"numeric-int", "numeric-real"}:
+            if attr.attr_type in {"numeric-int", "numeric-real", "binary"}:
                 numerical_indices.append(idx)
                 if attr.attr_type == "numeric-int":
+                    feature_types[name] = int
+                elif attr.attr_type == "binary":
                     feature_types[name] = int
                 else:
                     feature_types[name] = float
@@ -198,11 +234,13 @@ class CFRL(RecourseMethod):
             raw_to_idx[name] = {val: i for i, val in enumerate(mapped_unique)}
             idx_to_raw[name] = {i: val for i, val in enumerate(mapped_unique)}
             category_map[idx] = [str(val) for val in mapped_unique]
+            feature_types[name] = int
 
         return _FeatureMetadata(
             feature_names=feature_names,
             long_to_short=long_to_short,
             short_to_long=short_to_long,
+            attr_types=attr_types,
             attr_bounds=attr_bounds,
             categorical_indices=categorical_indices,
             numerical_indices=numerical_indices,
@@ -216,16 +254,16 @@ class CFRL(RecourseMethod):
     # Helper conversions between representations                            #
     # --------------------------------------------------------------------- #
     def _raw_df_to_zero_array(self, df_raw: pd.DataFrame) -> np.ndarray:
-        arr = df_raw[self._metadata.feature_names].to_numpy(dtype=np.float32, copy=True)
+        arr = df_raw[self._metadata.feature_names].to_numpy(dtype=np.float32, copy=True)  # pyright: ignore[reportOptionalMemberAccess]
         for col_idx in self._metadata.categorical_indices:
             name = self._metadata.feature_names[col_idx]
             mapping = self._metadata.raw_to_idx[name]
-            raw_values = df_raw[name].round().astype(int).to_numpy()
-            arr[:, col_idx] = np.vectorize(mapping.__getitem__)(raw_values)
+            raw_values = df_raw[name].round().astype(int).to_numpy()  # pyright: ignore[reportOptionalMemberAccess]
+            arr[:, col_idx] = np.vectorize(mapping.__getitem__)(raw_values)  # pyright: ignore[reportIndexIssue]
         return arr
 
     def _zero_array_to_raw_df(self, arr_zero: np.ndarray) -> pd.DataFrame:
-        arr = np.asarray(arr_zero).copy()
+        arr = np.asarray(arr_zero, dtype=np.float32).copy()  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
         for col_idx in self._metadata.categorical_indices:
             name = self._metadata.feature_names[col_idx]
             mapping = self._metadata.idx_to_raw[name]
@@ -238,7 +276,54 @@ class CFRL(RecourseMethod):
 
         df = pd.DataFrame(arr, columns=self._metadata.feature_names)
         for name, dtype in self._metadata.feature_types.items():
-            df[name] = df[name].astype(dtype)
+            df[name] = df[name].astype(dtype)  # pyright: ignore[reportOptionalMemberAccess]
+        return df
+
+    def _model_input_to_raw_df(self, ordered: pd.DataFrame) -> pd.DataFrame:
+        ordered = ordered.copy()
+        ordered = ordered.reindex(
+            columns=self._mlmodel.feature_input_order, fill_value=0.0
+        )
+
+        data: Dict[str, np.ndarray] = {}
+        for idx, long_name in enumerate(self._metadata.feature_names):
+            short_name = self._metadata.long_to_short[long_name]
+            attr_type = self._metadata.attr_types[long_name]
+            lower, upper = self._metadata.attr_bounds[long_name]
+
+            if attr_type in {"numeric-int", "numeric-real", "binary"}:
+                values = ordered[short_name].to_numpy(dtype=np.float32)  # pyright: ignore[reportOptionalMemberAccess]
+                values = values * (upper - lower) + lower  # pyright: ignore[reportOperatorIssue]
+                if attr_type in {"numeric-int", "binary"}:
+                    values = np.rint(values).astype(int)  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+                data[long_name] = values
+                continue
+
+            categories = self._metadata.category_map.get(idx, [])
+            if not categories:
+                raise KeyError(f"Missing category map for feature {long_name}")
+
+            raw_to_idx = self._metadata.raw_to_idx[long_name]
+            n_categories = len(categories)
+
+            if "ordinal" in attr_type:
+                cols = [f"{short_name}_ord_{i}" for i in range(n_categories)]
+                thermo = ordered[cols].to_numpy(dtype=np.float32)  # pyright: ignore[reportOptionalMemberAccess]
+                idxs = (thermo > 0.5).astype(np.int32).sum(axis=1) - 1  # pyright: ignore[reportOperatorIssue]
+            else:
+                cols = [f"{short_name}_cat_{i}" for i in range(n_categories)]
+                one_hot = ordered[cols].to_numpy(dtype=np.float32)  # pyright: ignore[reportOptionalMemberAccess]
+                idxs = np.argmax(one_hot, axis=1)
+
+            idxs = np.clip(idxs.astype(int), 0, n_categories - 1)
+            raw_vals = np.array([
+                self._metadata.idx_to_raw[long_name][int(i)] for i in idxs
+            ])
+            data[long_name] = raw_vals
+
+        df = pd.DataFrame(data, columns=self._metadata.feature_names)
+        for name, dtype in self._metadata.feature_types.items():
+            df[name] = df[name].astype(dtype)  # pyright: ignore[reportOptionalMemberAccess]
         return df
 
     def _normalize_df(self, df_raw: pd.DataFrame) -> pd.DataFrame:
@@ -248,18 +333,68 @@ class CFRL(RecourseMethod):
             if np.isclose(upper, lower):
                 df[name] = 0.0
                 continue
-            df[name] = (df[name] - lower) / (upper - lower)
-            df[name] = df[name].clip(0.0, 1.0)
+            df[name] = (df[name] - lower) / (upper - lower)  # pyright: ignore[reportOperatorIssue]
+            df[name] = df[name].clip(0.0, 1.0)  # pyright: ignore[reportOptionalMemberAccess]
         return df
 
     def _denormalize_df(self, df_norm: pd.DataFrame) -> pd.DataFrame:
         df = df_norm.copy()
         for name in self._metadata.feature_names:
             lower, upper = self._metadata.attr_bounds[name]
-            df[name] = df[name] * (upper - lower) + lower
+            df[name] = df[name] * (upper - lower) + lower  # pyright: ignore[reportOperatorIssue]
             if name in self._metadata.raw_to_idx:
-                df[name] = df[name].round().clip(lower, upper)
+                df[name] = df[name].round().clip(lower, upper)  # pyright: ignore[reportOptionalMemberAccess]
         return df
+
+    def _to_model_input(
+        self, df_raw: pd.DataFrame, df_norm_short: pd.DataFrame
+    ) -> pd.DataFrame:
+        frames: List[pd.DataFrame] = []
+        num_rows = df_raw.shape[0]
+
+        for idx, long_name in enumerate(self._metadata.feature_names):
+            short_name = self._metadata.long_to_short[long_name]
+            attr_type = self._metadata.attr_types[long_name]
+
+            if attr_type in {"numeric-int", "numeric-real", "binary"}:
+                frames.append(
+                    pd.DataFrame(
+                        {short_name: df_norm_short[short_name].to_numpy(dtype=np.float32)}  # pyright: ignore[reportOptionalMemberAccess]
+                    )
+                )
+                continue
+
+            categories = self._metadata.category_map.get(idx, [])
+            if not categories:
+                continue
+
+            raw_to_idx = self._metadata.raw_to_idx[long_name]
+            raw_vals = df_raw[long_name].round().astype(int).to_numpy()  # pyright: ignore[reportOptionalMemberAccess]
+            mapped_idx = np.array([raw_to_idx.get(val, 0) for val in raw_vals], dtype=int)  # pyright: ignore[reportGeneralTypeIssues]
+            n_categories = len(categories)
+
+            if "ordinal" in attr_type:
+                block = (np.arange(n_categories) <= mapped_idx[:, None]).astype(np.float32)
+                columns = [f"{short_name}_ord_{i}" for i in range(n_categories)]
+            else:
+                block = np.zeros((num_rows, n_categories), dtype=np.float32)
+                block[np.arange(num_rows), mapped_idx] = 1.0
+                columns = [f"{short_name}_cat_{i}" for i in range(n_categories)]
+
+            frames.append(pd.DataFrame(block, columns=columns))
+
+        if frames:
+            model_df = pd.concat(frames, axis=1)
+        else:
+            model_df = pd.DataFrame(
+                np.zeros((num_rows, len(self._mlmodel.feature_input_order)), dtype=np.float32),
+                columns=self._mlmodel.feature_input_order,
+            )
+
+        model_df = model_df.reindex(
+            columns=self._mlmodel.feature_input_order, fill_value=0.0
+        )
+        return model_df.astype(np.float32)
 
     # --------------------------------------------------------------------- #
     # Predictor and auto-encoder training                                   #
@@ -270,9 +405,9 @@ class CFRL(RecourseMethod):
             df_zero = pd.DataFrame(array, columns=self._metadata.feature_names)
             df_raw = self._zero_array_to_raw_df(df_zero.to_numpy())
             df_norm = self._normalize_df(df_raw)
-            df_short = df_norm.rename(columns=self._metadata.long_to_short)
-            ordered = self._mlmodel.get_ordered_features(df_short)
-            preds = self._mlmodel.predict_proba(ordered)
+            df_norm_short = df_norm.rename(columns=self._metadata.long_to_short)
+            model_input = self._to_model_input(df_raw, df_norm_short)
+            preds = self._mlmodel.predict_proba(model_input)
             if isinstance(preds, torch.Tensor):
                 preds = preds.detach().cpu().numpy()
             return preds
@@ -305,7 +440,7 @@ class CFRL(RecourseMethod):
             for idx in self._metadata.categorical_indices
         ]
 
-        params = list(self._encoder.parameters()) + list(self._decoder.parameters())
+        params = list(self._encoder.parameters()) + list(self._decoder.parameters())  # pyright: ignore[reportOptionalMemberAccess]
         optimiser = optim.Adam(params, lr=lr)
 
         num_samples = inputs.size(0)
@@ -316,7 +451,7 @@ class CFRL(RecourseMethod):
             for start in range(0, num_samples, batch_size):
                 idx = perm[start : start + batch_size]
                 batch_x = inputs[idx]
-                outputs = self._decoder(self._encoder(batch_x))
+                outputs = self._decoder(self._encoder(batch_x))  # pyright: ignore[reportOptionalCall]
 
                 loss = torch.zeros((), device=self._device)
 
@@ -349,8 +484,8 @@ class CFRL(RecourseMethod):
                     epoch_loss / max(1, num_samples // batch_size),
                 )
 
-        self._encoder.eval()
-        self._decoder.eval()
+        self._encoder.eval()  # pyright: ignore[reportOptionalMemberAccess]
+        self._decoder.eval()  # pyright: ignore[reportOptionalMemberAccess]
 
     # --------------------------------------------------------------------- #
     # Public API                                                            #
@@ -378,9 +513,11 @@ class CFRL(RecourseMethod):
         latent_dim = int(self._params["latent_dim"])
         hidden_dim = int(self._params["encoder_hidden_dim"])
 
+        input_dim = X_pre.shape[1]
         self._encoder = HeterogeneousEncoder(
             hidden_dim=hidden_dim,
             latent_dim=latent_dim,
+            input_dim=input_dim,
         ).to(self._device)
 
         num_dim = len(self._metadata.numerical_indices)
@@ -395,6 +532,7 @@ class CFRL(RecourseMethod):
         self._decoder = HeterogeneousDecoder(
             hidden_dim=hidden_dim,
             output_dims=output_dims,
+            latent_dim=latent_dim,
         ).to(self._device)
 
         log.info("Training CFRL heterogeneous autoencoder.")
@@ -432,8 +570,8 @@ class CFRL(RecourseMethod):
             coeff_consistency=float(self._params["coeff_consistency"]),
             feature_names=self._metadata.feature_names,
             category_map=self._metadata.category_map,
-            immutable_features=immutable_features,
-            ranges=ranges_long,
+            immutable_features=immutable_features,  # pyright: ignore[reportArgumentType]
+            ranges=ranges_long,  # pyright: ignore[reportArgumentType]
             train_steps=int(self._params["train_steps"]),
             batch_size=int(self._params["batch_size"]),
             seed=int(self._params["seed"]),
@@ -443,8 +581,7 @@ class CFRL(RecourseMethod):
 
     def _generate_counterfactual(self, factual_row: pd.DataFrame) -> pd.DataFrame:
         factual_ordered = self._mlmodel.get_ordered_features(factual_row)
-        long_named = factual_ordered.rename(columns=self._metadata.short_to_long)
-        raw_df = self._denormalize_df(long_named)
+        raw_df = self._model_input_to_raw_df(factual_ordered)
         zero_input = self._raw_df_to_zero_array(raw_df)
 
         preds = self._mlmodel.predict_proba(factual_ordered)
@@ -452,24 +589,25 @@ class CFRL(RecourseMethod):
             preds = preds.detach().cpu().numpy()
         target_class = 1 - int(np.argmax(preds, axis=1)[0])
 
-        explanation = self._cf_model.explain(
+        explanation = self._cf_model.explain(  # pyright: ignore[reportOptionalMemberAccess]
             X=zero_input.astype(np.float32),
             Y_t=np.array([target_class]),
+            C=[{}],
         )
-        cf_data = explanation.data.get("cf", {}).get("X")
+        cf_data = explanation.get("cf", {}).get("X")
         if cf_data is None:
             log.warning("CFRL failed to produce a counterfactual; falling back to input.")
             return factual_ordered
 
-        cf_array = np.asarray(cf_data)
-        if cf_array.ndim == 3:
-            cf_array = cf_array[:, 0, :]
+        cf_array = np.asarray(cf_data)  # pyright: ignore[reportCallIssue]
+        if cf_array.ndim == 3:  # pyright: ignore[reportAttributeAccessIssue]
+            cf_array = cf_array[:, 0, :]  # pyright: ignore[reportIndexIssue]
         cf_array = np.atleast_2d(cf_array)
 
         cf_raw = self._zero_array_to_raw_df(cf_array)
         cf_norm = self._normalize_df(cf_raw)
-        cf_short = cf_norm.rename(columns=self._metadata.long_to_short)
-        cf_ordered = self._mlmodel.get_ordered_features(cf_short)
+        cf_norm_short = cf_norm.rename(columns=self._metadata.long_to_short)
+        cf_ordered = self._to_model_input(cf_raw, cf_norm_short)
         cf_ordered.index = factual_ordered.index
         return cf_ordered
 
@@ -479,7 +617,7 @@ class CFRL(RecourseMethod):
 
         for index, row in factuals.iterrows():
             cf_row = self._generate_counterfactual(pd.DataFrame([row]))
-            cf_row.index = [index]
+            cf_row.index = [index]  # pyright: ignore[reportAttributeAccessIssue]
             results.append(cf_row)
 
         counterfactuals = pd.concat(results, axis=0)

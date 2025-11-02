@@ -1,16 +1,80 @@
+import math
 import os
 import random
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader  # pyright: ignore[reportPrivateImportUsage]
-from torch.utils.data import Dataset  # pyright: ignore[reportPrivateImportUsage]
+from torch.utils.data import DataLoader, Dataset  # pyright: ignore[reportPrivateImportUsage]
 
 if TYPE_CHECKING:
     from .cfrl_base import NormalActionNoise
+
+
+try:
+    LazyLinear = nn.LazyLinear  # type: ignore[attr-defined]
+except AttributeError:
+
+    class LazyLinear(nn.Module):
+        r"""
+        Minimal backport of torch.nn.LazyLinear for PyTorch < 1.8.
+        """
+
+        def __init__(self, out_features: int, bias: bool = True,
+                    device=None, dtype=None) -> None:
+            super().__init__()
+            self.out_features = out_features
+            self.in_features = None
+            self.device = device
+            self.dtype = dtype
+
+            self.weight = nn.Parameter(torch.empty(0, device=device, dtype=dtype))  # pyright: ignore[reportPrivateImportUsage, reportCallIssue, reportArgumentType]
+            if bias:
+                self.bias = nn.Parameter(torch.empty(0, device=device, dtype=dtype))  # pyright: ignore[reportPrivateImportUsage, reportCallIssue, reportArgumentType]
+            else:
+                self.register_parameter("bias", None)
+
+        def reset_parameters(self) -> None:
+            if self.in_features is not None and self.weight.numel() != 0:
+                nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))  # pyright: ignore[reportArgumentType]
+                if self.bias is not None:
+                    fan_in = self.in_features
+                    bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+                    nn.init.uniform_(self.bias, -bound, bound)
+
+        def initialize_parameters(self, input: torch.Tensor) -> None:
+            if self.weight.numel() == 0:
+                with torch.no_grad():
+                    self.in_features = input.shape[-1]
+                    self.weight = nn.Parameter(  # pyright: ignore[reportPrivateImportUsage]
+                        torch.empty((self.out_features, self.in_features),
+                                    device=input.device, dtype=input.dtype)
+                    )
+                    if self.bias is not None:
+                        self.bias = nn.Parameter(  # pyright: ignore[reportPrivateImportUsage]
+                            torch.empty((self.out_features,),
+                                        device=input.device, dtype=input.dtype)
+                        )
+                    self.reset_parameters()
+            elif self.in_features == 0:
+                assert input.shape[-1] == self.weight.shape[-1], (
+                    f"The in_features inferred from input: {input.shape[-1]} "
+                    f"is not equal to in_features from self.weight: "
+                    f"{self.weight.shape[-1]}"
+                )
+                self.in_features = input.shape[-1]
+
+        def forward(self, input: torch.Tensor) -> torch.Tensor:
+            if self.weight.numel() == 0 or self.in_features is None:
+                self.initialize_parameters(input)
+            return F.linear(input, self.weight, self.bias)
+
+        def extra_repr(self) -> str:
+            in_f = self.in_features if self.in_features is not None else 0
+            bias_flag = self.bias is not None
+            return f"in_features={in_f}, out_features={self.out_features}, bias={bias_flag}"
 
 
 class Actor(nn.Module):
@@ -32,15 +96,15 @@ class Actor(nn.Module):
             Output dimension
         """
         super().__init__()
-        self.fc1 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
+        self.fc1 = LazyLinear(
             hidden_dim
         )
         self.ln1 = nn.LayerNorm(hidden_dim)
-        self.fc2 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
+        self.fc2 = LazyLinear(
             hidden_dim
         )
         self.ln2 = nn.LayerNorm(hidden_dim)
-        self.fc3 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
+        self.fc3 = LazyLinear(
             output_dim
         )
 
@@ -80,15 +144,15 @@ class Critic(nn.Module):
             Hidden dimension.
         """
         super().__init__()
-        self.fc1 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
+        self.fc1 = LazyLinear(
             hidden_dim
         )
         self.ln1 = nn.LayerNorm(hidden_dim)
-        self.fc2 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
+        self.fc2 = LazyLinear(
             hidden_dim
         )
         self.ln2 = nn.LayerNorm(hidden_dim)
-        self.fc3 = nn.LazyLinear(1)  # pyright: ignore[reportAttributeAccessIssue]
+        self.fc3 = LazyLinear(1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

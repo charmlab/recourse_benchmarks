@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-import cfrl_backend as pytorch_backend
+from . import cfrl_backend as pytorch_backend
 
 
 def generate_empty_condition(X: Any) -> None:

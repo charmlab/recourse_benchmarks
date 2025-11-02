@@ -21,4 +21,5 @@ from .catalog import (
     Roar,
     Wachter,
     CFVAE,
+    CFRL,
 )

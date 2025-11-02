@@ -1329,9 +1329,7 @@ class CounterfactualRLTabular(CounterfactualRL):
             C_vec = np.concatenate(C_vecs, axis=0)
 
         explanation = super().explain(X=X, Y_t=Y_t, C=C_vec, batch_size=batch_size)
-        explanation.data.update(  # pyright: ignore[reportAttributeAccessIssue]
-            {"condition": C}
-        )
+        explanation["condition"] = C
         return explanation
 
     def _diversity(

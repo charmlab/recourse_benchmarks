@@ -18,3 +18,4 @@ from .revise import Revise
 from .roar import Roar
 from .wachter import Wachter
 from .cfvae import CFVAE
+from .cfrl import CFRL
