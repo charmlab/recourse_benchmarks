@@ -9,7 +9,7 @@ from numpy.random import normal
 from torchvision.utils import make_grid
 
 from methods.catalog.clue.library.clue_ml.src.utils import humansize, torch_onehot
-from tools.logging import log
+from tools.log import log
 
 
 def train_VAE(

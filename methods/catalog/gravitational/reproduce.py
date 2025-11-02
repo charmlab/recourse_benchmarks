@@ -28,7 +28,7 @@ def test_gravitationalon_datasets(dataset_name):
 
     gravitational = Gravitational(mlmodel=model)
 
-    total_factuals = predict_negative_instances(model, data)
+    total_factuals = predict_negative_instances(model, data).sort_index()
     factuals = total_factuals.iloc[:5]
 
     counterfactuals = gravitational.get_counterfactuals(factuals)
