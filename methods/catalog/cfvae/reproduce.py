@@ -1,3 +1,4 @@
+import argparse
 from typing import Dict, List
 
 import numpy as np
@@ -50,6 +51,46 @@ def target_class_validity(
         results.append(100 * valid_cf_count / dataset_size)
 
     return results
+
+
+def compare_results(results: Dict, ref: Dict, tolerance: float = 1.0) -> None:
+    print(f"Comparing results to reference with tolerance ±{tolerance}")
+    for dataset_name, ref_methods in ref.items():
+        dataset_results = results.get(dataset_name)
+        if dataset_results is None:
+            print(f"[MISSING] Dataset `{dataset_name}` not found in results.")
+            continue
+        for method_name, ref_metrics in ref_methods.items():
+            method_results = dataset_results.get(method_name)
+            if method_results is None:
+                print(
+                    f"[MISSING] Method `{dataset_name}/{method_name}` not found in results."
+                )
+                continue
+            for metric_name, ref_value in ref_metrics.items():
+                result_value = method_results.get(metric_name)
+                if result_value is None:
+                    print(
+                        f"[MISSING] Metric `{dataset_name}/{method_name}/{metric_name}` not found in results."
+                    )
+                    continue
+                result_array = np.array(result_value, dtype=float)
+                ref_array = np.array(ref_value, dtype=float)
+                if result_array.shape != ref_array.shape:
+                    print(
+                        f"[SHAPE DIFF] `{dataset_name}/{method_name}/{metric_name}` result shape {result_array.shape} != reference shape {ref_array.shape}."
+                    )
+                    continue
+                diff = np.abs(result_array - ref_array)
+                max_diff = float(np.max(diff)) if diff.size else 0.0
+                if np.all(diff <= tolerance):
+                    print(
+                        f"[OK] `{dataset_name}/{method_name}/{metric_name}` max diff {max_diff:.6f}"
+                    )
+                else:
+                    print(
+                        f"[DIFF] `{dataset_name}/{method_name}/{metric_name}` max diff {max_diff:.6f} exceeds tolerance"
+                    )
 
 
 def constraint_feasibility_score_age(
@@ -368,6 +409,15 @@ def eval_adult(
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--tolerance",
+        type=float,
+        default=1.0,
+        help="Allowed absolute difference when comparing against reference.",
+    )
+    args = parser.parse_args()
+
     # Seed for Reproducibility
     torch.manual_seed(10000000)
 
@@ -458,3 +508,58 @@ if __name__ == "__main__":
     )
 
     print(results)
+    ref = {
+    "adult-age": {
+        "BaseCVAE": {
+            "target_class_validity": ([100.0, 100.0, 100.0]),
+            "constraint_feasibility_score": ([56.82554814, 56.93040991, 56.9399428]),
+            "cont_proximity": ([-2.24059021, -2.254801, -2.24498223]),
+            "cat_proximity": ([-3.26024786, -3.26024786, -3.26024786]),
+        },
+        "BaseVAE": {
+            "target_class_validity": ([100.0, 100.0, 100.0]),
+            "constraint_feasibility_score": ([42.85033365, 43.11248808, 42.99014935]),
+            "cont_proximity": ([-2.66647616, -2.66112855, -2.66558379]),
+            "cat_proximity": ([-3.12011439, -3.12011439, -3.12011439]),
+        },
+        "ModelApprox": {
+            "target_class_validity": ([99.5900858, 99.5900858, 99.55513187]),
+            "constraint_feasibility_score": ([84.26668079, 83.60122942, 83.58960991]),
+            "cont_proximity": ([-2.73294234, -2.73510212, -2.73455902]),
+            "cat_proximity": ([-3.26167779, -3.26172545, -3.26151891]),
+        },
+        "ExampleBased": {
+            "target_class_validity": ([99.52335558, 99.52812202, 99.46298062]),
+            "constraint_feasibility_score": ([74.03769743, 74.18632186, 74.21309514]),
+            "cont_proximity": ([-6.80110826, -6.7996033, -6.80052672]),
+            "cat_proximity": ([-3.72411821, -3.7242612, -3.72443597]),
+        },
+    },
+    "adult-age-ed": {
+        "BaseCVAE": {
+            "target_class_validity": ([100.0, 100.0, 100.0]),
+            "constraint_feasibility_score": ([57.01620591, 57.20209724, 56.80012711]),
+            "cont_proximity": ([-2.25337728, -2.24797755, -2.24245525]),
+            "cat_proximity": ([-3.26024786, -3.26024786, -3.26024786]),
+        },
+        "BaseVAE": {
+            "target_class_validity": ([100.0, 100.0, 100.0]),
+            "constraint_feasibility_score": ([42.59294566, 43.06482364, 43.02192564]),
+            "cont_proximity": ([-2.6661057, -2.66556556, -2.6650458]),
+            "cat_proximity": ([-3.12011439, -3.12011439, -3.12011439]),
+        },
+        "ModelApprox": {
+            "target_class_validity": ([100.0, 100.0, 100.0]),
+            "constraint_feasibility_score": ([79.5042898, 79.32793136, 79.30092151]),
+            "cont_proximity": ([-2.90320554, -2.90264891, -2.90204051]),
+            "cat_proximity": ([-3.22097235, -3.22054337, -3.21916111]),
+        },
+        "ExampleBased": {
+            "target_class_validity": ([99.93326978, 99.89513823, 99.92691452]),
+            "constraint_feasibility_score": ([66.35181132, 66.50929669, 66.46958292]),
+            "cont_proximity": ([-3.20324281, -3.2077721, -3.20357766]),
+            "cat_proximity": ([-3.5914204, -3.59394662, -3.59634573]),
+        },
+    },
+}
+    compare_results(results, ref, tolerance=args.tolerance)
