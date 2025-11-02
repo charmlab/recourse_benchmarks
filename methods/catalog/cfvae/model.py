@@ -154,15 +154,80 @@ class CFVAE(RecourseMethod):
             Size of VAE latent code.
         * "train": bool, default: True
             Whether to train when init.
+        * save_path: str | None, default: None
+            If provided, save .pth to save_path. By default will not save .pth.
+        * "batch_size": int, default: 2048
+            Batch size for dataloader.
+        * "epoch": int, default: 50
+            Num of training epochs.
+        * "learning_rate": float, default: 1e-2
+            Learning rate (for SGD with weight decay 1e-2).
+        * "constraint_loss_func": function | None, default: None
+            A function taking a tensor (train_x in feature_input_order) as input, returning a single-value tensor of constraint loss.
+            If provided, will apply ModelApproxCF's loss as written in the original paper.
+            See constraint_loss_func_example() for example, which contraints train_x[0] to go upwards.
+        * "preference_dataset": dict | None, default: None
+            Dict[str:Dict[torch.Tensor:List[torch.Tensor]]].
+            preference_dataset["x_prefer"][train_x][idx] and preference_dataset["y_prefer"][train_x][idx] are corresponding user/oracle data points for train_x.
+            If provided, will apply ExampleBasedCF's loss as written in the original paper.
+        * "n_samples": int, default: 50
+            For one train_x, how many times we should sample from the latent distribution when training.
+        * "margin": float, default: 0.2
+            margin for the reconstruction hinge loss.
+        * "validity_reg": float, default: 20
+            Lambda for validity loss term. See the original paper.
+        * "constraint_reg": float, default: 1
+            Lambda for constraint loss term. See the original paper.
+            Only valid when constraint_loss_func is not None.
+        * "preference_reg": float, default: 1
+            Lambda for preference/example-based loss term. See the original paper.
+            Only valid when preference_dataset is not None.
+        * "device": torch.device: torch.device, default: will auto choose torch.device("cuda") when available
+            Which device we should train on. Will auto choose cuda:0/the first available NVIDIA GPU by default.
 
 
     .. [1] Preserving causal constraints in counterfactual explanations for machine learning classifiers
             D Mahajan, C Tan, A Sharma - arXiv preprint arXiv:1912.03277, 2019..
     """
 
+    _TRAINING_PARAM_KEYS = (
+        "save_path",
+        "batch_size",
+        "epoch",
+        "learning_rate",
+        "constraint_loss_func",
+        "preference_dataset",
+        "n_samples",
+        "margin",
+        "validity_reg",
+        "constraint_reg",
+        "preference_reg",
+        "device",
+    )
+
+    _OPTIONAL_PARAM_KEYS = (
+        "save_path",
+        "constraint_loss_func",
+        "preference_dataset",
+    )
+
     _DEFAULT_HYPERPARAMS = {
         "encoded_size": 10,
         "train": True,
+        "save_path": "_optional_",
+        "batch_size": 2048,
+        "epoch": 50,
+        "learning_rate": 1e-2,
+        "constraint_loss_func": "_optional_",
+        "preference_dataset": "_optional_",
+        "n_samples": 50,
+        "margin": 0.2,
+        "validity_reg": 20,
+        "constraint_reg": 1,
+        "preference_reg": 1,
+        "device": torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
+        ),
     }
 
     def __init__(self, mlmodel: MLModel, hyperparams: Optional[Dict] = None) -> None:
@@ -173,7 +238,12 @@ class CFVAE(RecourseMethod):
             )
 
         super().__init__(mlmodel)
-        self._params = merge_default_parameters(hyperparams, self._DEFAULT_HYPERPARAMS)
+        default_params = dict(self._DEFAULT_HYPERPARAMS)
+        self._params = merge_default_parameters(hyperparams, default_params)
+
+        for key in self._OPTIONAL_PARAM_KEYS:
+            if self._params.get(key) == "_optional_":
+                self._params[key] = None
 
         feature_num = len(self._mlmodel.feature_input_order)
         encoded_size = self._params["encoded_size"]
@@ -181,7 +251,12 @@ class CFVAE(RecourseMethod):
         self._trained = False
 
         if self._params["train"]:
-            self.train()
+            train_kwargs = {
+                key: value
+                for key, value in self._params.items()
+                if key in self._TRAINING_PARAM_KEYS and value is not None
+            }
+            self.train(**train_kwargs)
 
     def train(
         self,
