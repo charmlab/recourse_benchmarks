@@ -1,6 +1,8 @@
 import os
+import random
 from typing import Dict, List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 import torch
 from torch import nn, optim
@@ -12,6 +14,14 @@ from methods.api import RecourseMethod
 from methods.processing import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
 from tools.logging import log
+
+
+def _set_seed(seed: int = 10_000_000) -> None:
+    random.seed(seed)
+    np.random.seed(seed)  # pyright: ignore[reportAttributeAccessIssue]
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():  # pyright: ignore[reportAttributeAccessIssue]
+        torch.cuda.manual_seed_all(seed)  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class _CFVAE(nn.Module):
@@ -311,6 +321,7 @@ class CFVAE(RecourseMethod):
         device: torch.device: torch.device, default: will auto choose torch.device("cuda") when available
             Which device we should train on. Will auto choose cuda:0/the first available NVIDIA GPU by default.
         """
+        _set_seed()
         train_dataset: pd.Dataframe = self._mlmodel.data.df_train[
             self._mlmodel.feature_input_order
         ].values
@@ -572,6 +583,7 @@ class CFVAE(RecourseMethod):
             "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
         ),
     ) -> pd.DataFrame:
+        _set_seed()
         assert self._trained, "Error: Run train() or load() first!"
         self._cf_model.eval().to(device)
 
