@@ -28,6 +28,7 @@ class RBR(RecourseMethod):
         "max_iter": 500,
         "device": "cpu",
         "clamp": True,
+        "train_data": None,
     }
 
     def __init__(self, mlmodel, hyperparams: Optional[Dict] = None):
@@ -46,36 +47,34 @@ class RBR(RecourseMethod):
         self._max_iter = checked["max_iter"]
         self._device = checked["device"]
         self._clamp = checked["clamp"]
+        self._train_data = checked["train_data"] 
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         factuals = self._mlmodel.get_ordered_features(factuals)
 
+        print(factuals)
+
         # categorical encoded feature indices (if MLModel provides list)
-        encoded_feature_names = self._mlmodel.data.categorical
-        cat_features_indices = [factuals.columns.get_loc(f) for f in encoded_feature_names] if len(encoded_feature_names) > 0 else None
+        # encoded_feature_names = self._mlmodel.data.categorical
+        # cat_features_indices = [factuals.columns.get_loc(f) for f in encoded_feature_names] if len(encoded_feature_names) > 0 else None
 
-        # train_data passed from MLModel wrapper
-        # CARLA commonly stores training data in mlmodel.data.train or similar; if not present, expect user to pass via hyperparams or external config.
-        if hasattr(self._mlmodel.data, "train"):
-            train_data = self._mlmodel.data.train
-        else:
-            # try raw training data as fallback
-            train_data = getattr(self._mlmodel.data, "X", None)
-            if train_data is None:
-                raise ValueError("RBR needs training data available via mlmodel.data.train or mlmodel.data.X")
-
+        train_data = self._train_data
+        if train_data is None:
+            raise ValueError("RBR needs training data available via hyperparams['train_data']")
+        
         # ensure numpy arrays:
         if isinstance(train_data, pd.DataFrame):
             train_np = train_data.values
         else:
             train_np = train_data
 
-        def apply_rbr(x_row: pd.Series) -> pd.Series:
+        def apply_rbr(x_row):
             x_np = x_row.reshape((1, -1)).astype(float)
+            # print(f"x_np: {type(x_np)}")
             cf = robust_bayesian_recourse(
                 self._mlmodel.raw_model,
                 x_np.squeeze(),
-                cat_features_indices=cat_features_indices,
+                # cat_features_indices=cat_features_indices,
                 train_data=train_np,
                 num_samples=self._num_samples,
                 perturb_radius=self._perturb_radius,
@@ -93,7 +92,7 @@ class RBR(RecourseMethod):
                 cf = cf.clip(0.0, 1.0)
             return cf
 
-        df_cfs = factuals.apply(lambda row: apply_rbr(row.values), raw=True, axis=1)
+        df_cfs = factuals.apply(lambda row: apply_rbr(row), raw=True, axis=1)
         df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
         df_cfs = self._mlmodel.get_ordered_features(df_cfs)
         return df_cfs

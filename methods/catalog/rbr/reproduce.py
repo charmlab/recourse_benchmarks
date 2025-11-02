@@ -37,13 +37,19 @@ def run_single_instance(
     """
     counterfactual_df = method_object.get_counterfactuals(x0_df)
 
+    print(f"Counterfactual: {counterfactual_df}")
+
     if counterfactual_df.empty:
         print(f"error for {idx}: no counterfactual found")
         return RecourseResult(np.inf, 0, 0, False)
     
     counterfactual_df = method_object._mlmodel.get_ordered_features(counterfactual_df)
 
+    print(f"Counterfactual after get feature order: {counterfactual_df}")
+
     x_cf_numpy = counterfactual_df.iloc[0].to_numpy()
+
+    print(f"x0_numpy: {x0_numpy}, x_cf_numpy: {x_cf_numpy}")
 
     # l1 cost
     l1_cost = lp_dist(x0_numpy, x_cf_numpy, p=1)
@@ -52,7 +58,8 @@ def run_single_instance(
     cur_valid = method_object._mlmodel.predict(counterfactual_df)[0]
 
     # future validity
-    fut_valid = calc_future_validity(x_cf_numpy, shifted_models)
+    # fut_valid = calc_future_validity(x_cf_numpy, shifted_models)
+    fut_valid = calc_future_validity(counterfactual_df, shifted_models)
 
     return RecourseResult(l1_cost, float(cur_valid), fut_valid, True)
 
@@ -69,15 +76,17 @@ def test_rbr(dataset_name, model_type, backend):
     torch.manual_seed(RANDOM_SEED)
 
     # load the dataset and model
-    dataset = DataCatalog('german', "mlp", 0.8)
+    dataset = DataCatalog(data_name=dataset_name, model_type=model_type, train_split=0.8)
 
     # df = dataset.df()
     # X_df = df.drop(columns=['y'], axis=1)
     # y_s = df['y']
 
-    model = ModelCatalog(dataset, "mlp", "tensorflow")
+    model = ModelCatalog(dataset, model_type=model_type, backend=backend)
+    # model_shifted = ModelCatalog(dataset, model_type=model_type, backend=backend)
+    model._test_accuracy()
 
-    rbr = RBR(model, hyperparams={})
+    rbr = RBR(model, hyperparams={'train_data': dataset._df_train.drop(columns=['y'], axis=1)})
 
     X_test = dataset._df_test.drop(columns=['y'], axis=1)
     y_test = dataset._df_test['y']
@@ -95,7 +104,7 @@ def test_rbr(dataset_name, model_type, backend):
             rbr,
             x0_numpy,
             x0_df,
-            shifted_models=[],
+            shifted_models=[model],
         )
 
         print(f"Instance {idx}: L1 cost = {result.l1_cost}, Current Validity = {result.cur_valid}, Future Validity = {result.fut_valid}, Feasible = {result.feasible}")

@@ -117,6 +117,7 @@ class PessimisticLikelihood(torch.nn.Module):
         c = torch.linalg.norm(x - x_feas, axis=-1)
         d = u[..., 1] + self.sigma
         p = self.x_dim
+        p = p.float()
         sqrt_p = torch.sqrt(p)
         inside = (zeta + self.epsilon_pe ** 2 - p * u[..., 0] ** 2 - u[..., 1] ** 2) / (p - 1)
         f = torch.sqrt(torch.maximum(inside, torch.tensor(1e-12, device=self.device)))
@@ -128,6 +129,9 @@ class PessimisticLikelihood(torch.nn.Module):
         c = torch.linalg.norm(x - x_feas, axis=-1)
         d = u[..., 1] + self.sigma
         p = self.x_dim
+
+        p = p.float() # issue with support with int tensors when taking sqrt?
+        
         sqrt_p = torch.sqrt(p)
         inside = (zeta + self.epsilon_pe ** 2 - p * u[..., 0] ** 2 - u[..., 1] ** 2) / (p - 1)
         f = torch.sqrt(torch.maximum(inside, torch.tensor(1e-12, device=self.device)))
@@ -193,6 +197,8 @@ class RBRLoss(torch.nn.Module):
         self.sigma = torch.tensor(sigma, device=self.device)
         self.x_dim = torch.tensor(X_feas.shape[-1], device=self.device)
 
+        print("Self.x_dim:", self.x_dim)
+
         self.op_likelihood = OptimisticLikelihood(self.x_dim, self.epsilon_op, self.sigma, self.device)
         self.pe_likelihood = PessimisticLikelihood(self.x_dim, self.epsilon_pe, self.sigma, self.device)
 
@@ -240,16 +246,26 @@ def robust_bayesian_recourse(
 ) -> np.ndarray:
     
     # helper to call raw_model.predict consistently
-    def predict_fn_np(arr: np.ndarray) -> np.ndarray:
+    def predict_fn_np(x):
         # raw_model might accept (n,d) and return probs or labels
-        preds = raw_model.predict(arr)
+        preds_tensor = raw_model.predict(x)
+
+        if preds_tensor.ndim == 1:
+            preds_tensor = preds_tensor.unsqueeze(0)
+        
+        preds = preds_tensor.cpu().detach().numpy()
         preds = np.asarray(preds)
         # convert to single-label 0/1 if probabilities provided
         if preds.ndim == 2 and preds.shape[1] > 1:
             return preds.argmax(axis=1)
         if preds.dtype.kind in ("f",):
             return (preds >= 0.5).astype(int)
-        return preds.astype(int)
+        preds = preds.astype(int)
+
+        if x.ndim == 1:
+            return preds.squeeze()
+        return preds
+        # return torch.tensor(raw_model.predict(x.cpu().detach()))
     
      # find boundary point between x0 and nearest opposite-label train point
     def dist(a: torch.Tensor, b: torch.Tensor):
@@ -305,25 +321,32 @@ def robust_bayesian_recourse(
 
     # ------- Implementation of fit_instance() ------------------
     x0_t = torch.from_numpy(x0.copy()).float().to(dev)
+    #print(f"x0_t: {x0_t}")
 
     train_t = torch.tensor(train_data).float().to(dev)
+    #print(f"train_t: {train_t}")
 
     # training label vector
-    train_label = torch.tensor(predict_fn_np(train_data)).to(dev)
+    train_label = torch.tensor(predict_fn_np(train_t)).to(dev)
+    #print(f"train_label: {len(train_label)}")
 
     # -------- Implementation of find_x_boundary() ---------------
     # find nearest opposite label examples and search along line for boundary
+    x_label = torch.tensor(predict_fn_np(x0_t.clone()))
+    print(f"x_label: {x_label}")
+    
     dists = dist(train_t, x0_t)
-    order = torch.argsort(dists)
-    x_label = predict_fn_np(x0.reshape(1, -1))[0]
+    order = torch.argsort(dists)    
     candidates = train_t[order[train_label[order] == (1 - x_label)]]
+    # print(f"candidates: {candidates}")
     best_x_b = None
     best_dist = torch.tensor(float("inf"), device=dev)
+    
     for x_c in candidates:
         lambdas = torch.linspace(0, 1, 100, device=dev)
         for lam in lambdas:
             x_b = (1 - lam) * x0_t + lam * x_c
-            label = predict_fn_np(x_b.unsqueeze(0).cpu().numpy())[0]
+            label = predict_fn_np(x_b)
             if label == 1 - x_label:
                 curdist = dist(x0_t, x_b)
                 if curdist < best_dist:
@@ -332,17 +355,19 @@ def robust_bayesian_recourse(
                 break
     # ------------------ end of find_x_boundary() --------------------
 
-    # if best_x_b is None:
-    #     # fallback: nearest opposite neighbor directly
-    #     opp_idx = (train_label == (1 - x_label)).nonzero(as_tuple=False)
-    #     if opp_idx.shape[0] == 0:
-    #         # can't find opposite label in train set -> return original
-    #         return x0.copy()
-    #     first_idx = opp_idx[0, 0].item()
-    #     best_x_b = train_t[first_idx].detach().clone()
-    #     best_dist = dist(x0_t, best_x_b)
+    if best_x_b is None:
+        # fallback: nearest opposite neighbor directly
+        opp_idx = (train_label == (1 - x_label)).nonzero(as_tuple=False)
+        if opp_idx.shape[0] == 0:
+            # can't find opposite label in train set -> return original
+            return x0.copy()
+        first_idx = opp_idx[0, 0].item()
+        best_x_b = train_t[first_idx].detach().clone()
+        best_dist = dist(x0_t, best_x_b)
 
     delta = best_dist + delta_plus
+
+    print(f"best_x_b: {best_x_b}, delta: {delta}")
 
     X_feas = uniform_ball(best_x_b, perturb_radius, num_samples, rng).float().to(dev)
 
@@ -351,7 +376,7 @@ def robust_bayesian_recourse(
     #     for i in range(X_feas.shape[0]):
     #         X_feas[i] = reconstruct_encoding_constraints(X_feas[i], cat_features_indices)
 
-    y_feas = torch.tensor(predict_fn_np(X_feas.cpu().numpy())).to(dev)
+    y_feas = predict_fn_np(X_feas)
 
     if (y_feas == 1).any():
         X_feas_pos = X_feas[y_feas == 1].reshape([int((y_feas == 1).sum().item()), -1])
