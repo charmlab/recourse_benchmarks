@@ -203,7 +203,9 @@ class Roar(RecourseMethod):
 
                 coeffs_neg = (
                     # self._mlmodel.raw_model.output.weight.cpu().detach()[0].numpy()
-                    self._mlmodel.raw_model.linear.weight.cpu().detach()[0].numpy()
+                    self._mlmodel.raw_model.linear.weight.cpu()
+                    .detach()[0]
+                    .numpy()
                 )
                 coeffs_pos = (
                     self._mlmodel.raw_model.linear.weight.cpu().detach()[1].numpy()

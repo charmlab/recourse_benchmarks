@@ -284,7 +284,7 @@ def create_parser():
             "mace",
             "revise",
             "wachter",
-            'roar',
+            "roar",
         ],
         help="Recourse methods for experiment",
     )

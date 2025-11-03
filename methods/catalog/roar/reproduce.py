@@ -1,7 +1,4 @@
-from pathlib import Path
-
 import numpy as np
-import pandas as pd
 import pytest
 
 from data.catalog.online_catalog import DataCatalog
@@ -9,6 +6,7 @@ from methods.catalog.roar.model import Roar
 from models.catalog.catalog import ModelCatalog
 
 RANDOM_SEED = 54321
+
 
 # Find indices where recourse is needed
 def recourse_needed(predict_fn, X, target=1):
@@ -86,17 +84,17 @@ def test_roar(dataset_name, model_type, backend):
     m2._test_accuracy()
 
     print("Using %s cost" % args["cost"])
-    if args["cost"] == "l1":
-        feature_costs = None
+    # if args["cost"] == "l1":
+    #     feature_costs = None
 
     coefficients = intercept = None
 
     roar = Roar(mlmodel=m1, hyperparams={}, coeffs=coefficients, intercepts=intercept)
 
-    lamb = args["lamb"]
+    # lamb = args["lamb"]
 
     recourses = []
-    deltas = []
+    # deltas = []
 
     factuals = (data._df_test).sample(n=10, random_state=RANDOM_SEED)
 

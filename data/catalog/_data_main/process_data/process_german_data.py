@@ -16,7 +16,7 @@ np.random.seed(RANDOM_SEED)
 def load_german_data(modified=False):
     # input vars
     this_files_directory = os.path.dirname(os.path.realpath(__file__))
-    if modified == False:
+    if modified is False:
         raw_data_file = os.path.join(
             this_files_directory, "..", "raw_data", "german_v1.csv"
         )

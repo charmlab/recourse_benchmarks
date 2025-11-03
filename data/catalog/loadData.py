@@ -74,10 +74,7 @@ except Exception as e:
     print(f"[ENV WARNING] process_boston_housing_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_data.process_sba_data import (
-        load_sba_data,
-        load_sba_data_modified,
-    )
+    from data.catalog._data_main.process_data.process_sba_data import load_sba_data
 except Exception as e:
     print(f"[ENV WARNING] process_sba_data not available. Error: {e}")
 

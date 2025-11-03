@@ -1,10 +1,7 @@
 import os
-from random import seed, shuffle
+from random import seed
 
-import numpy as np
 import pandas as pd
-import process_data.process_utils_data as ut
-from sklearn.preprocessing import StandardScaler
 
 RANDOM_SEED = 54321
 seed(
