@@ -35,7 +35,7 @@ def compute_jacobian(inputs, output):
 def gradient(y, x, grad_outputs=None):
     """Compute dy/dx @ grad_outputs"""
     if grad_outputs is None:
-        grad_outputs = torch.tensor(1)
+        grad_outputs = torch.tensor(1, device=y.device)
     grad = torch.autograd.grad(y, [x], grad_outputs=grad_outputs, create_graph=True)[0]
     return grad
 
@@ -135,13 +135,16 @@ def probe_recourse(
     -------
     Counterfactual example as np.ndarray
     """
-    device = "cpu"  # for simplicity and to avoid Runtime error.
+    # device = "cpu"  # for simplicity and to avoid Runtime error.
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    torch_model = torch_model.to(device)
     # returns counterfactual instance
     torch.manual_seed(0)
     noise_variance = torch.tensor(noise_variance)
 
-    if feature_costs is not None:
-        feature_costs = torch.from_numpy(feature_costs).float().to(device)
+    # if feature_costs is not None:
+    #     feature_costs = torch.from_numpy(feature_costs).float().to(device)
 
     # print("x:", x)
 
@@ -162,7 +165,7 @@ def probe_recourse(
 
     if loss_type == "MSE":
         loss_fn = torch.nn.MSELoss()
-        f_x_new = softmax(torch_model(x_new))[1]
+        f_x_new = softmax(torch_model(x_new))[:, 1]
     else:
         loss_fn = torch.nn.BCELoss()
         f_x_new = torch_model(x_new)[:, 1]
@@ -193,8 +196,8 @@ def probe_recourse(
 
             cost = (
                 torch.dist(x_new, x, norm)
-                if feature_costs is None
-                else torch.norm(feature_costs * (x_new - x), norm)
+                # if feature_costs is None
+                # else torch.norm(feature_costs * (x_new - x), norm)
             )
 
             # Compute Invalidation loss
