@@ -16,7 +16,7 @@ from methods.catalog.clue.library.clue_ml.src.utils import (
     MNIST_mean_std_norm,
     generate_ind_batch,
 )
-from tools.logging import log
+from tools.log import log
 
 """
 Here we conduct the search for counterfactual explanations using CLUE.

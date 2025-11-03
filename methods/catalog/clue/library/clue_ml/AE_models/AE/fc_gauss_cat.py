@@ -16,7 +16,7 @@ from methods.catalog.clue.library.clue_ml.src.gauss_cat import (
 from methods.catalog.clue.library.clue_ml.src.probability import normal_parse_params
 from methods.catalog.clue.library.clue_ml.src.radam import RAdam
 from methods.catalog.clue.library.clue_ml.src.utils import BaseNet, to_variable
-from tools.logging import log
+from tools.log import log
 
 from .models import MLP_preact_generator_net, MLP_preact_recognition_net
 

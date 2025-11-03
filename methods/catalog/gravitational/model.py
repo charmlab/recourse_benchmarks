@@ -118,7 +118,18 @@ class Gravitational(RecourseMethod):
             data = self.mlmodel.data
             x_train = data.df_train.drop(data.target, axis=1)
             y_train = data.df_train[data.target]
-            self.x_center = np.mean(x_train[y_train == self.target_class], axis=0)
+            mask = y_train == self.target_class
+            if mask.any():
+                x_center = x_train[mask].mean(axis=0).to_numpy(dtype=np.float32)
+            else:
+                y_pred = self.mlmodel.predict(x_train) == self.target_class
+                if np.asarray(y_pred).sum() > 0:
+                    x_center = x_train[y_pred].mean(axis=0).to_numpy(dtype=np.float32)
+                else:
+                    x_center = x_train.mean(axis=0).to_numpy(dtype=np.float32)
+
+            x_center = np.nan_to_num(x_center, nan=0.0, posinf=1e6, neginf=-1e6)
+            self.x_center = x_center
 
         self.criterion = nn.CrossEntropyLoss()
 

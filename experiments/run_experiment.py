@@ -22,7 +22,7 @@ from methods.api import RecourseMethod
 from models.api import MLModel
 from models.catalog import ModelCatalog
 from models.negative_instances import predict_negative_instances
-from tools.logging import log
+from tools.log import log
 
 RANDOM_SEED = 54321
 
