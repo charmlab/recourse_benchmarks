@@ -129,13 +129,26 @@ def loadModelForDataset(
         "sklearn": LogisticRegression(
             solver="liblinear"
         ),  # IMPORTANT: The default solver changed from ‘liblinear’ to ‘lbfgs’ in 0.22; therefore, results may differ slightly from paper.
-        "pytorch": PyTorchLogisticRegression(X_train.shape[1], 2, batch_size=batch_size, epochs=epochs, learning_rate=learning_rate),
+        "pytorch": PyTorchLogisticRegression(
+            X_train.shape[1],
+            2,
+            batch_size=batch_size,
+            epochs=epochs,
+            learning_rate=learning_rate,
+        ),
         "tensorflow": TensorflowLogisticRegression(X_train.shape[1], 2),
     }
 
     neuralNetworksMap = {
         "sklearn": MLPClassifier(hidden_layer_sizes=(10, 10)),
-        "pytorch": PyTorchNeuralNetwork(X_train.shape[1], 2, 10, batch_size=batch_size, epochs=epochs, learning_rate=learning_rate),
+        "pytorch": PyTorchNeuralNetwork(
+            X_train.shape[1],
+            2,
+            10,
+            batch_size=batch_size,
+            epochs=epochs,
+            learning_rate=learning_rate,
+        ),
         "tensorflow": TensorflowNeuralNetwork(X_train.shape[1], 2, 10),
     }
 

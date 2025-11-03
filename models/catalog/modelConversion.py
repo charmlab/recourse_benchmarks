@@ -29,13 +29,15 @@ class PyTorchNeuralNetwork(torch.nn.Module):
     """
 
     # Constructor
-    def __init__(self, 
-                 n_inputs, 
-                 n_outputs, 
-                 n_neurons,
-                 batch_size=1000,
-                 epochs=1,
-                 learning_rate=0.001):
+    def __init__(
+        self,
+        n_inputs,
+        n_outputs,
+        n_neurons,
+        batch_size=1000,
+        epochs=1,
+        learning_rate=0.001,
+    ):
         super(PyTorchNeuralNetwork, self).__init__()
         self.fc1 = torch.nn.Linear(n_inputs, n_neurons)
         self.fc2 = torch.nn.Linear(n_neurons, n_neurons)
@@ -67,9 +69,7 @@ class PyTorchNeuralNetwork(torch.nn.Module):
         return y_pred
 
     # Adding extra parameters for training
-    def fit(self, 
-            x_train, 
-            y_train):
+    def fit(self, x_train, y_train):
         """
         Fits the neural network to the training data.
 
@@ -91,9 +91,7 @@ class PyTorchNeuralNetwork(torch.nn.Module):
 
         train_dataset = torch.utils.data.TensorDataset(x_train_tensor, y_train_tensor)
         train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset, 
-            batch_size=self.batch_size, 
-            shuffle=True
+            dataset=train_dataset, batch_size=self.batch_size, shuffle=True
         )
 
         # defining the optimizer
@@ -161,12 +159,9 @@ class PyTorchLogisticRegression(torch.nn.Module):
     """
 
     # Constructor
-    def __init__(self,
-                 n_inputs,
-                 n_outputs,
-                 batch_size=1000,
-                 epochs=1,
-                 learning_rate=0.001):
+    def __init__(
+        self, n_inputs, n_outputs, batch_size=1000, epochs=1, learning_rate=0.001
+    ):
         super(PyTorchLogisticRegression, self).__init__()
         self.linear = torch.nn.Linear(n_inputs, n_outputs)
         self.batch_size = batch_size
@@ -193,9 +188,7 @@ class PyTorchLogisticRegression(torch.nn.Module):
         y_pred = torch.nn.functional.softmax(self.linear(x))
         return y_pred
 
-    def fit(self, 
-            x_train, 
-            y_train):
+    def fit(self, x_train, y_train):
         """
         Fits the logistic regression model to the training data.
 

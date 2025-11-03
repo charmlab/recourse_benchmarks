@@ -3,16 +3,16 @@ from typing import List, Optional
 
 import numpy as np
 import torch
-import torch.optim as optim
 import torch.distributions.normal as normal_distribution
-from torch.distributions.multivariate_normal import MultivariateNormal
+import torch.optim as optim
 from torch import nn
 from torch.autograd import Variable
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 from methods.processing import reconstruct_encoding_constraints
 
-""" 
-This file contains the implementation of the Probe method, along with required helper functions 
+"""
+This file contains the implementation of the Probe method, along with required helper functions
 """
 
 DECISION_THRESHOLD = 0.5
@@ -48,14 +48,14 @@ def compute_invalidation_rate_closed(torch_model, x, sigma2):
     jacobian_x = compute_jacobian(x, logit_x).reshape(-1)
     denom = torch.sqrt(sigma2) * torch.norm(jacobian_x, 2)
     arg = logit_x / denom
-    
+
     # Evaluate Gaussian cdf
     normal = normal_distribution.Normal(loc=0.0, scale=1.0)
     normal_cdf = normal.cdf(arg)
-    
+
     # Get invalidation rate
     ir = 1 - normal_cdf
-    
+
     return ir
 
 
@@ -67,17 +67,20 @@ def perturb_sample(x, n_samples, sigma2):
     eps = MultivariateNormal(
         loc=torch.zeros(x.shape[1]), covariance_matrix=Sigma
     ).sample((n_samples,))
-    
+
     return X + eps
 
+
 def reparametrization_trick(mu, sigma2, n_samples):
-    #var = torch.eye(mu.shape[1]) * sigma2
+    # var = torch.eye(mu.shape[1]) * sigma2
     std = torch.sqrt(sigma2)
-    epsilon = MultivariateNormal(loc=torch.zeros(mu.shape[1]), covariance_matrix=torch.eye(mu.shape[1]))
+    epsilon = MultivariateNormal(
+        loc=torch.zeros(mu.shape[1]), covariance_matrix=torch.eye(mu.shape[1])
+    )
     epsilon = epsilon.sample((n_samples,))  # standard Gaussian random noise
     ones = torch.ones_like(epsilon)
     random_samples = mu.reshape(-1) * ones + std * epsilon
-    
+
     return random_samples
 
 
@@ -104,7 +107,7 @@ def probe_recourse(
     loss_type: str = "MSE",
     invalidation_target: float = 0.45,
     inval_target_eps: float = 0.005,
-    noise_variance: float = 0.01
+    noise_variance: float = 0.01,
 ) -> np.ndarray:
     """
     Generates counterfactual example according to Wachter et.al for input instance x
@@ -132,7 +135,7 @@ def probe_recourse(
     -------
     Counterfactual example as np.ndarray
     """
-    device = "cpu" # for simplicity and to avoid Runtime error.
+    device = "cpu"  # for simplicity and to avoid Runtime error.
     # returns counterfactual instance
     torch.manual_seed(0)
     noise_variance = torch.tensor(noise_variance)
@@ -140,7 +143,7 @@ def probe_recourse(
     if feature_costs is not None:
         feature_costs = torch.from_numpy(feature_costs).float().to(device)
 
-    #print("x:", x)
+    # print("x:", x)
 
     x = torch.from_numpy(x).float().to(device)
     y_target = torch.tensor(y_target).float().to(device)
@@ -149,7 +152,7 @@ def probe_recourse(
     x_new = Variable(x.clone(), requires_grad=True)
     # x_new_enc is a copy of x_new with reconstructed encoding constraints of x_new
     # such that categorical data is either 0 or 1
-    
+
     # x_new_enc = reconstruct_encoding_constraints( #TODO: check if this is needed here, i believe that the encoding is done in the model prediction
     #     x_new, cat_feature_indices, binary_cat_features
     # )
@@ -172,12 +175,14 @@ def probe_recourse(
 
     random_samples = reparametrization_trick(x_new, noise_variance, n_samples=1000)
     invalidation_rate = compute_invalidation_rate(torch_model, random_samples)
-    
-    while (f_x_new <= DECISION_THRESHOLD) or (invalidation_rate > invalidation_target + inval_target_eps):
+
+    while (f_x_new <= DECISION_THRESHOLD) or (
+        invalidation_rate > invalidation_target + inval_target_eps
+    ):
         # it = 0
         for it in range(n_iter):
-        # while invalidation_target >= 0.5 and it < n_iter:
-            
+            # while invalidation_target >= 0.5 and it < n_iter:
+
             optimizer.zero_grad()
             # x_new_enc = reconstruct_encoding_constraints(
             #     x_new, cat_feature_indices, binary_cat_features
@@ -191,29 +196,35 @@ def probe_recourse(
                 if feature_costs is None
                 else torch.norm(feature_costs * (x_new - x), norm)
             )
-            
+
             # Compute Invalidation loss
             # output_mean, output_std = compute_output_dist_suff_statistics(torch_model, x_new,
             #                                                              noise_variance=noise_variance)
-            
+
             # normal = normal_distribution.Normal(loc=0.0, scale=1.0)
             # ratio = torch.divide(output_mean, output_std)
             # normal_cdf = normal.cdf(ratio)
             # invalidation_rate = 1 - normal_cdf
 
             # invalidation_rate = compute_invalidation_rate(torch_model, random_samples)
-            invalidation_rate_c = compute_invalidation_rate_closed(torch_model, x_new, noise_variance)
-            
+            invalidation_rate_c = compute_invalidation_rate_closed(
+                torch_model, x_new, noise_variance
+            )
+
             # Compute & update losses
             loss_invalidation = invalidation_rate_c - invalidation_target
             # Hinge loss
             loss_invalidation[loss_invalidation < 0] = 0
 
-            loss = 3 * loss_invalidation + loss_fn(f_x_new_binary, y_target) + lamb * cost
+            loss = (
+                3 * loss_invalidation + loss_fn(f_x_new_binary, y_target) + lamb * cost
+            )
             loss.backward()
             optimizer.step()
 
-            random_samples = reparametrization_trick(x_new, noise_variance, n_samples=10000)
+            random_samples = reparametrization_trick(
+                x_new, noise_variance, n_samples=10000
+            )
             invalidation_rate = compute_invalidation_rate(torch_model, random_samples)
 
             # x_pertub = perturb_sample(x_new, sigma2=noise_variance, n_samples=10000)
@@ -224,45 +235,49 @@ def probe_recourse(
             # print('IR empirical', invalidation_rate_empirical)
             # print('IR from loss', invalidation_rate)
             # print('IR loss', loss_invalidation)
-            
+
             # clamp potential CF
             if clamp:
                 x_new.clone().clamp_(0, 1)
             # it += 1
-            
+
             # x_new_enc = reconstruct_encoding_constraints(
             #     x_new, cat_feature_indices, binary_cat_features
             # )
             # f_x_new = torch_model(x_new_enc)[:, 1]
             f_x_new = torch_model(x_new)[:, 1]
 
-        if (f_x_new > DECISION_THRESHOLD) and (invalidation_rate < invalidation_target + inval_target_eps):
-                print('--------------------------------------')
-                print('invalidation rate:', invalidation_rate)
-                # print('emp invalidation rate', invalidation_rate_empirical)
-                print('cost:', cost)
-                print('classifier output:', f_x_new_binary)
-                
-                costs.append(cost)
-                ces.append(x_new)
-                
-                break
-                
+        if (f_x_new > DECISION_THRESHOLD) and (
+            invalidation_rate < invalidation_target + inval_target_eps
+        ):
+            print("--------------------------------------")
+            print("invalidation rate:", invalidation_rate)
+            # print('emp invalidation rate', invalidation_rate_empirical)
+            print("cost:", cost)
+            print("classifier output:", f_x_new_binary)
+
+            costs.append(cost)
+            ces.append(x_new)
+
+            break
+
         lamb -= 0.10
-        
+
         if datetime.datetime.now() - t0 > t_max:
             print("Timeout")
             break
 
     if not ces:
-        print("No Counterfactual Explanation Found at that Target Rate - Try Different Target")
+        print(
+            "No Counterfactual Explanation Found at that Target Rate - Try Different Target"
+        )
         return x_new.cpu().detach().numpy().squeeze(axis=0)
     else:
         print("Counterfactual Explanation Found")
         costs = torch.tensor(costs)
         min_idx = int(torch.argmin(costs).numpy())
         x_new_enc = ces[min_idx]
-    
-    #print("x_prime ", x_new_enc.cpu().detach().numpy().squeeze(axis=0))
+
+    # print("x_prime ", x_new_enc.cpu().detach().numpy().squeeze(axis=0))
 
     return x_new_enc.cpu().detach().numpy().squeeze(axis=0)

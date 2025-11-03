@@ -1,13 +1,10 @@
-from typing import List
 import pandas as pd
-from sklearn.base import BaseEstimator
+
+from methods.catalog.probe.library import probe_recourse
+from methods.processing import check_counterfactuals, merge_default_parameters
 
 from ...api import RecourseMethod
-from methods.catalog.probe.library import probe_recourse
-from methods.processing import (
-    check_counterfactuals,
-    merge_default_parameters,
-)
+
 
 class Probe(RecourseMethod):
     """
@@ -31,6 +28,7 @@ class Probe(RecourseMethod):
             Probabilistically Robust Recourse: Navigating the Trade-offs between Costs and Robustness in Algorithmic Recourse
             https://openreview.net/pdf?id=sC-PmTsiTB(2023).
     """
+
     _DEFAULT_HYPERPARAMS = {
         "feature_cost": "_optional_",
         "lr": 0.001,
@@ -70,7 +68,7 @@ class Probe(RecourseMethod):
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         # Normalize and encode data
         # df_enc_norm_fact = self.encode_normalize_order_factuals(factuals)
-        
+
         factuals = self._mlmodel.get_ordered_features(factuals)
 
         encoded_feature_names = self._mlmodel.data.categorical
@@ -94,7 +92,7 @@ class Probe(RecourseMethod):
                 loss_type=self._loss_type,
                 invalidation_target=self._invalidation_target,
                 inval_target_eps=self._inval_target_eps,
-                noise_variance=self._noise_variance
+                noise_variance=self._noise_variance,
             ),
             raw=True,
             axis=1,
