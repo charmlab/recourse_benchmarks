@@ -61,12 +61,17 @@ class AutoEncoder:
         validation_split: float = 0.2,
         early_stopping: bool = True,
         patience: int = 5,
-        verbose: int = 0
+        verbose: int = 0,
+        random_seed: int = None
     ):
+        if random_seed is not None:
+            np.random.seed(random_seed)
+            tf.set_random_seed(random_seed)
+        
         self.cat_feat_idx = cat_feat_idx if cat_feat_idx is not None else []
         self.num_feat_idx = num_feat_idx if num_feat_idx is not None else []
         
-        self.input_dim = X_train.shape[1]  # ✅ FIXED! Number of features, not instances
+        self.input_dim = X_train.shape[1] 
         self.batch_size = batch_size
         
         # Sizes
