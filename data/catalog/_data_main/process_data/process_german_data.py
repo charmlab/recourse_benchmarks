@@ -13,24 +13,44 @@ seed(
 np.random.seed(RANDOM_SEED)
 
 
-def load_german_data():
+def load_german_data(modified=False):
     # input vars
-    raw_data_file = os.path.join(os.path.dirname(__file__), "german_raw.csv")
-    processed_file = os.path.join(os.path.dirname(__file__), "german_processed.csv")
+    this_files_directory = os.path.dirname(os.path.realpath(__file__))
+    if modified is False:
+        raw_data_file = os.path.join(
+            this_files_directory, "..", "raw_data", "german_v1.csv"
+        )
+        processed_file = os.path.join(
+            this_files_directory, "..", "raw_data", "german_v1_processed.csv"
+        )
+    else:
+        raw_data_file = os.path.join(
+            this_files_directory, "..", "raw_data", "german_v2.csv"
+        )
+        processed_file = os.path.join(
+            this_files_directory, "..", "raw_data", "german_v2_processed.csv"
+        )
 
     # German Data Processing
     raw_df = pd.read_csv(raw_data_file)  # , index_col = 0)
     processed_df = pd.DataFrame()
 
-    processed_df["GoodCustomer (label)"] = raw_df["GoodCustomer"]
-    processed_df["GoodCustomer (label)"] = (
-        processed_df["GoodCustomer (label)"] + 1
-    ) / 2
-    processed_df.loc[raw_df["Gender"] == "Male", "Sex"] = 1
-    processed_df.loc[raw_df["Gender"] == "Female", "Sex"] = 0
-    processed_df["Age"] = raw_df["Age"]
-    processed_df["Credit"] = raw_df["Credit"]
-    processed_df["LoanDuration"] = raw_df["LoanDuration"]
+    # if modified == False:
+    #     processed_df["GoodCustomer (label)"] = raw_df["GoodCustomer"]
+    #     processed_df["GoodCustomer (label)"] = (
+    #         processed_df["GoodCustomer (label)"] + 1
+    #     ) / 2
+    #     processed_df.loc[raw_df["Gender"] == "Male", "Sex"] = 1
+    #     processed_df.loc[raw_df["Gender"] == "Female", "Sex"] = 0
+    #     processed_df["Age"] = raw_df["Age"]
+    #     processed_df["Credit"] = raw_df["Credit"]
+    #     processed_df["LoanDuration"] = raw_df["LoanDuration"]
+    # else:
+    processed_df["GoodCustomer (label)"] = raw_df["credit_risk"]
+    processed_df["Sex"] = raw_df["personal_status_sex"]
+    processed_df["Age"] = raw_df["age"]
+    processed_df["Credit"] = raw_df["amount"]
+    processed_df["LoanDuration"] = raw_df["duration"]
 
     # # order important, more balance can overwrite less balance!
     # processed_df.loc[raw_df['CheckingAccountBalance_geq_0'] == 1, 'CheckingAccountBalance'] = 2
