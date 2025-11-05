@@ -22,17 +22,12 @@ def l2_projection(x: torch.Tensor, radius: float) -> torch.Tensor:
     scale = (radius / denom).unsqueeze(-1)
     return scale * x
 
+def reconstruct_encoding_constraints(x: torch.Tensor, cat_pos: Optional[Sequence[int]]):
+    x_enc = x.clone()
+    for pos in cat_pos:
+        x_enc.data[pos] = torch.clamp(torch.round(x_enc[pos]), 0, 1)
+    return x_enc
 # in the original code but never used
-# def reconstruct_encoding_constraints(x: torch.Tensor, cat_pos: Optional[Sequence[int]]):
-#     """
-#     Round/clamp categorical encodings (binary) at positions in cat_pos.
-#     """
-#     if cat_pos is None:
-#         return x
-#     x_enc = x.clone()
-#     for pos in cat_pos:
-#         x_enc.data[pos] = torch.clamp(torch.round(x_enc[pos]), 0, 1)
-#     return x_enc
 
 
 # ---------- likelihood modules ----------
@@ -119,6 +114,7 @@ class PessimisticLikelihood(torch.nn.Module):
         p = self.x_dim
         p = p.float()
         sqrt_p = torch.sqrt(p)
+
         inside = (zeta + self.epsilon_pe ** 2 - p * u[..., 0] ** 2 - u[..., 1] ** 2) / (p - 1)
         f = torch.sqrt(torch.maximum(inside, torch.tensor(1e-12, device=self.device)))
 
@@ -252,14 +248,16 @@ def robust_bayesian_recourse(
 
         if preds_tensor.ndim == 1:
             preds_tensor = preds_tensor.unsqueeze(0)
-        
+
         preds = preds_tensor.cpu().detach().numpy()
+        # print(f"The prediction is {preds} before numpy array")
         preds = np.asarray(preds)
+
         # convert to single-label 0/1 if probabilities provided
         if preds.ndim == 2 and preds.shape[1] > 1:
             return preds.argmax(axis=1)
         if preds.dtype.kind in ("f",):
-            return (preds >= 0.5).astype(int)
+            return (preds >= 0.5).astype(int).squeeze()
         preds = preds.astype(int)
 
         if x.ndim == 1:
@@ -321,14 +319,14 @@ def robust_bayesian_recourse(
 
     # ------- Implementation of fit_instance() ------------------
     x0_t = torch.from_numpy(x0.copy()).float().to(dev)
-    #print(f"x0_t: {x0_t}")
+    print(f"x0_t: {x0_t}")
 
     train_t = torch.tensor(train_data).float().to(dev)
-    #print(f"train_t: {train_t}")
+    # print(f"train_t: {train_t}")
 
     # training label vector
     train_label = torch.tensor(predict_fn_np(train_t)).to(dev)
-    #print(f"train_label: {len(train_label)}")
+    # print(f"train_label: {train_label}")
 
     # -------- Implementation of find_x_boundary() ---------------
     # find nearest opposite label examples and search along line for boundary
@@ -336,7 +334,8 @@ def robust_bayesian_recourse(
     print(f"x_label: {x_label}")
     
     dists = dist(train_t, x0_t)
-    order = torch.argsort(dists)    
+    order = torch.argsort(dists)
+    # print(f"order: {order}")    
     candidates = train_t[order[train_label[order] == (1 - x_label)]]
     # print(f"candidates: {candidates}")
     best_x_b = None
@@ -378,16 +377,24 @@ def robust_bayesian_recourse(
 
     y_feas = predict_fn_np(X_feas)
 
+    #print(f"X_feas: {X_feas}")
+    #print(f"y_feas: {y_feas}")
+
     if (y_feas == 1).any():
         X_feas_pos = X_feas[y_feas == 1].reshape([int((y_feas == 1).sum().item()), -1])
     else:
         X_feas_pos = torch.empty((0, X_feas.shape[1]), device=dev)
 
+    # print(f"X_feas_pos: {X_feas_pos}")
+
     if (y_feas == 0).any():
         X_feas_neg = X_feas[y_feas == 0].reshape([int((y_feas == 0).sum().item()), -1])
     else:
         X_feas_neg = torch.empty((0, X_feas.shape[1]), device=dev)
-
+    
+    print(f"[Debug] X_feas_pos shape: {X_feas_pos.shape}, X_feas_neg shape: {X_feas_neg.shape}")
+    # print(f"X_feas_neg: {X_feas_neg}")
+    # torch.autograd.set_detect_anomaly(True) # try to catch NaNs
     # build loss wrapper
     loss_fn = RBRLoss(X_feas, X_feas_pos, X_feas_neg, epsilon_op, epsilon_pe, sigma, device=dev, verbose=verbose)
 
@@ -407,6 +414,18 @@ def robust_bayesian_recourse(
 
         F, denom, numer = loss_fn(x_t)
         F_sum = F.sum()
+        # --- ADD THESE PRINTS ---
+        # if t % 20 == 0:  # Print every 20 iterations
+        #     print(f"Iter {t}: F_sum = {F_sum.item()}")
+        #     if x_t.grad is not None:
+        #         print(f"Iter {t}: Grad norm = {x_t.grad.norm().item()}")
+        
+        # if torch.isnan(F_sum):
+        #      print(f"NaN detected at iteration {t}!")
+        #      print(f"  numer: {numer.item()}, denom: {denom.item()}")
+        #      print(f"  x_t has NaNs: {torch.isnan(x_t).any().item()}")
+        #      break
+        # --- END OF PRINTS ---
         F_sum.backward()
         # if we left L1-ball, break
         if torch.ge(torch.linalg.norm((x_t.detach() - x0_t), ord=1), float(delta)):
@@ -420,12 +439,15 @@ def robust_bayesian_recourse(
 
             x_new = projection(x_new - x0_t, float(delta)) + x0_t
 
+        # print(f"x_new: {x_new}")
         # enforce categorical encodings rounding/clamping
         # if cat_features_indices:
         #     x_new = reconstruct_encoding_constraints(x_new, cat_features_indices)
 
         for i, e in enumerate(x_new.data):
             x_t.data[i] = e
+        
+        # print(f"x_t after update: {x_t}")
 
         loss_sum = F_sum.item()
         loss_diff = min_loss - loss_sum
@@ -439,6 +461,7 @@ def robust_bayesian_recourse(
         min_loss = min(min_loss, loss_sum)
 
     cf = x_t.detach().cpu().numpy().squeeze()
+    # print(f"Final counterfactual cf: {cf}")
 
     # ----------------------------- end of optimize() -----------------------
 

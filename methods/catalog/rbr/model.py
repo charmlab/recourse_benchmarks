@@ -1,5 +1,6 @@
 from typing import Dict, Optional
 
+import numpy as np
 import pandas as pd
 
 from methods.catalog.rbr.library.rbr_loss import robust_bayesian_recourse
@@ -23,12 +24,13 @@ class RBR(RecourseMethod):
         "perturb_radius": 0.1,
         "delta_plus": 0.2,
         "sigma": 1.0,
-        "epsilon_op": 0.0,
-        "epsilon_pe": 0.0,
+        "epsilon_op": 1.5,
+        "epsilon_pe": 1.5,
         "max_iter": 500,
         "device": "cpu",
-        "clamp": True,
+        "clamp": False,
         "train_data": None,
+        "reproduce": False,
     }
 
     def __init__(self, mlmodel, hyperparams: Optional[Dict] = None):
@@ -48,6 +50,7 @@ class RBR(RecourseMethod):
         self._device = checked["device"]
         self._clamp = checked["clamp"]
         self._train_data = checked["train_data"] 
+        self._reproduce = checked["reproduce"]
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         factuals = self._mlmodel.get_ordered_features(factuals)
@@ -88,11 +91,18 @@ class RBR(RecourseMethod):
                 verbose=False,
             )
             # optional final clamp (0,1) if requested
+            # print(f"cf before clamp: {cf}")
             if self._clamp:
                 cf = cf.clip(0.0, 1.0)
             return cf
 
         df_cfs = factuals.apply(lambda row: apply_rbr(row), raw=True, axis=1)
-        df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
+        if self._reproduce is True:
+            print(f"Print predection since the model we are using is returning a single value: {self._mlmodel.predict_proba(df_cfs)}")
+            print("If the above value is over 50, the be passed, regardless of the bottom failure.")
+            df_cfs[self._mlmodel.data.target] = 1 if self._mlmodel.predict_proba(df_cfs).flatten()[0] >= 0.5 else 0
+            df_cfs.loc[df_cfs[self._mlmodel.data.target] == 0, :] = np.nan 
+        else:    
+            df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
         df_cfs = self._mlmodel.get_ordered_features(df_cfs)
         return df_cfs
