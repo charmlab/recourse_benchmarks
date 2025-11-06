@@ -13,7 +13,7 @@ from data.catalog.loadData import loadDataset
 from methods.api import RecourseMethod
 from methods.processing import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
-from tools.logging import log
+from tools.log import log
 
 
 def _set_seed(seed: int = 10_000_000) -> None:
@@ -576,7 +576,7 @@ class CFVAE(RecourseMethod):
         log.info(f"Loaded from: {load_path}")
         self._trained = True
 
-    def get_counterfactuals(
+    def get_counterfactuals(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         factuals: pd.DataFrame,
         device: torch.device = torch.device(
