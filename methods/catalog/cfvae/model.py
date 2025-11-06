@@ -1,16 +1,27 @@
 import os
-from typing import Dict, Optional
+import random
+from typing import Dict, List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 import torch
 from torch import nn, optim
 import torch.nn.functional as F
 from tqdm import tqdm
 
+from data.catalog.loadData import loadDataset
 from methods.api import RecourseMethod
 from methods.processing import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
 from tools.logging import log
+
+
+def _set_seed(seed: int = 10_000_000) -> None:
+    random.seed(seed)
+    np.random.seed(seed)  # pyright: ignore[reportAttributeAccessIssue]
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():  # pyright: ignore[reportAttributeAccessIssue]
+        torch.cuda.manual_seed_all(seed)  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class _CFVAE(nn.Module):
@@ -153,15 +164,80 @@ class CFVAE(RecourseMethod):
             Size of VAE latent code.
         * "train": bool, default: True
             Whether to train when init.
+        * save_path: str | None, default: None
+            If provided, save .pth to save_path. By default will not save .pth.
+        * "batch_size": int, default: 2048
+            Batch size for dataloader.
+        * "epoch": int, default: 50
+            Num of training epochs.
+        * "learning_rate": float, default: 1e-2
+            Learning rate (for SGD with weight decay 1e-2).
+        * "constraint_loss_func": function | None, default: None
+            A function taking a tensor (train_x in feature_input_order) as input, returning a single-value tensor of constraint loss.
+            If provided, will apply ModelApproxCF's loss as written in the original paper.
+            See constraint_loss_func_example() for example, which contraints train_x[0] to go upwards.
+        * "preference_dataset": dict | None, default: None
+            Dict[str:Dict[torch.Tensor:List[torch.Tensor]]].
+            preference_dataset["x_prefer"][train_x][idx] and preference_dataset["y_prefer"][train_x][idx] are corresponding user/oracle data points for train_x.
+            If provided, will apply ExampleBasedCF's loss as written in the original paper.
+        * "n_samples": int, default: 50
+            For one train_x, how many times we should sample from the latent distribution when training.
+        * "margin": float, default: 0.2
+            margin for the reconstruction hinge loss.
+        * "validity_reg": float, default: 20
+            Lambda for validity loss term. See the original paper.
+        * "constraint_reg": float, default: 1
+            Lambda for constraint loss term. See the original paper.
+            Only valid when constraint_loss_func is not None.
+        * "preference_reg": float, default: 1
+            Lambda for preference/example-based loss term. See the original paper.
+            Only valid when preference_dataset is not None.
+        * "device": torch.device: torch.device, default: will auto choose torch.device("cuda") when available
+            Which device we should train on. Will auto choose cuda:0/the first available NVIDIA GPU by default.
 
 
     .. [1] Preserving causal constraints in counterfactual explanations for machine learning classifiers
             D Mahajan, C Tan, A Sharma - arXiv preprint arXiv:1912.03277, 2019..
     """
 
+    _TRAINING_PARAM_KEYS = (
+        "save_path",
+        "batch_size",
+        "epoch",
+        "learning_rate",
+        "constraint_loss_func",
+        "preference_dataset",
+        "n_samples",
+        "margin",
+        "validity_reg",
+        "constraint_reg",
+        "preference_reg",
+        "device",
+    )
+
+    _OPTIONAL_PARAM_KEYS = (
+        "save_path",
+        "constraint_loss_func",
+        "preference_dataset",
+    )
+
     _DEFAULT_HYPERPARAMS = {
         "encoded_size": 10,
         "train": True,
+        "save_path": "_optional_",
+        "batch_size": 2048,
+        "epoch": 50,
+        "learning_rate": 1e-2,
+        "constraint_loss_func": "_optional_",
+        "preference_dataset": "_optional_",
+        "n_samples": 50,
+        "margin": 0.2,
+        "validity_reg": 20,
+        "constraint_reg": 1,
+        "preference_reg": 1,
+        "device": torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
+        ),
     }
 
     def __init__(self, mlmodel: MLModel, hyperparams: Optional[Dict] = None) -> None:
@@ -172,7 +248,12 @@ class CFVAE(RecourseMethod):
             )
 
         super().__init__(mlmodel)
-        self._params = merge_default_parameters(hyperparams, self._DEFAULT_HYPERPARAMS)
+        default_params = dict(self._DEFAULT_HYPERPARAMS)
+        self._params = merge_default_parameters(hyperparams, default_params)
+
+        for key in self._OPTIONAL_PARAM_KEYS:
+            if self._params.get(key) == "_optional_":
+                self._params[key] = None
 
         feature_num = len(self._mlmodel.feature_input_order)
         encoded_size = self._params["encoded_size"]
@@ -180,7 +261,12 @@ class CFVAE(RecourseMethod):
         self._trained = False
 
         if self._params["train"]:
-            self.train()
+            train_kwargs = {
+                key: value
+                for key, value in self._params.items()
+                if key in self._TRAINING_PARAM_KEYS and value is not None
+            }
+            self.train(**train_kwargs)
 
     def train(
         self,
@@ -196,7 +282,7 @@ class CFVAE(RecourseMethod):
         constraint_reg: float = 1,
         preference_reg: float = 1,
         device: torch.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
+            "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
         ),
     ):
         """
@@ -235,14 +321,69 @@ class CFVAE(RecourseMethod):
         device: torch.device: torch.device, default: will auto choose torch.device("cuda") when available
             Which device we should train on. Will auto choose cuda:0/the first available NVIDIA GPU by default.
         """
+        _set_seed()
         train_dataset: pd.Dataframe = self._mlmodel.data.df_train[
             self._mlmodel.feature_input_order
         ].values
         train_dataset = torch.tensor(train_dataset).float()
         dataset_size = train_dataset.size(0)
-        train_loader = torch.utils.data.DataLoader(
+        train_loader = torch.utils.data.DataLoader(  # pyright: ignore[reportAttributeAccessIssue]
             train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True
         )
+
+        feature_order = self._mlmodel.feature_input_order
+        data_catalog = self._mlmodel.data
+        continuous_features = [
+            feature for feature in feature_order if feature in data_catalog.continuous
+        ]
+        categorical_features = [
+            feature for feature in feature_order if feature in data_catalog.categorical
+        ]
+        categorical_indices = [
+            feature_order.index(feature) for feature in categorical_features
+        ]
+
+        # Prepare categorical sibling groups for enforcing one-hot plausibility
+        dataset_one_hot = None
+        encoded_categorical_feature_indexes: List[List[int]] = []
+        try:
+            dataset_one_hot = loadDataset(
+                data_catalog.name,
+                return_one_hot=True,
+                load_from_cache=True,
+                debug_flag=False,
+            )
+            dict_of_siblings = dataset_one_hot.getDictOfSiblings("kurz")
+            for siblings in dict_of_siblings.get("cat", {}).values():
+                indices = [feature_order.index(col) for col in siblings if col in feature_order]
+                if indices:
+                    encoded_categorical_feature_indexes.append(indices)
+        except Exception:
+            encoded_categorical_feature_indexes = []
+
+        # Calculate original value ranges for continuous features
+        normalise_weights: Dict[int, Tuple[float, float]] = {}
+        attribute_lookup = {}
+        if dataset_one_hot is not None:
+            raw_attributes = getattr(dataset_one_hot, "attributes_kurz", {})
+            if isinstance(raw_attributes, dict):
+                attribute_lookup = raw_attributes
+        decoded_train = None
+        for feature in continuous_features:
+            idx = feature_order.index(feature)
+            attr = attribute_lookup.get(feature)
+            if attr is not None:
+                min_val = float(attr.lower_bound)
+                max_val = float(attr.upper_bound)
+            else:
+                if decoded_train is None:
+                    decoded_train = data_catalog.inverse_transform(
+                        data_catalog.df_train[feature_order]
+                    )
+                column = decoded_train[feature]
+                min_val = float(column.min())
+                max_val = float(column.max())
+            normalise_weights[idx] = (min_val, max_val)
 
         self._cf_model.train().to(device)
         optimizer = optim.SGD(
@@ -272,43 +413,37 @@ class CFVAE(RecourseMethod):
                         )
 
                         # Reconstruction Term
-                        # Proximity: L1 Loss
-                        # Implemented as written in paper (pure L1), but not the same as the companion code
-                        reconstruction_loss += -torch.sum(
-                            torch.abs(train_x - x_pred), dim=1
+                        reconstruction_increment = torch.zeros(
+                            train_x.size(0), device=device
                         )
 
-                        # categorical features
-                        # Implemented inside the L1 loss above
-                        """
-                        reconstruction_loss += -torch.sum(
-                            torch.abs(
-                                train_x[:, encoded_start_cat:-1]
-                                - x_pred[:, encoded_start_cat:-1]
-                            ),
-                            dim=1,
-                        )
-                        """
-
-                        # continuous features  # Quirk
-                        # Not implemented since de-normalization range information cannot be obtained
-                        """
-                        for key in normalise_weights.keys():
-                            reconstruction_loss += -(
-                                normalise_weights[key][1] - normalise_weights[key][0]
-                            ) * torch.abs(train_x[:, key] - x_pred[:, key])
-                        """
-                        # TODO
-
-                        # Sum to 1 over the categorical indexes of a feature  # Quirk
-                        # Not implemented since the loss for current ordinal categorical features is undefined
-                        """
-                        for v in encoded_categorical_feature_indexes:
-                            reconstruction_loss += -torch.abs(
-                                1.0 - torch.sum(x_pred[:, v[0] : v[-1] + 1], dim=1)
+                        # Categorical features
+                        if categorical_indices:
+                            reconstruction_increment += -torch.sum(
+                                torch.abs(
+                                    train_x[:, categorical_indices]
+                                    - x_pred[:, categorical_indices]
+                                ),
+                                dim=1,
                             )
-                        """
-                        # TODO
+
+                        # Continuous features
+                        for key, (min_val, max_val) in normalise_weights.items():
+                            range_val = max_val - min_val
+                            if range_val <= 0:
+                                range_val = 1.0
+                            reconstruction_increment += -range_val * torch.abs(
+                                train_x[:, key] - x_pred[:, key]
+                            )
+
+                        # Sum to 1 over the categorical indexes of a feature
+                        for index_group in encoded_categorical_feature_indexes:
+                            if index_group:
+                                reconstruction_increment += -torch.abs(
+                                    1.0 - torch.sum(x_pred[:, index_group], dim=1)
+                                )
+
+                        reconstruction_loss += reconstruction_increment
 
                         # Validity
                         y_pred = self._mlmodel.forward(x_pred)
@@ -445,9 +580,10 @@ class CFVAE(RecourseMethod):
         self,
         factuals: pd.DataFrame,
         device: torch.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
+            "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
         ),
     ) -> pd.DataFrame:
+        _set_seed()
         assert self._trained, "Error: Run train() or load() first!"
         self._cf_model.eval().to(device)
 
