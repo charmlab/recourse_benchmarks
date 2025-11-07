@@ -101,6 +101,7 @@ class ModelCatalog(MLModel):
             epochs=epochs,
             batch_size=batch_size,
             learning_rate=learning_rate,
+            modified=data.modified,
         )
         if self.backend == "pytorch":
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

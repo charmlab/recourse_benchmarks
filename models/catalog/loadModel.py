@@ -53,6 +53,7 @@ def loadModelForDataset(
     epochs: int = 1,
     batch_size: int = 1000,
     learning_rate: float = 0.001,
+    modified=False,
 ):
     """
     Loads and returns a model with trained data.
@@ -96,12 +97,15 @@ def loadModelForDataset(
             "mortgage",
             "twomoon",
             "german",
+            "german_modified",
             "credit",
             "compass",
             "adult",
             "test",
             "breast_cancer",
             "boston_housing",
+            "sba",
+            "sba_modified",
         }
     ):
         raise Exception(f"{dataset_string} not supported.")
@@ -114,7 +118,7 @@ def loadModelForDataset(
         raise Exception(f"{model_class} not recognized as a valid `model_class`.")
 
     dataset_obj = loadData.loadDataset(
-        dataset_string,
+        dataset_string + "_modified" if modified else dataset_string,
         return_one_hot=one_hot,
         load_from_cache=True,
         meta_param=scm_class,

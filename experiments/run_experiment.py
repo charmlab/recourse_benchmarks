@@ -166,6 +166,8 @@ def initialize_recourse_method(
         return Wachter(mlmodel, hyperparams)
     elif method == "probe":
         return Probe(mlmodel, hyperparams)
+    elif method == "roar":
+        return Roar(mlmodel, hyperparams)
     else:
         raise ValueError("Recourse method not known")
 
@@ -195,7 +197,7 @@ def create_parser():
     -r, --recourse_method: Specifies recourse methods for the experiment.
         Default: ["dice", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "gs", "mace", "revise", "wachter"].
         Choices: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "claproar", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
-            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "probe"].
+            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "roar", "probe"].
     -n, --number_of_samples: Specifies the number of instances per dataset.
         Default: 20.
     -s, --train_split: Specifies the split of the available data used for training.
@@ -262,6 +264,7 @@ def create_parser():
             "gs",
             "revise",
             "wachter",
+            "roar",
         ],
         choices=[
             "dice",
@@ -284,6 +287,7 @@ def create_parser():
             "revise",
             "wachter",
             "probe",
+            "roar",
         ],
         help="Recourse methods for experiment",
     )
@@ -364,6 +368,7 @@ if __name__ == "__main__":
         "wachter",
         "revise",
         "probe",
+        "roar",
     ]
     sklearn_methods = ["feature_tweak", "focus", "mace"]
 

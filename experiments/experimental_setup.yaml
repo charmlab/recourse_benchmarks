@@ -140,3 +140,5 @@ recourse_methods:
       binary_cat_features: True
   probe:
     hyperparams:
+  roar:
+    hyperparams:

@@ -73,6 +73,11 @@ try:
 except Exception as e:
     print(f"[ENV WARNING] process_boston_housing_data not available. Error: {e}")
 
+try:
+    from data.catalog._data_main.process_data.process_sba_data import load_sba_data
+except Exception as e:
+    print(f"[ENV WARNING] process_sba_data not available. Error: {e}")
+
 
 VALID_ATTRIBUTE_DATA_TYPES = {
     "numeric-int",
@@ -905,8 +910,11 @@ def loadDataset(
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
 
-    elif dataset_name == "german":
-        data_frame_non_hot = load_german_data()
+    elif dataset_name == "german" or dataset_name == "german_modified":
+        modified = False
+        if dataset_name == "german_modified":
+            modified = True
+        data_frame_non_hot = load_german_data(modified=modified)
         data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
         attributes_non_hot = {}
 
@@ -928,7 +936,7 @@ def loadDataset(
 
         for col_idx, col_name in enumerate(input_cols):
             if col_name == "Sex":  # TODO: make sex and race immutable in all datasets!
-                attr_type = "binary"
+                attr_type = "categorical"
                 actionability = "any"
                 mutability = True
             elif col_name == "Age":
@@ -943,18 +951,6 @@ def loadDataset(
                 attr_type = "numeric-int"
                 actionability = "none"
                 mutability = True
-            # elif col_name == 'CheckingAccountBalance':
-            #   attr_type = 'ordinal' # 'numeric-real'
-            #   actionability = 'any'
-            #   mutability = True
-            # elif col_name == 'SavingsAccountBalance':
-            #   attr_type = 'ordinal'
-            #   actionability = 'any'
-            #   mutability = True
-            # elif col_name == 'HousingStatus':
-            #   attr_type = 'ordinal'
-            #   actionability = 'any'
-            #   mutability = True
 
             attributes_non_hot[col_name] = DatasetAttribute(
                 attr_name_long=col_name,
@@ -1387,6 +1383,47 @@ def loadDataset(
             lower_bound=data_frame_non_hot[output_col].min(),
             upper_bound=data_frame_non_hot[output_col].max(),
         )
+    elif dataset_name == "sba" or dataset_name == "sba_modified":
+        modified = False
+        if dataset_name == "sba_modified":
+            modified = True
+        data_frame_non_hot = load_sba_data(modified=modified).reset_index(drop=True)
+        attributes_non_hot = {}
+
+        input_cols, output_col = getInputOutputColumns(data_frame=data_frame_non_hot)
+
+        for col_idx, col_name in enumerate(input_cols):
+            if col_name == "RevLineCr":
+                attr_type = "categorical"
+            else:
+                attr_type = "numeric-real"
+            # print('col_idx ', col_idx)
+            # print('col_type ', data_frame_non_hot[col_name].dtype)
+            attributes_non_hot[col_name] = DatasetAttribute(
+                attr_name_long=col_name,
+                attr_name_kurz=f"x{col_idx}",
+                attr_type=attr_type,
+                node_type="input",
+                actionability="any",
+                mutability=True,
+                parent_name_long=-1,
+                parent_name_kurz=-1,
+                lower_bound=data_frame_non_hot[col_name].min(),
+                upper_bound=data_frame_non_hot[col_name].max(),
+            )
+
+        attributes_non_hot[output_col] = DatasetAttribute(
+            attr_name_long=output_col,
+            attr_name_kurz="y",
+            attr_type="numeric-real",
+            node_type="output",
+            actionability="none",
+            mutability=False,
+            parent_name_long=-1,
+            parent_name_kurz=-1,
+            lower_bound=data_frame_non_hot[output_col].min(),
+            upper_bound=data_frame_non_hot[output_col].max(),
+        )
 
     else:
         raise Exception(f"{dataset_name} not recognized as a valid dataset.")
@@ -1491,6 +1528,8 @@ def getOneHotEquivalent(data_frame_non_hot, attributes_non_hot):
         for col_idx in range(len(new_col_names_long)):
             new_col_name_long = new_col_names_long[col_idx]
             new_col_name_kurz = new_col_names_kurz[col_idx]
+            # print(col_idx)
+            # print("upper bound: ", data_frame[new_col_name_long].max())
             attributes[new_col_name_long] = DatasetAttribute(
                 attr_name_long=new_col_name_long,
                 attr_name_kurz=new_col_name_kurz,
