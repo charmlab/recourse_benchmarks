@@ -1,13 +1,13 @@
 # methods/catalog/rbr/library.py
 import math
-from typing import Optional, Sequence, Any
+from typing import Any, Optional, Sequence
 
 import numpy as np
 import torch
 from sklearn.utils import check_random_state
 
-
 # ---------- low-level helpers & projections ----------
+
 
 @torch.no_grad()
 def l2_projection(x: torch.Tensor, radius: float) -> torch.Tensor:
@@ -18,22 +18,32 @@ def l2_projection(x: torch.Tensor, radius: float) -> torch.Tensor:
     """
     norm = torch.linalg.norm(x, ord=2, axis=-1)
     # avoid divide by zero
-    denom = torch.maximum(norm, torch.tensor(radius, device=x.device))
-    scale = (radius / denom).unsqueeze(-1)
+    denom = torch.max(norm, torch.tensor(radius, device=x.device))
+    scale = (radius / denom).unsqueeze(1)
     return scale * x
+
 
 def reconstruct_encoding_constraints(x: torch.Tensor, cat_pos: Optional[Sequence[int]]):
     x_enc = x.clone()
     for pos in cat_pos:
         x_enc.data[pos] = torch.clamp(torch.round(x_enc[pos]), 0, 1)
     return x_enc
+
+
 # in the original code but never used
 
 
 # ---------- likelihood modules ----------
 
+
 class OptimisticLikelihood(torch.nn.Module):
-    def __init__(self, x_dim: torch.Tensor, epsilon_op: torch.Tensor, sigma: torch.Tensor, device: torch.device):
+    def __init__(
+        self,
+        x_dim: torch.Tensor,
+        epsilon_op: torch.Tensor,
+        sigma: torch.Tensor,
+        device: torch.device,
+    ):
         super().__init__()
         self.device = device
         self.x_dim = x_dim.to(self.device)
@@ -43,7 +53,7 @@ class OptimisticLikelihood(torch.nn.Module):
     @torch.no_grad()
     def projection(self, v: torch.Tensor) -> torch.Tensor:
         v = v.clone()
-        v = torch.maximum(v, torch.tensor(0.0, device=self.device))
+        v = torch.max(v, torch.tensor(0, device=self.device))
         result = l2_projection(v, float(self.epsilon_op))
         return result.to(self.device)
 
@@ -51,7 +61,11 @@ class OptimisticLikelihood(torch.nn.Module):
         c = torch.linalg.norm(x - x_feas, axis=-1)
         d = v[..., 1] + self.sigma
         p = self.x_dim
-        L = torch.log(d) + (c - v[..., 0]) ** 2 / (2 * d ** 2) + (p - 1) * torch.log(self.sigma)
+        L = (
+            torch.log(d)
+            + (c - v[..., 0]) ** 2 / (2 * d**2)
+            + (p - 1) * torch.log(self.sigma)
+        )
         return L
 
     def forward(self, v: torch.Tensor, x: torch.Tensor, x_feas: torch.Tensor):
@@ -59,27 +73,38 @@ class OptimisticLikelihood(torch.nn.Module):
         d = v[..., 1] + self.sigma
         p = self.x_dim
 
-        L = torch.log(d) + (c - v[..., 0]) ** 2 / (2 * d ** 2) + (p - 1) * torch.log(self.sigma)
+        L = (
+            torch.log(d)
+            + (c - v[..., 0]) ** 2 / (2 * d**2)
+            + (p - 1) * torch.log(self.sigma)
+        )
 
         v_grad = torch.zeros_like(v, device=self.device)
-        v_grad[..., 0] = -(c - v[..., 0]) / d ** 2
-        v_grad[..., 1] = 1 / d - (c - v[..., 0]) ** 2 / d ** 3
+        v_grad[..., 0] = -(c - v[..., 0]) / d**2
+        v_grad[..., 1] = 1 / d - (c - v[..., 0]) ** 2 / d**3
 
         return L, v_grad
 
-    def optimize(self, x: torch.Tensor, x_feas: torch.Tensor, max_iter: int = int(1e3), verbose: bool = False):
-        v = torch.zeros([x_feas.shape[0], 2], device=self.device)
-        lr = 1.0 / math.sqrt(max_iter)
+    def optimize(
+        self,
+        x: torch.Tensor,
+        x_feas: torch.Tensor,
+        max_iter: int = int(1e3),
+        verbose: bool = False,
+    ):
+        v = torch.zeros([x.shape[0], 2], device=self.device)
+        lr = 1 / torch.sqrt(torch.tensor(max_iter, device=self.device).float())
 
+        loss_diff = 1.0
         min_loss = float("inf")
         num_stable_iter = 0
         max_stable_iter = 10
 
         for t in range(max_iter):
-            F, grad = self.forward(v, x.expand([x_feas.shape[0], -1]), x_feas)
+            F, grad = self.forward(v, x, x_feas)
             v = self.projection(v - lr * grad)
 
-            loss_sum = F.sum().item()
+            loss_sum = F.sum().data.item()
             loss_diff = min_loss - loss_sum
             if loss_diff <= 1e-10:
                 num_stable_iter += 1
@@ -94,7 +119,13 @@ class OptimisticLikelihood(torch.nn.Module):
 
 
 class PessimisticLikelihood(torch.nn.Module):
-    def __init__(self, x_dim: torch.Tensor, epsilon_pe: torch.Tensor, sigma: torch.Tensor, device: torch.device):
+    def __init__(
+        self,
+        x_dim: torch.Tensor,
+        epsilon_pe: torch.Tensor,
+        sigma: torch.Tensor,
+        device: torch.device,
+    ):
         super().__init__()
         self.device = device
         self.epsilon_pe = epsilon_pe.to(self.device)
@@ -104,56 +135,88 @@ class PessimisticLikelihood(torch.nn.Module):
     @torch.no_grad()
     def projection(self, u: torch.Tensor) -> torch.Tensor:
         u = u.clone()
-        u = torch.maximum(u, torch.tensor(0.0, device=self.device))
+        u = torch.max(u, torch.tensor(0, device=self.device))
         result = l2_projection(u, float(self.epsilon_pe) / math.sqrt(float(self.x_dim)))
         return result.to(self.device)
 
-    def _forward(self, u: torch.Tensor, x: torch.Tensor, x_feas: torch.Tensor, zeta: float = 1e-6):
+    def _forward(
+        self, u: torch.Tensor, x: torch.Tensor, x_feas: torch.Tensor, zeta: float = 1e-6
+    ):
         c = torch.linalg.norm(x - x_feas, axis=-1)
         d = u[..., 1] + self.sigma
         p = self.x_dim
-        p = p.float()
-        sqrt_p = torch.sqrt(p)
+        # p = p.float()
+        sqrt_p = torch.sqrt(p.float())
 
-        inside = (zeta + self.epsilon_pe ** 2 - p * u[..., 0] ** 2 - u[..., 1] ** 2) / (p - 1)
-        f = torch.sqrt(torch.maximum(inside, torch.tensor(1e-12, device=self.device)))
+        inside = (zeta + self.epsilon_pe**2 - p * u[..., 0] ** 2 - u[..., 1] ** 2) / (
+            p - 1
+        )
+        # f = torch.sqrt(torch.maximum(inside, torch.tensor(1e-12, device=self.device)))
+        f = torch.sqrt(inside)
 
-        L = -torch.log(d) - (c + sqrt_p * u[..., 0]) ** 2 / (2 * d ** 2) - (p - 1) * torch.log(f + self.sigma)
+        L = (
+            -torch.log(d)
+            - (c + sqrt_p * u[..., 0]) ** 2 / (2 * d**2)
+            - (p - 1) * torch.log(f + self.sigma)
+        )
         return L
 
-    def forward(self, u: torch.Tensor, x: torch.Tensor, x_feas: torch.Tensor, zeta: float = 1e-6):
+    def forward(
+        self, u: torch.Tensor, x: torch.Tensor, x_feas: torch.Tensor, zeta: float = 1e-6
+    ):
         c = torch.linalg.norm(x - x_feas, axis=-1)
         d = u[..., 1] + self.sigma
         p = self.x_dim
 
-        p = p.float() # issue with support with int tensors when taking sqrt?
-        
-        sqrt_p = torch.sqrt(p)
-        inside = (zeta + self.epsilon_pe ** 2 - p * u[..., 0] ** 2 - u[..., 1] ** 2) / (p - 1)
-        f = torch.sqrt(torch.maximum(inside, torch.tensor(1e-12, device=self.device)))
+        # p = p.float() # issue with support with int tensors when taking sqrt?
 
-        L = -torch.log(d) - (c + sqrt_p * u[..., 0]) ** 2 / (2 * d ** 2) - (p - 1) * torch.log(f + self.sigma)
+        sqrt_p = torch.sqrt(p.float())
+        inside = (zeta + self.epsilon_pe**2 - p * u[..., 0] ** 2 - u[..., 1] ** 2) / (
+            p - 1
+        )
+        # f = torch.sqrt(torch.maximum(inside, torch.tensor(1e-12, device=self.device)))
+        f = torch.sqrt(inside)
+
+        L = (
+            -torch.log(d)
+            - (c + sqrt_p * u[..., 0]) ** 2 / (2 * d**2)
+            - (p - 1) * torch.log(f + self.sigma)
+        )
 
         u_grad = torch.zeros_like(u, device=self.device)
-        u_grad[..., 0] = -sqrt_p * (c + sqrt_p * u[..., 0]) / d ** 2 - (p * u[..., 0]) / (f * (f + self.sigma))
-        u_grad[..., 1] = -1 / d + (c + sqrt_p * u[..., 0]) ** 2 / d ** 3 + u[..., 1] / (f * (f + self.sigma))
+        u_grad[..., 0] = -sqrt_p * (c + sqrt_p * u[..., 0]) / d**2 - (
+            p * u[..., 0]
+        ) / (f * (f + self.sigma))
+        u_grad[..., 1] = (
+            -1 / d
+            + (c + sqrt_p * u[..., 0]) ** 2 / d**3
+            + u[..., 1] / (f * (f + self.sigma))
+        )
 
         return L, u_grad
 
-    def optimize(self, x: torch.Tensor, x_feas: torch.Tensor, max_iter: int = int(1e3), verbose: bool = False):
-        u = torch.zeros([x_feas.shape[0], 2], device=self.device)
-        lr = 1.0 / math.sqrt(max_iter)
+    def optimize(
+        self,
+        x: torch.Tensor,
+        x_feas: torch.Tensor,
+        max_iter: int = int(1e3),
+        verbose: bool = False,
+    ):
+        u = torch.zeros([x.shape[0], 2], device=self.device)
+        lr = 1.0 / torch.sqrt(torch.tensor(max_iter, device=self.device).float())
 
+        loss_diff = 1.0
         min_loss = float("inf")
         num_stable_iter = 0
         max_stable_iter = 10
 
         for t in range(max_iter):
-            F, grad = self.forward(u, x.expand([x_feas.shape[0], -1]), x_feas)
+            F, grad = self.forward(u, x, x_feas)
             u = self.projection(u - lr * grad)
 
-            loss_sum = F.sum().item()
+            loss_sum = F.sum().data.item()
             loss_diff = min_loss - loss_sum
+
             if loss_diff <= 1e-10:
                 num_stable_iter += 1
                 if num_stable_iter >= max_stable_iter:
@@ -167,6 +230,7 @@ class PessimisticLikelihood(torch.nn.Module):
 
 
 # ---------- RBRLoss wrapper ----------
+
 
 class RBRLoss(torch.nn.Module):
     def __init__(
@@ -193,30 +257,44 @@ class RBRLoss(torch.nn.Module):
         self.sigma = torch.tensor(sigma, device=self.device)
         self.x_dim = torch.tensor(X_feas.shape[-1], device=self.device)
 
-        print("Self.x_dim:", self.x_dim)
-
-        self.op_likelihood = OptimisticLikelihood(self.x_dim, self.epsilon_op, self.sigma, self.device)
-        self.pe_likelihood = PessimisticLikelihood(self.x_dim, self.epsilon_pe, self.sigma, self.device)
+        self.op_likelihood = OptimisticLikelihood(
+            self.x_dim, self.epsilon_op, self.sigma, self.device
+        )
+        self.pe_likelihood = PessimisticLikelihood(
+            self.x_dim, self.epsilon_pe, self.sigma, self.device
+        )
 
     def forward(self, x: torch.Tensor, verbose: bool = False):
         if verbose or self.verbose:
             print(f"N_neg: {self.X_feas_neg.shape}, N_pos: {self.X_feas_pos.shape}")
 
         # pessimistic part
-        if self.X_feas_pos.shape[0] > 0:
-            u = self.pe_likelihood.optimize(x.detach().clone().expand([self.X_feas_pos.shape[0], -1]), self.X_feas_pos, verbose=self.verbose)
-            F_pe = self.pe_likelihood._forward(u, x.expand([self.X_feas_pos.shape[0], -1]), self.X_feas_pos)
-            denom = torch.logsumexp(F_pe, -1)
-        else:
-            denom = torch.tensor(0.0, device=self.device)
+        # if self.X_feas_pos.shape[0] > 0:
+        u = self.pe_likelihood.optimize(
+            x.detach().clone().expand([self.X_feas_pos.shape[0], -1]),
+            self.X_feas_pos,
+            verbose=self.verbose,
+        )
+        F_pe = self.pe_likelihood._forward(
+            u, x.expand([self.X_feas_pos.shape[0], -1]), self.X_feas_pos
+        )
+        denom = torch.logsumexp(F_pe, -1)
+        # else:
+        #     denom = torch.tensor(0.0, device=self.device)
 
         # optimistic part
-        if self.X_feas_neg.shape[0] > 0:
-            v = self.op_likelihood.optimize(x.detach().clone().expand([self.X_feas_neg.shape[0], -1]), self.X_feas_neg, verbose=self.verbose)
-            F_op = self.op_likelihood._forward(v, x.expand([self.X_feas_neg.shape[0], -1]), self.X_feas_neg)
-            numer = torch.logsumexp(-F_op, -1)
-        else:
-            numer = torch.tensor(0.0, device=self.device)
+        # if self.X_feas_neg.shape[0] > 0:
+        v = self.op_likelihood.optimize(
+            x.detach().clone().expand([self.X_feas_neg.shape[0], -1]),
+            self.X_feas_neg,
+            verbose=self.verbose,
+        )
+        F_op = self.op_likelihood._forward(
+            v, x.expand([self.X_feas_neg.shape[0], -1]), self.X_feas_neg
+        )
+        numer = torch.logsumexp(-F_op, -1)
+        # else:
+        #     numer = torch.tensor(0.0, device=self.device)
 
         result = numer - denom
         return result, denom, numer
@@ -224,23 +302,24 @@ class RBRLoss(torch.nn.Module):
 
 # ---------- high-level RBR generator (callable used by CARLA wrapper) ----------
 
+
 def robust_bayesian_recourse(
     raw_model: Any,
     x0: np.ndarray,
     cat_features_indices: Optional[Sequence[int]] = None,
     train_data: Optional[np.ndarray] = None,
-    num_samples: int = 50,
-    perturb_radius: float = 0.1,
-    delta_plus: float = 0.0,
+    num_samples: int = 200,
+    perturb_radius: float = 0.2,
+    delta_plus: float = 0.6,
     sigma: float = 1.0,
     epsilon_op: float = 0.1,
     epsilon_pe: float = 0.1,
-    max_iter: int = 500,
+    max_iter: int = 1000,
     device: str = "cpu",
     random_state: Optional[int] = None,
     verbose: bool = False,
 ) -> np.ndarray:
-    
+
     # helper to call raw_model.predict consistently
     def predict_fn_np(x):
         # raw_model might accept (n,d) and return probs or labels
@@ -264,11 +343,11 @@ def robust_bayesian_recourse(
             return preds.squeeze()
         return preds
         # return torch.tensor(raw_model.predict(x.cpu().detach()))
-    
-     # find boundary point between x0 and nearest opposite-label train point
+
+    # find boundary point between x0 and nearest opposite-label train point
     def dist(a: torch.Tensor, b: torch.Tensor):
         return torch.linalg.norm(a - b, ord=1, axis=-1)
-    
+
     # feasible set sampled around x_b
     def uniform_ball(x: torch.Tensor, r: float, n: int, rng_state):
         rng_local = check_random_state(rng_state)
@@ -288,7 +367,9 @@ def robust_bayesian_recourse(
             return x
         u, _ = torch.sort(x, descending=True)
         cssv = torch.cumsum(u, 0)
-        rho = torch.nonzero(u * torch.arange(1, p + 1).to(device) > (cssv - delta))[-1, 0]
+        rho = torch.nonzero(u * torch.arange(1, p + 1).to(device) > (cssv - delta))[
+            -1, 0
+        ]
         theta = (cssv[rho] - delta) / (rho + 1.0)
         w = torch.clip(x - theta, min=0)
         return w
@@ -307,10 +388,11 @@ def robust_bayesian_recourse(
         return proj
 
     # device selection
-    if "cuda" in device and torch.cuda.is_available():
-        dev = torch.device(device)
-    else:
-        dev = torch.device("cpu")
+    # if "cuda" in device and torch.cuda.is_available():
+    #     dev = torch.device(device)
+    # else:
+    #     dev = torch.device("cpu")
+    dev = device
 
     rng = check_random_state(random_state)
 
@@ -332,15 +414,15 @@ def robust_bayesian_recourse(
     # find nearest opposite label examples and search along line for boundary
     x_label = torch.tensor(predict_fn_np(x0_t.clone()))
     print(f"x_label: {x_label}")
-    
+
     dists = dist(train_t, x0_t)
     order = torch.argsort(dists)
-    # print(f"order: {order}")    
-    candidates = train_t[order[train_label[order] == (1 - x_label)]]
+    # print(f"order: {order}")
+    candidates = train_t[order[train_label[order] == (1 - x_label)]][:1000]
     # print(f"candidates: {candidates}")
     best_x_b = None
     best_dist = torch.tensor(float("inf"), device=dev)
-    
+
     for x_c in candidates:
         lambdas = torch.linspace(0, 1, 100, device=dev)
         for lam in lambdas:
@@ -377,8 +459,8 @@ def robust_bayesian_recourse(
 
     y_feas = predict_fn_np(X_feas)
 
-    #print(f"X_feas: {X_feas}")
-    #print(f"y_feas: {y_feas}")
+    # print(f"X_feas: {X_feas}")
+    # print(f"y_feas: {y_feas}")
 
     if (y_feas == 1).any():
         X_feas_pos = X_feas[y_feas == 1].reshape([int((y_feas == 1).sum().item()), -1])
@@ -391,12 +473,21 @@ def robust_bayesian_recourse(
         X_feas_neg = X_feas[y_feas == 0].reshape([int((y_feas == 0).sum().item()), -1])
     else:
         X_feas_neg = torch.empty((0, X_feas.shape[1]), device=dev)
-    
-    print(f"[Debug] X_feas_pos shape: {X_feas_pos.shape}, X_feas_neg shape: {X_feas_neg.shape}")
+
+    # print(f"[Debug] X_feas_pos shape: {X_feas_pos.shape}, X_feas_neg shape: {X_feas_neg.shape}")
     # print(f"X_feas_neg: {X_feas_neg}")
     # torch.autograd.set_detect_anomaly(True) # try to catch NaNs
     # build loss wrapper
-    loss_fn = RBRLoss(X_feas, X_feas_pos, X_feas_neg, epsilon_op, epsilon_pe, sigma, device=dev, verbose=verbose)
+    loss_fn = RBRLoss(
+        X_feas,
+        X_feas_pos,
+        X_feas_neg,
+        epsilon_op,
+        epsilon_pe,
+        sigma,
+        device=dev,
+        verbose=verbose,
+    )
 
     # ---------------- Start of optimize() ----------------
     # optimization loop - same basic behaviour as original code.
@@ -414,18 +505,6 @@ def robust_bayesian_recourse(
 
         F, denom, numer = loss_fn(x_t)
         F_sum = F.sum()
-        # --- ADD THESE PRINTS ---
-        # if t % 20 == 0:  # Print every 20 iterations
-        #     print(f"Iter {t}: F_sum = {F_sum.item()}")
-        #     if x_t.grad is not None:
-        #         print(f"Iter {t}: Grad norm = {x_t.grad.norm().item()}")
-        
-        # if torch.isnan(F_sum):
-        #      print(f"NaN detected at iteration {t}!")
-        #      print(f"  numer: {numer.item()}, denom: {denom.item()}")
-        #      print(f"  x_t has NaNs: {torch.isnan(x_t).any().item()}")
-        #      break
-        # --- END OF PRINTS ---
         F_sum.backward()
         # if we left L1-ball, break
         if torch.ge(torch.linalg.norm((x_t.detach() - x0_t), ord=1), float(delta)):
@@ -446,7 +525,7 @@ def robust_bayesian_recourse(
 
         for i, e in enumerate(x_new.data):
             x_t.data[i] = e
-        
+
         # print(f"x_t after update: {x_t}")
 
         loss_sum = F_sum.item()

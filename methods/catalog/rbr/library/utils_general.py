@@ -34,7 +34,12 @@ class Transformer:
             self.enc_cat = self.transformer.named_transformers_["cat"]
 
             self.n_cat_features_out = len(self.enc_cat.get_feature_names())
-            self.cat_indices = list(range(self.n_num_features_out, self.n_num_features_out + self.n_cat_features_out))
+            self.cat_indices = list(
+                range(
+                    self.n_num_features_out,
+                    self.n_num_features_out + self.n_cat_features_out,
+                )
+            )
         else:
             self.n_cat_features_out = 0
 

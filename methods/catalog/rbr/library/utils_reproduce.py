@@ -7,17 +7,19 @@
 # with the implementation of RBR in methods/catalog/rbr to get the results
 # as close as possible to the original paper.
 from typing import Any, List, Union
+
+import numpy as np
 import pandas as pd
-from sklearn.model_selection import KFold, train_test_split
 import tensorflow as tf
 import torch
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+from sklearn.model_selection import KFold, train_test_split
 
 from data.api.data import Data
-from methods.catalog.rbr.library.utils_general import get_transformer
+from methods.catalog.rbr.library.utils_general import Transformer, get_transformer
 from models.api.mlmodel import MLModel
+
 
 # define the model used in the paper
 # Custom Pytorch Module for Neural Networks
@@ -110,7 +112,7 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
         num_stable_iter = 0
         max_stable_iter = 3
 
-        epochs = 1000 # TODO increase epochs because paper base is 1000
+        epochs = 1000  # TODO increase epochs because paper base is 1000
         for _ in range(epochs):
             # for i, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
@@ -130,7 +132,7 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
                 num_stable_iter = 0
 
             prev_loss = loss.data.item()
-        
+
         self.eval()
 
         return self
@@ -161,7 +163,7 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
         y_train_pred = torch.stack(y_train_pred)
         # print(f"y_train_pred shape: {y_train_pred[:5]}")
         return y_train_pred
-    
+
 
 # implement my own version of the DataCatalog that uses this model
 class DataTemp(Data):
@@ -189,26 +191,26 @@ class DataTemp(Data):
     def __init__(
         self,
         df_name: str,
-        df: pd.DataFrame,
+        X_train: pd.DataFrame,
+        X_test: pd.DataFrame,
+        y_train: pd.Series,
+        y_test: pd.Series,
         continuous: List[str],
         categorical: List[str],
         immutable: List[str],
+        transformer: Transformer,
         target: str,
     ):
-        self._df = df.copy()
+        # self._df = df.copy()
         self._continuous = continuous
         self._categorical = categorical
         self._immutable = immutable
         self._target = target
         # create train/test split
         # for simplicity, we will just do a simple split here
-        transformer = get_transformer(df_name, df.copy()) # hardcoded for german dataset for now
-        X = self._df.drop(columns=[self._target])
-        y = self._df[self._target]
 
-        X = transformer.transform(X)
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=42, stratify=y)
+        X_train = transformer.transform(X_train)
+        X_test = transformer.transform(X_test)
 
         # dataset_obj = pd.concat([X_train, X_test], ignore_index=True)
         # output_merge = pd.concat([y_train, y_test], ignore_index=True)
@@ -260,7 +262,7 @@ class DataTemp(Data):
         -------
         pd.DataFrame
         """
-        return self._df.copy()
+        return None
 
     @property
     def df_train(self) -> pd.DataFrame:
@@ -351,7 +353,6 @@ class DataTemp(Data):
         return output
 
 
-
 # Make my own verion of ModelCatalog that uses this model
 class ModelCatalogTemp(MLModel):
     """
@@ -377,6 +378,7 @@ class ModelCatalogTemp(MLModel):
     def __init__(
         self,
         data: Data,
+        # train_data: pd.DataFrame,
         model_type: str = "mlp",
         backend: str = "pytorch",
         # model_type: str, # we are just using the mlp for this paper
@@ -396,17 +398,19 @@ class ModelCatalogTemp(MLModel):
         self._continuous = data.continuous
         self._categorical = data.categorical
 
-        self._feature_input_order = data.df_train.drop(columns=[data.target]).columns.tolist()
+        self._feature_input_order = data.df_train.drop(
+            columns=[data.target]
+        ).columns.tolist()
 
         self._model = PyTorchNeuralNetworkTemp(n_inputs=len(self._feature_input_order))
-        
+
         if self.backend == "pytorch":
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self._model = self._model.to(device)
 
         tmp_text = (
-        f"Training {self._model_type} model using {self._backend} backend on device {device}"
-        + f" with {len(data.df_train)} training samples."
+            f"Training {self._model_type} model using {self._backend} backend on device {device}"
+            + f" with {len(data.df_train)} training samples."
         )
         print(tmp_text)
 
@@ -486,7 +490,7 @@ class ModelCatalogTemp(MLModel):
             Loaded model
         """
         return self._model
-    
+
     def predict(
         self, x: Union[np.ndarray, pd.DataFrame, torch.Tensor, tf.Tensor]
     ) -> Union[np.ndarray, pd.DataFrame, torch.Tensor, tf.Tensor]:

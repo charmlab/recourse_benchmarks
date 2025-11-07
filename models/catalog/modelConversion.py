@@ -87,7 +87,7 @@ class PyTorchNeuralNetwork(torch.nn.Module):
         # defining Cross-Entropy loss
         criterion = torch.nn.NLLLoss()
 
-        epochs = 1 # TODO increase epochs for better training/ allow as parameter
+        epochs = 1  # TODO increase epochs for better training/ allow as parameter
         for _ in range(epochs):
             for i, (data, target) in enumerate(train_loader):
                 optimizer.zero_grad()
