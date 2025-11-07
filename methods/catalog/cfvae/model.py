@@ -421,7 +421,7 @@ class CFVAE(RecourseMethod):
                         if categorical_indices:
                             reconstruction_increment += -torch.sum(
                                 torch.abs(
-                                    train_x[:, categorical_indices]
+                                    train_x[:, categorical_indices]  # Quirk (The original code drops the last feature with no reason)
                                     - x_pred[:, categorical_indices]
                                 ),
                                 dim=1,
@@ -432,11 +432,11 @@ class CFVAE(RecourseMethod):
                             range_val = max_val - min_val
                             if range_val <= 0:
                                 range_val = 1.0
-                            reconstruction_increment += -range_val * torch.abs(
+                            reconstruction_increment += -range_val * torch.abs(  # Quirk (Scaled, as in the original code, though possibly harmful)
                                 train_x[:, key] - x_pred[:, key]
                             )
 
-                        # Sum to 1 over the categorical indexes of a feature
+                        # Sum to 1 over the categorical indexes of a feature  # Quirk (Not mentioned in the paper and no loss definition for ordinal features)
                         for index_group in encoded_categorical_feature_indexes:
                             if index_group:
                                 reconstruction_increment += -torch.abs(
@@ -602,7 +602,7 @@ class CFVAE(RecourseMethod):
                 # Round categorical features like reconstruct_encoding_constraints does with binary_cat=True
                 # Reimplement here since reconstruct_encoding_constraints is faulty  # TODO
                 for idx in cat_features_indices:
-                    x_pred[:, idx] = torch.round(x_pred[:, idx])
+                    x_pred[:, idx] = torch.round(x_pred[:, idx])  # Have to round() here for comparison fairness
 
                 return x_pred.view(-1).cpu().numpy()
 
