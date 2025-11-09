@@ -6,6 +6,7 @@ from lime.lime_tabular import LimeTabularExplainer
 
 from methods.catalog.roar.library import roar_recourse
 from methods.processing import check_counterfactuals
+from models.catalog.catalog import ModelCatalog
 from tools.log import log
 
 from ...api import RecourseMethod
@@ -96,7 +97,7 @@ class Roar(RecourseMethod):
 
     def __init__(
         self,
-        mlmodel,
+        mlmodel: ModelCatalog,
         hyperparams: Dict,
         coeffs: Optional[np.ndarray] = None,
         intercepts: Optional[np.ndarray] = None,
@@ -195,25 +196,33 @@ class Roar(RecourseMethod):
 
         # Calculate coefficients and intercept (if not given) and reshape to match the shape that LIME generates
         # If Model linear then extract coefficients and intercepts from raw model directly
-        # If Molel ANN then use LIME to generate the coefficients
+        # If Model mlp then use LIME to generate the coefficients
         if (coeffs is None) or (intercepts is None):
             if self._mlmodel.model_type == "linear":
+                # assuming that they are using the pytorch LR. Original Paper uses SKlearn, but our experiment framework uses Pytorch
+
                 coeffs_neg = (
-                    self._mlmodel.raw_model.output.weight.cpu().detach()[0].numpy()
+                    # self._mlmodel.raw_model.output.weight.cpu().detach()[0].numpy()
+                    self._mlmodel.raw_model.linear.weight.cpu()
+                    .detach()[0]
+                    .numpy()
                 )
                 coeffs_pos = (
-                    self._mlmodel.raw_model.output.weight.cpu().detach()[1].numpy()
+                    self._mlmodel.raw_model.linear.weight.cpu().detach()[1].numpy()
                 )
 
                 intercepts_neg = np.array(
-                    self._mlmodel.raw_model.output.bias.cpu().detach()[0].numpy()
+                    self._mlmodel.raw_model.linear.bias.cpu().detach()[0].numpy()
                 )
                 intercepts_pos = np.array(
-                    self._mlmodel.raw_model.output.bias.cpu().detach()[1].numpy()
+                    self._mlmodel.raw_model.linear.bias.cpu().detach()[1].numpy()
                 )
 
                 self._coeffs = coeffs_pos - coeffs_neg
                 self._intercepts = intercepts_pos - intercepts_neg
+
+                # self._coeffs = self._mlmodel._model.coef_[0]
+                # self._intercepts = self._mlmodel._model.intercept_[0]
 
                 # Local explanations via LIME generate coeffs and intercepts per instance, while global explanations
                 # via input parameter need to be set into correct shape [num_of_instances, num_of_features]
@@ -221,7 +230,7 @@ class Roar(RecourseMethod):
                 intercepts = np.vstack([self._intercepts] * factuals.shape[0]).squeeze(
                     axis=1
                 )
-            elif self._mlmodel.model_type == "ann":
+            elif self._mlmodel.model_type == "mlp":
                 log.info("Start generating LIME coefficients")
                 coeffs, intercepts = self._get_lime_coefficients(factuals)
                 log.info("Finished generating LIME coefficients")
