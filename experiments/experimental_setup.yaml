@@ -138,5 +138,7 @@ recourse_methods:
     hyperparams:
       loss_type: "BCE"
       binary_cat_features: True
+  probe:
+    hyperparams:
   roar:
     hyperparams:
