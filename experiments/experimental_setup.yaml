@@ -140,3 +140,6 @@ recourse_methods:
       binary_cat_features: True
   roar:
     hyperparams:
+  rbr:
+    hyperparams:
+      device: "cpu"

@@ -16,8 +16,52 @@ class RBR(RecourseMethod):
     """
     Implementation of Robust Bayesian Recourse [1]_.
 
+    Parameters
+    ----------
+    mlmodel : model.MLModel
+        Black-Box-Model
+    hyperparams : dict
+        Dictionary containing hyperparameters. See Notes below to see its content.
 
-    .. [1] Nguyen, Tuan-Duy Hien, Ngoc Bui, Duy Nguyen, Man-Chung Yue, and Viet Anh Nguyen. 2022. "Robust Bayesian Recourse." (UAI 2022)
+    Methods
+    -------
+    get_counterfactuals:
+        Generate counterfactual examples for given factuals.
+
+    Notes
+    -----
+    - Hyperparams
+        Hyperparameter contains important information for the recourse method to initialize.
+        Please make sure to pass all values as dict with the following keys.
+
+        * "num_samples": int, default: 200
+            Number of samples around factual instance.
+        * "perturb_radius": float, default: 0.2
+            Radius for perturbation around factual instance.
+        * "delta_plus": float, default: 1.0
+            Tolarance for cost of recourse (l1).
+        * "sigma": float, default: 1.0
+            Standard deviation for Gaussian noise.
+        * "epsilon_op": float, default: 1.0
+            Tolerance parameter for optimistic likelihood.
+        * "epsilon_pe": float, default: 1.0
+            Tolerance parameter for pesimistic likelihood.
+        * "max_iter": int, default: 500
+            Maximum number of iterations.
+        * "device": str, default: "cpu"
+            Device to run computations on ("cpu" or "cuda").
+        * "clamp": bool, default: False
+            Whether to clamp final values to [0,1] range.
+        * "train_data": array-like, default: None
+            Training data used to find boundry point X_b
+        * "reproduce": bool, default: False
+            Strictly for reproducibility tests.
+
+    - Restrictions
+        * Requires training data to be provided
+
+    .. [1] Nguyen, Tuan-Duy Hien, Ngoc Bui, Duy Nguyen, Man-Chung Yue, and Viet Anh Nguyen. 2022.
+           "Robust Bayesian Recourse." (UAI 2022)
     """
 
     _DEFAULT_HYPERPARAMS = {
