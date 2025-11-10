@@ -162,8 +162,10 @@ def initialize_recourse_method(
             sum(mlmodel.get_mutable_mask())
         ] + hyperparams["vae_params"]["layers"]
         return Revise(mlmodel, data, hyperparams)
-    elif "wachter" in method:
+    elif method == "wachter":
         return Wachter(mlmodel, hyperparams)
+    elif method == "cfvae":
+        return CFVAE(mlmodel, hyperparams)
     elif method == "probe":
         return Probe(mlmodel, hyperparams)
     elif method == "roar":
@@ -197,7 +199,7 @@ def create_parser():
     -r, --recourse_method: Specifies recourse methods for the experiment.
         Default: ["dice", "cchvae", "cem", "cem_vae", "clue", "cruds", "face_knn", "face_epsilon", "gs", "mace", "revise", "wachter"].
         Choices: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "claproar", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
-            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "roar", "probe"].
+            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "roar", "probe"].
     -n, --number_of_samples: Specifies the number of instances per dataset.
         Default: 20.
     -s, --train_split: Specifies the split of the available data used for training.
@@ -264,6 +266,7 @@ def create_parser():
             "gs",
             "revise",
             "wachter",
+            "cfvae",
             "roar",
         ],
         choices=[
@@ -286,6 +289,7 @@ def create_parser():
             "mace",
             "revise",
             "wachter",
+            "cfvae",
             "probe",
             "roar",
         ],
@@ -367,6 +371,7 @@ if __name__ == "__main__":
         "gravitational",
         "wachter",
         "revise",
+        "cfvae",
         "probe",
         "roar",
     ]

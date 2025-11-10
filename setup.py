@@ -55,5 +55,6 @@ setup(
         "torch==1.7.0",
         "torchvision==0.8.1",
         "xgboost==1.4.2",
+        "tqdm",
     ],
 )
