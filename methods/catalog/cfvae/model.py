@@ -5,13 +5,16 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import torch
-from torch import nn, optim
 import torch.nn.functional as F
+from torch import nn, optim
 from tqdm import tqdm
 
 from data.catalog.loadData import loadDataset
 from methods.api import RecourseMethod
-from methods.processing import check_counterfactuals, merge_default_parameters
+from methods.processing import (  # noqa: F401
+    check_counterfactuals,
+    merge_default_parameters,
+)
 from models.api import MLModel
 from tools.log import log
 
@@ -236,7 +239,9 @@ class CFVAE(RecourseMethod):
         "constraint_reg": 1,
         "preference_reg": 1,
         "device": torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
+            "cuda"
+            if torch.cuda.is_available()
+            else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
         ),
     }
 
@@ -282,7 +287,9 @@ class CFVAE(RecourseMethod):
         constraint_reg: float = 1,
         preference_reg: float = 1,
         device: torch.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
+            "cuda"
+            if torch.cuda.is_available()
+            else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
         ),
     ):
         """
@@ -327,8 +334,10 @@ class CFVAE(RecourseMethod):
         ].values
         train_dataset = torch.tensor(train_dataset).float()
         dataset_size = train_dataset.size(0)
-        train_loader = torch.utils.data.DataLoader(  # pyright: ignore[reportAttributeAccessIssue]
-            train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True
+        train_loader = (
+            torch.utils.data.DataLoader(  # pyright: ignore[reportAttributeAccessIssue]
+                train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True
+            )
         )
 
         feature_order = self._mlmodel.feature_input_order
@@ -355,7 +364,9 @@ class CFVAE(RecourseMethod):
             )
             dict_of_siblings = dataset_one_hot.getDictOfSiblings("kurz")
             for siblings in dict_of_siblings.get("cat", {}).values():
-                indices = [feature_order.index(col) for col in siblings if col in feature_order]
+                indices = [
+                    feature_order.index(col) for col in siblings if col in feature_order
+                ]
                 if indices:
                     encoded_categorical_feature_indexes.append(indices)
         except Exception:
@@ -421,7 +432,9 @@ class CFVAE(RecourseMethod):
                         if categorical_indices:
                             reconstruction_increment += -torch.sum(
                                 torch.abs(
-                                    train_x[:, categorical_indices]  # Quirk (The original code drops the last feature with no reason)
+                                    train_x[
+                                        :, categorical_indices
+                                    ]  # Quirk (The original code drops the last feature with no reason)
                                     - x_pred[:, categorical_indices]
                                 ),
                                 dim=1,
@@ -432,8 +445,11 @@ class CFVAE(RecourseMethod):
                             range_val = max_val - min_val
                             if range_val <= 0:
                                 range_val = 1.0
-                            reconstruction_increment += -range_val * torch.abs(  # Quirk (Scaled, as in the original code, though possibly harmful)
-                                train_x[:, key] - x_pred[:, key]
+                            reconstruction_increment += (
+                                -range_val
+                                * torch.abs(  # Quirk (Scaled, as in the original code, though possibly harmful)
+                                    train_x[:, key] - x_pred[:, key]
+                                )
                             )
 
                         # Sum to 1 over the categorical indexes of a feature  # Quirk (Not mentioned in the paper and no loss definition for ordinal features)
@@ -465,13 +481,13 @@ class CFVAE(RecourseMethod):
                             )
 
                         # Optional Constraint Loss
-                        if constraint_loss_func != None:
+                        if constraint_loss_func is not None:
                             constraint_loss += constraint_loss_func(
                                 train_x=train_x, x_pred=x_pred
                             )
 
                         # Optional Preference Loss
-                        if preference_dataset != None:
+                        if preference_dataset is not None:
                             pos_preference = []
                             neg_preference = []
                             for x in train_x:
@@ -548,10 +564,10 @@ class CFVAE(RecourseMethod):
                     + "-"
                     + (
                         "ExampleBasedCF"
-                        if preference_dataset != None
+                        if preference_dataset is not None
                         else (
                             "ModelApproxCF"
-                            if constraint_loss_func != None
+                            if constraint_loss_func is not None
                             else "ModelBasedCF" + ".pth"
                         )
                     )
@@ -580,7 +596,9 @@ class CFVAE(RecourseMethod):
         self,
         factuals: pd.DataFrame,
         device: torch.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
+            "cuda"
+            if torch.cuda.is_available()
+            else "cpu"  # pyright: ignore[reportAttributeAccessIssue]
         ),
     ) -> pd.DataFrame:
         _set_seed()
@@ -602,7 +620,9 @@ class CFVAE(RecourseMethod):
                 # Round categorical features like reconstruct_encoding_constraints does with binary_cat=True
                 # Reimplement here since reconstruct_encoding_constraints is faulty  # TODO
                 for idx in cat_features_indices:
-                    x_pred[:, idx] = torch.round(x_pred[:, idx])  # Have to round() here for comparison fairness
+                    x_pred[:, idx] = torch.round(
+                        x_pred[:, idx]
+                    )  # Have to round() here for comparison fairness
 
                 return x_pred.view(-1).cpu().numpy()
 
