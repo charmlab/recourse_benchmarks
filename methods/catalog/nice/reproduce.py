@@ -20,18 +20,6 @@ from models.negative_instances import predict_negative_instances
 import random
 import tensorflow as tf
 import os
-# Fix the seed
-# The author didn't mention seed in the paper
-RANDOM_SEED = 42
-
-def reset_random_seeds(seed=RANDOM_SEED):
-    """Reset all random seeds to ensure reproducibility."""
-    np.random.seed(seed)
-    random.seed(seed)
-    tf.set_random_seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-
-reset_random_seeds(RANDOM_SEED)
 
 # EXPECTED RANGES 
 EXPECTED_RANGES = {
@@ -101,7 +89,6 @@ def test_nice_coverage(model_type, optimization):
     
     Critical requirement: NICE should always find a counterfactual.
     """
-    reset_random_seeds(RANDOM_SEED)
 
     data = DataCatalog("adult", model_type=model_type, train_split=0.7)
     model = ModelCatalog(data, model_type=model_type, backend="sklearn")
@@ -140,7 +127,6 @@ def test_nice_quality(model_type, optimization):
     """
     Test that NICE produces quality counterfactuals with all metrics in expected ranges.
     """
-    reset_random_seeds(RANDOM_SEED)
 
     data = DataCatalog("adult", model_type=model_type, train_split=0.7)
     model = ModelCatalog(data, model_type=model_type, backend="sklearn")
@@ -197,7 +183,6 @@ def test_nice_quality(model_type, optimization):
         verbose=0,
         early_stopping=True,
         patience=5,
-        random_seed=RANDOM_SEED
     )
     
     ae_errors = ae(counterfactuals.values)
@@ -224,7 +209,6 @@ def test_nice_variants_comparison(model_type):
     
     Reproduces Table 5 comparison with detailed metrics.
     """
-    reset_random_seeds(RANDOM_SEED)
 
     data = DataCatalog("adult", model_type=model_type, train_split=0.7)
     model = ModelCatalog(data, model_type=model_type, backend="sklearn")
@@ -248,7 +232,6 @@ def test_nice_variants_comparison(model_type):
         verbose=0,
         early_stopping=True,
         patience=5,
-        random_seed=RANDOM_SEED
     )
     
     # Calculate ranges once
