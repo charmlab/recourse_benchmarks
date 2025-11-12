@@ -17,6 +17,8 @@ from .catalog import (
     Gravitational,
     Greedy,
     GrowingSpheres,
+    NICE,
+    Probe,
     Revise,
     Roar,
     Wachter,
