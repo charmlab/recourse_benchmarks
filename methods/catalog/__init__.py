@@ -15,10 +15,17 @@ from .greedy import Greedy
 from .growing_spheres import GrowingSpheres
 from .mace import MACE
 <<<<<<< HEAD
+<<<<<<< HEAD
 from .probe import Probe
 =======
 from .nice import NICE
 >>>>>>> 75c2660 (complete nice implementation and update inits)
+=======
+from .nice import NICE
+=======
+from .probe import Probe
+>>>>>>> upstream/main
+>>>>>>> adc3d69 (Merge upstream/main into feature/add-nice)
 from .revise import Revise
 from .roar import Roar
 from .wachter import Wachter

@@ -18,10 +18,17 @@ from .catalog import (
     Greedy,
     GrowingSpheres,
 <<<<<<< HEAD
+<<<<<<< HEAD
     Probe,
 =======
     NICE,
 >>>>>>> 75c2660 (complete nice implementation and update inits)
+=======
+    NICE,
+=======
+    Probe,
+>>>>>>> upstream/main
+>>>>>>> adc3d69 (Merge upstream/main into feature/add-nice)
     Revise,
     Roar,
     Wachter,
