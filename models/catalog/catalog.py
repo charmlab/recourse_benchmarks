@@ -54,6 +54,9 @@ class ModelCatalog(MLModel):
         cache: bool = True,
         models_home: str = None,
         load_online: bool = True,
+        epochs: int = 1,
+        batch_size: int = 1000,
+        learning_rate: float = 0.001,
         **kws,
     ) -> None:
         """
@@ -95,6 +98,10 @@ class ModelCatalog(MLModel):
             model_type,
             data.name,
             self._backend,
+            epochs=epochs,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            modified=data.modified,
         )
         if self.backend == "pytorch":
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
