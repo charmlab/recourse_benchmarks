@@ -2,7 +2,7 @@
 Data loader from NICE_experiments repository
 Fetches and preprocesses data exactly as the original NICE paper did
 """
-from pmlb import fetch_data
+# from pmlb import fetch_data
 import os
 import pandas as pd
 from sklearn.model_selection import train_test_split

@@ -94,24 +94,25 @@ def setup_nice_experiments_data_and_model(model_type):
     """
     Load data and train model using NICE_experiments approach
     
-    Returns data_adapter and model_adapter that are API-compatible with repo
+    Returns data_adapted and model_adapted that are API-compatible with repo
     """
     # Load NICE_experiments data
     fetcher = PmlbFetcher('adult', test_size=0.2, explain_n=200)
     nice_data = fetcher.dataset
     
     # Create data adapter
-    data_adapter = NICEExperimentsDataAdapter(nice_data)
+    data_adapted = NICEExperimentsDataAdapter(nice_data)
     
     # Train model using NICE_experiments data
-    X_train = data_adapter.df_train.drop(columns=['y']).values
-    y_train = data_adapter.df_train['y'].values
+    X_train = data_adapted.df_train.drop(columns=['y']).values
+    y_train = data_adapted.df_train['y'].values
     
+    # use the best parameters give by grid search
     if model_type == "forest":
         model = RandomForestClassifier(
-            n_estimators=100,
+            n_estimators=500,
             random_state=42,
-            max_depth=None
+            max_depth=25
         )
     elif model_type == "mlp":
         model = MLPClassifier(
@@ -126,26 +127,26 @@ def setup_nice_experiments_data_and_model(model_type):
     model.fit(X_train, y_train)
     
     # Evaluate
-    X_test = data_adapter.df_test.drop(columns=['y']).values
-    y_test = data_adapter.df_test['y'].values
+    X_test = data_adapted.df_test.drop(columns=['y']).values
+    y_test = data_adapted.df_test['y'].values
     acc = model.score(X_test, y_test)
     print(f"  Model accuracy: {acc:.4f}")
     
     # Create model adapter
-    model_adapter = NICEExperimentsModelAdapter(model, data_adapter)
+    model_adapted = NICEExperimentsModelAdapter(model, data_adapted)
     
-    return data_adapter, model_adapter
+    return data_adapted, model_adapted
 
 
-def get_negative_instances_nice_experiments(model_adapter, data_adapter, n=200):
+def get_negative_instances_nice_experiments(model_adapted, data_adapted, n=200):
     """
     Get negative instances from test set
     """
-    df_test = data_adapter.df_test.copy()
+    df_test = data_adapted.df_test.copy()
     X_test = df_test.drop(columns=['y'])
     
     # Predict
-    y_pred = model_adapter.predict(X_test)
+    y_pred = model_adapted.predict(X_test)
     
     # Filter negative predictions
     negative_mask = (y_pred == 0)
@@ -421,85 +422,60 @@ def test_nice_benchmark_compatibility(dataset_name, model_type):
         "Counterfactual features should match model's expected input order"
 
 
-# if __name__ == "__main__":
-#     """
-#     Run tests manually for both Random Forest and MLP
-    
-#     Usage:
-#         python reproduce.py
-#     """
-#     print("=" * 100)
-#     print("NICE Integration Tests - Reproducing Paper Results")
-#     print("=" * 100)
-#     print("\nDataset: adult")
-#     print("Models: Random Forest, MLP")
-#     print("Sample size: 200 instances (matching paper experiments)")
-#     print("=" * 100)
-    
-#     for model_type in ["forest", "mlp"]:
-#         print(f"\n{'#'*100}")
-#         print(f"# Testing with {model_type.upper()} model")
-#         print(f"{'#'*100}")
-        
-#         # Test 1: Coverage
-#         print(f"\n[Test 1] Testing 100% Coverage Guarantee on {model_type.upper()}...")
-#         all_passed = True
-#         for opt in ["none", "sparsity", "proximity", "plausibility"]:
-#             try:
-#                 test_nice_coverage(model_type, opt)
-#                 print(f"  ✓ NICE({opt}) coverage test passed")
-#             except AssertionError as e:
-#                 print(f"  ✗ NICE({opt}) failed: {e}")
-#                 all_passed = False
-        
-#         if all_passed:
-#             print(f"  ✓ All coverage tests passed for {model_type.upper()}")
-        
-#         # Test 2: Quality metrics
-#         print(f"\n[Test 2] Testing Quality Metrics on {model_type.upper()}...")
-#         all_passed = True
-#         for opt in ["none", "sparsity", "proximity", "plausibility"]:
-#             try:
-#                 test_nice_quality(model_type, opt)
-#                 print(f"  ✓ NICE({opt}) quality test passed")
-#             except AssertionError as e:
-#                 print(f"  ✗ NICE({opt}) failed: {e}")
-#                 all_passed = False
-        
-#         if all_passed:
-#             print(f"  ✓ All quality tests passed for {model_type.upper()}")
-        
-#         # Test 3: Variant comparison
-#         print(f"\n[Test 3] Comparing All Variants on {model_type.upper()}...")
-#         try:
-#             test_nice_variants_comparison(model_type)
-#             print(f"  ✓ Variant comparison test passed for {model_type.upper()}")
-#         except AssertionError as e:
-#             print(f"  ✗ Variant comparison failed: {e}")
-        
-#         # Test 4: Benchmark compatibility
-#         print(f"\n[Test 4] Testing Benchmark Compatibility on {model_type.upper()}...")
-#         try:
-#             test_nice_benchmark_compatibility("adult", model_type)
-#             print(f"  ✓ Benchmark compatibility test passed for {model_type.upper()}")
-#         except AssertionError as e:
-#             print(f"  ✗ Benchmark compatibility failed: {e}")
-    
-#     print("\n" + "=" * 100)
-#     print("All tests completed!")
-#     print("=" * 100)
-
 if __name__ == "__main__":
     print("=" * 100)
-    print("NICE Reproduction - Using NICE_experiments Data")
+    print("NICE Integration Tests - Reproducing Paper Results")
     print("=" * 100)
-
-    # Just test forest + sparsity first
-    print("\n[Test] Forest + Sparsity...")
-    try:
-        test_nice_coverage("forest", "sparsity")
-        print("✓ Coverage test passed")
-    except Exception as e:
-        print(f"✗ Failed: {e}")
-        import traceback
-        traceback.print_exc()
+    print("\nDataset: adult (NICE_experiments preprocessing)")
+    print("Models: Random Forest, MLP")
+    print("Sample size: 200 instances (matching paper experiments)")
+    print("=" * 100)
+    
+    for model_type in ["forest"]: #, "mlp"]:  # 先只测 forest，之后取消注释
+        print(f"\n{'#'*100}")
+        print(f"# Testing with {model_type.upper()} model")
+        print(f"{'#'*100}")
+        
+        # Test 1: Coverage
+        print(f"\n[Test 1] Testing 100% Coverage Guarantee on {model_type.upper()}...")
+        all_passed = True
+        for opt in ["none", "sparsity", "proximity", "plausibility"]:
+            try:
+                test_nice_coverage(model_type, opt)
+                print(f"  ✓ NICE({opt}) coverage test passed")
+            except AssertionError as e:
+                print(f"  ✗ NICE({opt}) failed: {e}")
+                all_passed = False
+        
+        if all_passed:
+            print(f"  ✓ All coverage tests passed for {model_type.upper()}")
+        
+        # Test 2: Quality metrics (取消注释来启用)
+        print(f"\n[Test 2] Testing Quality Metrics on {model_type.upper()}...")
+        all_passed = True
+        for opt in ["none", "sparsity", "proximity", "plausibility"]:
+            try:
+                test_nice_quality(model_type, opt)
+                print(f"  ✓ NICE({opt}) quality test passed")
+            except AssertionError as e:
+                print(f"  ✗ NICE({opt}) failed: {e}")
+                all_passed = False
+        
+        if all_passed:
+            print(f"  ✓ All quality tests passed for {model_type.upper()}")
+        
+        # Test 3: Variant comparison (取消注释来启用)
+        print(f"\n[Test 3] Comparing All Variants on {model_type.upper()}...")
+        try:
+            test_nice_variants_comparison(model_type)
+            print(f"  ✓ Variant comparison test passed for {model_type.upper()}")
+        except AssertionError as e:
+            print(f"  ✗ Variant comparison failed: {e}")
+        
+        # Test 4: Benchmark compatibility (取消注释来启用)
+        print(f"\n[Test 4] Testing Benchmark Compatibility on {model_type.upper()}...")
+        try:
+            test_nice_benchmark_compatibility("adult", model_type)
+            print(f"  ✓ Benchmark compatibility test passed for {model_type.upper()}")
+        except AssertionError as e:
+            print(f"  ✗ Benchmark compatibility failed: {e}")
