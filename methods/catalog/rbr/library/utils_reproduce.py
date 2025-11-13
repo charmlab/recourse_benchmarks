@@ -92,6 +92,8 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
         ------
         None.
         """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # device = next(self.parameters()).device
         x_train_tensor = torch.from_numpy(np.array(x_train).astype(np.float32))
         y_train_tensor = torch.from_numpy(np.array(y_train)).type(torch.float32)
         # print(f"x_train_tensor shape: {x_train_tensor[:5]}")
@@ -116,8 +118,8 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
         for _ in range(epochs):
             # for i, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
-            output = self(x_train_tensor)
-            loss = criterion(output, y_train_tensor.view(-1, 1))
+            output = self(x_train_tensor.to(device))
+            loss = criterion(output, y_train_tensor.view(-1, 1).to(device))
 
             loss.backward()
             optimizer.step()
@@ -153,10 +155,11 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
         -------
         None.
         """
+        device = next(self.parameters()).device
         self.eval()
         y_train_pred = []
         with torch.no_grad():
-            output = self(test)
+            output = self(test.to(device))
             # print(f"output shape in predict: {output[:5]}")
             y_train_pred.extend(output)
 
