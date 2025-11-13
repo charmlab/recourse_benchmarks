@@ -71,14 +71,15 @@ def perturb_sample(x, n_samples, sigma2):
     return X + eps
 
 
-def reparametrization_trick(mu, sigma2, n_samples):
+def reparametrization_trick(mu, sigma2, device, n_samples):
     # var = torch.eye(mu.shape[1]) * sigma2
-    std = torch.sqrt(sigma2)
+    std = torch.sqrt(sigma2).to(device)
     epsilon = MultivariateNormal(
         loc=torch.zeros(mu.shape[1]), covariance_matrix=torch.eye(mu.shape[1])
     )
     epsilon = epsilon.sample((n_samples,))  # standard Gaussian random noise
-    ones = torch.ones_like(epsilon)
+    epsilon = epsilon.to(device)
+    ones = torch.ones_like(epsilon).to(device)
     random_samples = mu.reshape(-1) * ones + std * epsilon
 
     return random_samples
@@ -176,7 +177,7 @@ def probe_recourse(
     costs = []
     ces = []
 
-    random_samples = reparametrization_trick(x_new, noise_variance, n_samples=1000)
+    random_samples = reparametrization_trick(x_new, noise_variance, device, n_samples=1000)
     invalidation_rate = compute_invalidation_rate(torch_model, random_samples)
 
     while (f_x_new <= DECISION_THRESHOLD) or (
@@ -226,7 +227,7 @@ def probe_recourse(
             optimizer.step()
 
             random_samples = reparametrization_trick(
-                x_new, noise_variance, n_samples=10000
+                x_new, noise_variance, device, n_samples=10000
             )
             invalidation_rate = compute_invalidation_rate(torch_model, random_samples)
 
