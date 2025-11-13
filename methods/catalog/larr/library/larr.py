@@ -1,5 +1,7 @@
-"""This file contains all relevant logic to perform the LARR method"""
-
+"""
+This file contains all relevant logic to perform the LARR method
+The original source code can be found at https://github.com/kshitij-kayastha/learning-augmented-robust-recourse
+"""
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -29,10 +31,24 @@ class Recourse(ABC):
     
     def __init__(self, weights, bias, alpha, lamb, imm_features, y_target, seed):
         super.__init__()
-        ...
+        self.weights = weights
+        self.bias = bias
+        self.alpha = alpha
+        self.lamb = lamb
+        self.y_target = y_target
+        self.rng = np.random.default_rng(seed=seed)
+        self.imm_features = imm_features
+        self.name = "Base"
     
-    def calc_theta_adv(self, x):
-        ...
+    def calc_theta_adv(self, x: np.ndarray):
+        weights_adv = self.weights - (self.alpha * np.sign(x))
+        for i in range(len(x)):
+            if np.sign(x[i]) == 0:
+                weights_adv[i] = weights_adv[i] - (self.alpha * np.sign(weights_adv[i]))
+            bias_adv = self.bias - self.alpha
+        
+        return weights_adv, bias_adv
+        
 
     @abstractmethod
     def get_recourse(self, x, *args, **kwargs):
@@ -62,7 +78,7 @@ class LARRecourse(Recourse):
             delta = ((np.log((w - self.lamb)/self.lamb) - c) / w)
             if delta < 0: delta = 0.
         elif (w < -self.lamb):
-            delta = (np.log((-w - self.lamb)/self.lamb) - c) / w
+            delta = ((np.log((-w - self.lamb)/self.lamb) - c) / w)
             if delta > 0: delta = 0.
         else:
             delta = 0.
