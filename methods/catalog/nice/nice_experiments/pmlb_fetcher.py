@@ -12,7 +12,7 @@ import numpy as np
 
 class PmlbFetcher:
     """
-    Fetch data from PMLB and preprocess exactly as NICE_experiments does
+    Fetch data from PMLB and apply label enconding to categorical features
     
     This replicates the data preprocessing from:
     https://github.com/DBrughmans/NICE_experiments

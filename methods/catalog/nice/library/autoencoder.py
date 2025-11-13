@@ -106,7 +106,7 @@ class AutoEncoder:
             callbacks.append(early_stop)
 
         # Train autoencoder on training data
-        self.autoencoder.fit(
+        self.history = self.autoencoder.fit(
             X_train, 
             X_train,
             epochs=epochs,

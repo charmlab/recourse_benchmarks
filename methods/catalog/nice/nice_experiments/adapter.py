@@ -14,7 +14,7 @@ class NICEExperimentsDataAdapter:
     but the interface "looks like" what the repo expects.
     """
     
-    def __init__(self, nice_dataset: dict):
+    def __init__(self, nice_dataset: dict, preprocessor=None):
         """
         Parameters
         ----------
@@ -28,6 +28,7 @@ class NICEExperimentsDataAdapter:
             - feature_map: dict (categorical value mappings)
         """
         self.nice_dataset = nice_dataset
+        self.preprocessor = preprocessor
         
         # Extract data
         X_train = nice_dataset['X_train']
@@ -67,7 +68,7 @@ class NICEExperimentsModelAdapter:
     Wraps sklearn model to be API-compatible with repo's MLModel interface
     """
     
-    def __init__(self, sklearn_model, data_adapter: NICEExperimentsDataAdapter):
+    def __init__(self, sklearn_model, data_adapter: NICEExperimentsDataAdapter, preprocessor):
         """
         Parameters
         ----------
@@ -78,6 +79,7 @@ class NICEExperimentsModelAdapter:
         """
         self.model = sklearn_model
         self.data = data_adapter
+        self.preprocessor = preprocessor
         self._model_trained = True
         
     def predict_proba(self, df: pd.DataFrame) -> np.ndarray:
@@ -93,7 +95,9 @@ class NICEExperimentsModelAdapter:
         
         # Convert to numpy and predict
         X = df.values
-        return self.model.predict_proba(X)
+        X_pp = self.preprocessor.transform(X)
+
+        return self.model.predict_proba(X_pp)
     
     def predict(self, df: pd.DataFrame) -> np.ndarray:
         """
@@ -104,7 +108,8 @@ class NICEExperimentsModelAdapter:
         
         df = df[self.data.feature_names]
         X = df.values
-        return self.model.predict(X)
+        X_pp = self.preprocessor.transform(X)
+        return self.model.predict(X_pp)
     
     def get_ordered_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
