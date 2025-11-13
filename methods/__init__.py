@@ -7,6 +7,7 @@ from .catalog import (
     CRUD,
     FOCUS,
     MACE,
+    RBR,
     ActionableRecourse,
     CausalRecourse,
     ClaPROAR,

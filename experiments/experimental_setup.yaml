@@ -142,3 +142,6 @@ recourse_methods:
     hyperparams:
   roar:
     hyperparams:
+  rbr:
+    hyperparams:
+      device: "cpu"
