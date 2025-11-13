@@ -177,7 +177,9 @@ def probe_recourse(
     costs = []
     ces = []
 
-    random_samples = reparametrization_trick(x_new, noise_variance, device, n_samples=1000)
+    random_samples = reparametrization_trick(
+        x_new, noise_variance, device, n_samples=1000
+    )
     invalidation_rate = compute_invalidation_rate(torch_model, random_samples)
 
     while (f_x_new <= DECISION_THRESHOLD) or (
