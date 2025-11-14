@@ -34,7 +34,7 @@ class OHE_minmax:
             self.nb_OHE = self.OHE.transform(X[0:1, self.cat_feat]).shape[1]
         
         if self.con_feat != []:
-            self.minmax = MinMaxScaler(feature_range=(-1, 1))
+            self.minmax = MinMaxScaler(feature_range=(-1, 1))# -1,1? 0,1?
             self.minmax.fit(X[:, self.con_feat])
     
     def transform(self, X):
