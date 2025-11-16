@@ -2,9 +2,8 @@
 This file contains all relevant logic to perform the LARR method
 The original source code can be found at https://github.com/kshitij-kayastha/learning-augmented-robust-recourse
 """
-from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Callable, List
+from typing import Callable, List, Optional, Tuple, Union
 
 import lime
 import numpy as np
@@ -53,10 +52,10 @@ class RecourseCost:
         return recourse_cost.detach().item()
 
 
-class Recourse(ABC):
-    
-    def __init__(self, weights: np.ndarray, bias: np.ndarray, alpha: float, lamb: float, imm_features: List, y_target: float = 1, seed: int|None = None):
-        super.__init__()
+class LARRecourse:
+
+    def __init__(self, weights: np.ndarray, bias: np.ndarray, alpha: float, lamb: float = 0.1, imm_features: List = [], y_target: float = 1, seed: Union[int, None] = None):
+        self.name = "Alg1"
         self.weights = weights
         self.bias = bias
         self.alpha = alpha
@@ -64,8 +63,13 @@ class Recourse(ABC):
         self.y_target = y_target
         self.rng = np.random.default_rng(seed=seed)
         self.imm_features = imm_features
-        self.name = "Base"
     
+    def set_weights(self, weights):
+        self.weights = weights
+
+    def set_bias(self, bias):
+        self.bias = bias
+
     def calc_theta_adv(self, x: np.ndarray):
         weights_adv = self.weights - (self.alpha * np.sign(x))
         for i in range(len(x)):
@@ -74,30 +78,6 @@ class Recourse(ABC):
             bias_adv = self.bias - self.alpha
         
         return weights_adv, bias_adv
-        
-
-    @abstractmethod
-    def get_recourse(self, x, *args, **kwargs):
-        ...
-    
-    @abstractmethod
-    def set_weights(self, weights):
-        ...
-
-    @abstractmethod
-    def set_bais(self, bias):
-        ...
-
-class LARRecourse(Recourse):
-    def __init__(self, weights: np.ndarray, bias: np.ndarray, alpha: float, lamb: float = 0.1, imm_features: List = [], y_target: float = 1, seed: int|None = None):
-        super().__init__(weights, bias, alpha, lamb, imm_features, y_target, seed)
-        self.name = "Alg1"
-    
-    def set_weights(self, weights):
-        self.weights = weights
-
-    def set_bias(self, bias):
-        self.bias = bias
 
     def calc_delta(self, w: float, c: float):
         if (w > self.lamb):
@@ -110,7 +90,7 @@ class LARRecourse(Recourse):
             delta = 0.
         return delta  
     
-    def calc_augmented_delta(self, x: np.ndarray, i: int, theta: tuple[np.ndarray, np.ndarray], theta_p: tuple[np.ndarray, np.ndarray], beta: float, J: RecourseCost):
+    def calc_augmented_delta(self, x: np.ndarray, i: int, theta: Tuple[np.ndarray, np.ndarray], theta_p: Tuple[np.ndarray, np.ndarray], beta: float, J: RecourseCost):
         n = 201
         delta = 10
         deltas = np.linspace(-delta, delta, n)
@@ -159,7 +139,7 @@ class LARRecourse(Recourse):
             if current_sum == 0.0: # fall back just in case
                 return None
             
-    def get_recourse(self, x_0: np.ndarray, beta: float = 1, theta_p: tuple[np.ndarray, np.ndarray] = None):
+    def get_recourse(self, x_0: np.ndarray, beta: float = 1, theta_p: Tuple[np.ndarray, np.ndarray] = None):
         if beta == 1.0:
             return self.get_robust_recourse(x_0)
         elif beta == 0.0:
@@ -205,7 +185,7 @@ class LARRecourse(Recourse):
         
         return x
     
-    def get_consistent_recourse(self,  x_0: np.ndarray, theta_p: tuple[np.ndarray, np.ndarray]):
+    def get_consistent_recourse(self,  x_0: np.ndarray, theta_p: Tuple[np.ndarray, np.ndarray]):
         x = deepcopy(x_0)
         weights, bias = theta_p
         weights_c = np.abs(weights)
@@ -223,7 +203,7 @@ class LARRecourse(Recourse):
 
         return x
     
-    def get_augmented_recourse(self, x_0: np.ndarray, theta_p: tuple[np.ndarray, np.ndarray], beta: float, eps=1e-5):
+    def get_augmented_recourse(self, x_0: np.ndarray, theta_p: Tuple[np.ndarray, np.ndarray], beta: float = 0.5, eps=1e-5):
         x = deepcopy(x_0)
         J = RecourseCost(x_0, self.lamb)
 
@@ -277,7 +257,7 @@ class LARRecourse(Recourse):
         bias = exp.intercept[1]
         return weights, bias
     
-    def recourse_validity(self, predict_fn: Callable, recourses: np.ndarray, y_target: float|int = 1):
+    def recourse_validity(self, predict_fn: Callable, recourses: np.ndarray, y_target: Union[float, int] = 1):
         return sum(predict_fn(recourses) == y_target) / len(recourses)
 
     def recourse_expectation(self, predict_proba_fn: Callable, recourses: np.ndarray):
@@ -317,6 +297,90 @@ class LARRecourse(Recourse):
                 v_old = v
             else:
                 li = max(0, i - 1)
+                self.lamb = lambdas[li]
                 return lambdas[li]
+        self.lamb = lamb
         return lamb
+    
+    def run_method(
+        self,
+        x: np.ndarray,
+        coeff: np.ndarray,
+        intercept: np.ndarray,
+    ) -> np.ndarray:
+        self.weights = coeff
+        self.bias = intercept
+        # theta_0 = np.hstack((self.weights, self.bias))
+
+        J = RecourseCost(x, self.lamb)
+
+        # robust recourse
+
+        x_r = self.get_recourse(x, beta=1.)
+        weights_r, bias_r = self.calc_theta_adv(x_r)
+        theta_r = np.hstack((weights_r, bias_r))
+        J_r_opt = J.eval(x_r, weights_r, bias_r)
+
+
+        # get predictions for future model weights
+        # in the original codebase, the way they get 
+        # these future model wrights is different for 
+        # the neural nets and lr. This may be because
+        # for there lr, they use the sklearn version
+        # rather than a pytorch one. They also 
+        # use some pre-generated model weights 
+        # when getting the future models, and the
+        # mothod of how they got these wieghts is not shown
+        # so I will use the code for neural nets and work
+        # assuming that both (NN and LR) will get future models
+        # the same way.
+
+        # if dataset.name == 'sba':
+        #     theta_r1 = deepcopy(theta_r) * 0.3
+        #     theta_r2 = deepcopy(theta_r) * 0.5
+            
+        #     alphas1 = theta_r1 - theta_0
+        #     theta_p1 = theta_0 - alphas1
+            
+        #     alphas2 = theta_r2 - theta_0
+        #     theta_p2 = theta_0 - alphas2
+        # else:
+        # theta_r1 = deepcopy(theta_r)
+        # theta_r1[0] = theta_0[0]
+        # theta_r2 = deepcopy(theta_r)
+        
+        # alphas1 = theta_r1 - theta_0
+        # theta_p1 = theta_0 - alphas1
+        
+        # alphas2 = theta_r2 - theta_0
+        # theta_p2 = theta_0 - alphas2
+            
+        # predictions = []
+        # for pred in [theta_0, theta_r1, theta_r2, theta_p1, theta_p2]:
+        #     predictions.append(np.clip(pred, theta_0-self.alpha-1e-9, theta_0+self.alpha+1e-9).round(4))
+
+        #for p, prediction in enumerate(predictions):
+        # weights_p, bias_p = prediction[:-1], prediction[[-1]]
+        # theta_p = (weights_p, bias_p)
+
+        # consistent Recourse
+        x_c = self.get_recourse(x, beta=0., theta_p=theta_r)
+        J_c_opt = J.eval(x_c, *theta_r)
+
+        # get augmented Recourse
+        beta = 0.5 # this can be tweeked to get more or less robust/consistent perhaps be made into a user defined param
+
+        cf = self.get_recourse(x, beta=beta, theta_p=theta_r)
+        # weights_r, bias_r = self.calc_theta_adv(x)
+        # theta_r = np.hstack((weights_r, bias_r))
+        
+        # J_r = J.eval(x, weights_r, bias_r)
+        # J_c = J.eval(x, weights_p, bias_p)
+        # robustness = J_r - J_r_opt
+        # consistency = J_c - J_c_opt
+        return cf
+
+        
+        
+
     
