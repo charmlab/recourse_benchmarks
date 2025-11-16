@@ -239,7 +239,7 @@ class DataLoader:
     def from_dummies(self, data, prefix_sep="_"):
         """Gets the original data from dummy encoded data with k levels."""
         out = data.copy()
-        for l in self.categorical_feature_names:
+        for l in self.categorical_feature_names:  # noqa: E741
             cols, labs = [
                 [c.replace(x, "") for c in data.columns if l + prefix_sep in c]
                 for x in ["", l + prefix_sep]
@@ -330,7 +330,10 @@ def load_adult_income_dataset(save_intermediate=False):
     """
     tmpdir = Path(tempfile.mkdtemp(prefix="adult_ds_"))
     ds = np.DataSource(destpath=str(tmpdir))
-    with ds.open("https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data", "rb") as fh:
+    with ds.open(
+        "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data",
+        "rb",
+    ) as fh:
         raw_data = np.genfromtxt(fh, delimiter=", ", dtype=str)
 
     #  column names from "https://archive.ics.uci.edu/ml/datasets/Adult"

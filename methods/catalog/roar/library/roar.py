@@ -123,8 +123,8 @@ def roar_recourse(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.manual_seed(seed)
 
-    if feature_costs is not None:
-        feature_costs = torch.from_numpy(feature_costs).float().to(device)
+    # if feature_costs is not None:
+    #     feature_costs = torch.from_numpy(feature_costs).float().to(device)
 
     coeff = torch.from_numpy(coeff).float().to(device)
     intercept = torch.from_numpy(np.asarray([intercept])).float().to(device)
@@ -195,8 +195,8 @@ def roar_recourse(
 
         cost = (
             torch.dist(x_new_enc, x, norm)
-            if feature_costs is None
-            else torch.norm(feature_costs * (x_new_enc - x), norm)
+            # if feature_costs is None
+            # else torch.norm(feature_costs * (x_new_enc - x), norm)
         )
 
         loss = loss_fn(f_x_new, target_class) + lamb * cost

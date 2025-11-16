@@ -162,12 +162,16 @@ def initialize_recourse_method(
             sum(mlmodel.get_mutable_mask())
         ] + hyperparams["vae_params"]["layers"]
         return Revise(mlmodel, data, hyperparams)
-    elif "wachter" in method:
+    elif method == "wachter":
         return Wachter(mlmodel, hyperparams)
-    elif "cfvae" in method:
+    elif method == "cfvae":
         return CFVAE(mlmodel, hyperparams)
-    elif "cfrl" in method:
+    elif method == "cfrl":
         return CFRL(mlmodel, hyperparams)
+    elif method == "probe":
+        return Probe(mlmodel, hyperparams)
+    elif method == "roar":
+        return Roar(mlmodel, hyperparams)
     else:
         raise ValueError("Recourse method not known")
 
@@ -196,9 +200,9 @@ def create_parser():
         Choices: ["mlp", "linear", "forest"].
     -r, --recourse_method: Specifies recourse methods for the experiment.
         Default: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "claproar", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
-            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl"].
+            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl", "probe", "roar"].
         Choices: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "claproar", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
-            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl"].
+            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl", "probe", "roar"].
     -n, --number_of_samples: Specifies the number of instances per dataset.
         Default: 20.
     -s, --train_split: Specifies the split of the available data used for training.
@@ -271,6 +275,8 @@ def create_parser():
             "wachter",
             "cfvae",
             "cfrl",
+            "probe",
+            "roar",
         ],
         choices=[
             "dice",
@@ -294,6 +300,8 @@ def create_parser():
             "wachter",
             "cfvae",
             "cfrl",
+            "probe",
+            "roar",
         ],
         help="Recourse methods for experiment",
     )
@@ -375,6 +383,8 @@ if __name__ == "__main__":
         "revise",
         "cfvae",
         "cfrl",
+        "probe",
+        "roar",
     ]
     sklearn_methods = ["feature_tweak", "focus", "mace"]
 

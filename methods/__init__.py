@@ -4,6 +4,7 @@ from .api import RecourseMethod
 from .catalog import (
     CCHVAE,
     CEM,
+    CFVAE,
     CRUD,
     FOCUS,
     MACE,
@@ -17,6 +18,7 @@ from .catalog import (
     Gravitational,
     Greedy,
     GrowingSpheres,
+    Probe,
     Revise,
     Roar,
     Wachter,

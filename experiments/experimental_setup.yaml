@@ -144,8 +144,8 @@ recourse_methods:
        train: True
   cfrl:
     hyperparams:
-       latent_dim: 15
-       encoder_hidden_dim: 128
+       autoencoder_latent_dim: 15
+       autoencoder_hidden_dim: 128
        autoencoder_epochs: 50
        autoencoder_batch_size: 128
        autoencoder_lr: 1e-3
@@ -155,3 +155,7 @@ recourse_methods:
        batch_size: 100
        seed: 0
        train: True
+  probe:
+    hyperparams:
+  roar:
+    hyperparams:
