@@ -1,4 +1,3 @@
-import math
 import os
 import random
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Union
@@ -13,70 +12,6 @@ if TYPE_CHECKING:
     from .cfrl_base import NormalActionNoise
 
 
-try:
-    LazyLinear = nn.LazyLinear  # type: ignore[attr-defined]
-except AttributeError:
-
-    class LazyLinear(nn.Module):
-        r"""
-        Minimal backport of torch.nn.LazyLinear for PyTorch < 1.8.
-        """
-
-        def __init__(self, out_features: int, bias: bool = True,
-                    device=None, dtype=None) -> None:
-            super().__init__()
-            self.out_features = out_features
-            self.in_features = None
-            self.device = device
-            self.dtype = dtype
-
-            self.weight = nn.Parameter(torch.empty(0, device=device, dtype=dtype))  # pyright: ignore[reportPrivateImportUsage, reportCallIssue, reportArgumentType]
-            if bias:
-                self.bias = nn.Parameter(torch.empty(0, device=device, dtype=dtype))  # pyright: ignore[reportPrivateImportUsage, reportCallIssue, reportArgumentType]
-            else:
-                self.register_parameter("bias", None)
-
-        def reset_parameters(self) -> None:
-            if self.in_features is not None and self.weight.numel() != 0:
-                nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))  # pyright: ignore[reportArgumentType]
-                if self.bias is not None:
-                    fan_in = self.in_features
-                    bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-                    nn.init.uniform_(self.bias, -bound, bound)
-
-        def initialize_parameters(self, input: torch.Tensor) -> None:
-            if self.weight.numel() == 0:
-                with torch.no_grad():
-                    self.in_features = input.shape[-1]
-                    self.weight = nn.Parameter(  # pyright: ignore[reportPrivateImportUsage]
-                        torch.empty((self.out_features, self.in_features),
-                                    device=input.device, dtype=input.dtype)
-                    )
-                    if self.bias is not None:
-                        self.bias = nn.Parameter(  # pyright: ignore[reportPrivateImportUsage]
-                            torch.empty((self.out_features,),
-                                        device=input.device, dtype=input.dtype)
-                        )
-                    self.reset_parameters()
-            elif self.in_features == 0:
-                assert input.shape[-1] == self.weight.shape[-1], (
-                    f"The in_features inferred from input: {input.shape[-1]} "
-                    f"is not equal to in_features from self.weight: "
-                    f"{self.weight.shape[-1]}"
-                )
-                self.in_features = input.shape[-1]
-
-        def forward(self, input: torch.Tensor) -> torch.Tensor:
-            if self.weight.numel() == 0 or self.in_features is None:
-                self.initialize_parameters(input)
-            return F.linear(input, self.weight, self.bias)
-
-        def extra_repr(self) -> str:
-            in_f = self.in_features if self.in_features is not None else 0
-            bias_flag = self.bias is not None
-            return f"in_features={in_f}, out_features={self.out_features}, bias={bias_flag}"
-
-
 class Actor(nn.Module):
     """
     Actor network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
@@ -84,7 +19,7 @@ class Actor(nn.Module):
     tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
     """
 
-    def __init__(self, hidden_dim: int, output_dim: int) -> None:
+    def __init__(self, hidden_dim: int, output_dim: int, input_dim: Optional[int] = None) -> None:
         """
         Constructor.
 
@@ -96,17 +31,22 @@ class Actor(nn.Module):
             Output dimension
         """
         super().__init__()
-        self.fc1 = LazyLinear(
-            hidden_dim
-        )
+        use_lazy = hasattr(nn, "LazyLinear") and input_dim is None
+        if input_dim is None and not use_lazy:
+            raise ValueError(
+                "input_dim must be provided when torch.nn.LazyLinear is unavailable."
+            )
+        if use_lazy:
+            self.fc1 = nn.LazyLinear(hidden_dim)  # pyright: ignore[reportAttributeAccessIssue]
+            self.fc2 = nn.LazyLinear(hidden_dim)  # pyright: ignore[reportAttributeAccessIssue]
+            self.fc3 = nn.LazyLinear(output_dim)  # pyright: ignore[reportAttributeAccessIssue]
+        else:
+            assert input_dim is not None
+            self.fc1 = nn.Linear(input_dim, hidden_dim)
+            self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+            self.fc3 = nn.Linear(hidden_dim, output_dim)
         self.ln1 = nn.LayerNorm(hidden_dim)
-        self.fc2 = LazyLinear(
-            hidden_dim
-        )
         self.ln2 = nn.LayerNorm(hidden_dim)
-        self.fc3 = LazyLinear(
-            output_dim
-        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -134,7 +74,7 @@ class Critic(nn.Module):
     tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
     """
 
-    def __init__(self, hidden_dim: int):
+    def __init__(self, hidden_dim: int, input_dim: Optional[int] = None):
         """
         Constructor.
 
@@ -144,15 +84,22 @@ class Critic(nn.Module):
             Hidden dimension.
         """
         super().__init__()
-        self.fc1 = LazyLinear(
-            hidden_dim
-        )
+        use_lazy = hasattr(nn, "LazyLinear") and input_dim is None
+        if input_dim is None and not use_lazy:
+            raise ValueError(
+                "input_dim must be provided when torch.nn.LazyLinear is unavailable."
+            )
+        if use_lazy:
+            self.fc1 = nn.LazyLinear(hidden_dim)  # pyright: ignore[reportAttributeAccessIssue]
+            self.fc2 = nn.LazyLinear(hidden_dim)  # pyright: ignore[reportAttributeAccessIssue]
+            self.fc3 = nn.LazyLinear(1)  # pyright: ignore[reportAttributeAccessIssue]
+        else:
+            assert input_dim is not None
+            self.fc1 = nn.Linear(input_dim, hidden_dim)
+            self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+            self.fc3 = nn.Linear(hidden_dim, 1)
         self.ln1 = nn.LayerNorm(hidden_dim)
-        self.fc2 = LazyLinear(
-            hidden_dim
-        )
         self.ln2 = nn.LayerNorm(hidden_dim)
-        self.fc3 = LazyLinear(1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -371,7 +318,7 @@ def get_optimizer(
     )
 
 
-def get_actor(hidden_dim: int, output_dim: int) -> nn.Module:
+def get_actor(hidden_dim: int, output_dim: int, input_dim: Optional[int] = None) -> nn.Module:
     """
     Constructs the actor network.
 
@@ -386,10 +333,10 @@ def get_actor(hidden_dim: int, output_dim: int) -> nn.Module:
     -------
     Actor network.
     """
-    return Actor(hidden_dim=hidden_dim, output_dim=output_dim)
+    return Actor(hidden_dim=hidden_dim, output_dim=output_dim, input_dim=input_dim)
 
 
-def get_critic(hidden_dim: int) -> nn.Module:
+def get_critic(hidden_dim: int, input_dim: Optional[int] = None) -> nn.Module:
     """
     Constructs the critic network.
 
@@ -402,7 +349,7 @@ def get_critic(hidden_dim: int) -> nn.Module:
     -------
     Critic network.
     """
-    return Critic(hidden_dim=hidden_dim)
+    return Critic(hidden_dim=hidden_dim, input_dim=input_dim)
 
 
 def sparsity_loss(X_hat_cf: torch.Tensor, X: torch.Tensor) -> Dict[str, torch.Tensor]:

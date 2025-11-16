@@ -528,18 +528,32 @@ class CounterfactualRL:
             }
         )
 
-        # Add actor if not user-specified.
+        # For torch < 1.8, actor_input_dim is needed
+        actor_input_dim = kwargs.get("actor_input_dim", None)
+        critic_input_dim = kwargs.get("critic_input_dim", None)
+        # Track in params so they are treated as known keys
+        params["actor_input_dim"] = actor_input_dim
+        params["critic_input_dim"] = critic_input_dim
+
+        # Add actor if not user-specified
         not_specified = {"actor": False, "critic": False}
         if "actor" not in kwargs:
+            if actor_input_dim is None and critic_input_dim is not None:
+                actor_input_dim = critic_input_dim - params["latent_dim"]
             not_specified["actor"] = True
             params["actor"] = self.backend.get_actor(
-                hidden_dim=params["actor_hidden_dim"], output_dim=params["latent_dim"]
+                hidden_dim=params["actor_hidden_dim"],
+                output_dim=params["latent_dim"],
+                input_dim=actor_input_dim,
             )
 
         if "critic" not in kwargs:
+            if actor_input_dim is not None and critic_input_dim is None:
+                critic_input_dim = actor_input_dim + params["latent_dim"]
             not_specified["critic"] = True
             params["critic"] = self.backend.get_critic(
-                hidden_dim=params["critic_hidden_dim"]
+                hidden_dim=params["critic_hidden_dim"],
+                input_dim=critic_input_dim,
             )
 
         # Add optimizers if not user-specified.

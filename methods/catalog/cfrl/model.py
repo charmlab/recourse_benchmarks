@@ -1,5 +1,5 @@
-from __future__ import annotations
 from dataclasses import dataclass
+import math
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -7,6 +7,7 @@ import pandas as pd
 import torch
 from torch import nn, optim
 import torch.nn.functional as F
+from tqdm import tqdm
 
 from data.catalog.loadData import loadDataset
 from methods.api import RecourseMethod
@@ -14,8 +15,9 @@ from methods.processing import merge_default_parameters
 from models.api import MLModel
 from tools.log import log
 
+from .cfrl_backend import set_seed
 from .cfrl_tabular import CounterfactualRLTabular as CFRLExplainer
-from .cfrl_tabular import get_he_preprocessor
+from .cfrl_tabular import get_conditional_dim, get_he_preprocessor
 
 
 class HeterogeneousEncoder(nn.Module):
@@ -106,12 +108,14 @@ class CFRL(RecourseMethod):
     -----
     - Hyperparams
 
-        * ``latent_dim``: :class:`int`, default ``15`` \
+        * ``autoencoder_latent_dim``: :class:`int`, default ``15`` \
           Latent dimension of the auto-encoder.
-        * ``encoder_hidden_dim``: :class:`int`, default ``128`` \
+        * ``autoencoder_hidden_dim``: :class:`int`, default ``128`` \
           Hidden dimension of encoder/decoder.
-        * ``autoencoder_epochs``: :class:`int`, default ``50`` \
-          Number of training epochs for the auto-encoder.
+        * ``autoencoder_epochs``: :class:`int`, default ``100000`` \
+          Training budget for the auto-encoder. Values larger than one epoch's
+          minibatch count are interpreted as a target number of optimiser steps;
+          smaller values behave as literal epochs for backward compatibility.
         * ``autoencoder_batch_size``: :class:`int`, default ``128`` \
           Batch size used when training the auto-encoder.
         * ``autoencoder_lr``: :class:`float`, default ``1e-3`` \
@@ -120,16 +124,16 @@ class CFRL(RecourseMethod):
           Sparsity loss coefficient for the CFRL explainer.
         * ``coeff_consistency``: :class:`float`, default ``0.5`` \
           Consistency loss coefficient for the CFRL explainer.
-        * ``train_steps``: :class:`int`, default ``10000`` \
+        * ``train_steps``: :class:`int`, default ``100000`` \
           Number of reinforcement learning optimisation steps.
-        * ``batch_size``: :class:`int`, default ``100`` \
+        * ``batch_size``: :class:`int`, default ``128`` \
           Batch size used by the CFRL explainer.
         * ``seed``: :class:`int`, default ``0`` \
           Seed forwarded to the CFRL explainer.
         * ``immutable_features``: :class:`List[str]`, optional \
           Override list of immutable features (long names). \
           Defaults to dataset metadata when available.
-        * ``ranges``: :class:`Dict[str, List[float]]`, optional \
+        * ``constrained_ranges``: :class:`Dict[str, List[float]]`, optional \
           Override numeric ranges (long names) passed to CFRL.
         * ``train``: :class:`bool`, default ``True`` \
           Train explainer automatically after construction.
@@ -139,21 +143,21 @@ class CFRL(RecourseMethod):
     """
 
     _DEFAULT_HYPERPARAMS: Dict[str, object] = {
-        "latent_dim": 15,
-        "encoder_hidden_dim": 128,
-        "autoencoder_epochs": 50,
+        "autoencoder_latent_dim": 15,
+        "autoencoder_hidden_dim": 128,
+        "autoencoder_epochs": 100000,
         "autoencoder_batch_size": 128,
         "autoencoder_lr": 1e-3,
         "coeff_sparsity": 0.5,
         "coeff_consistency": 0.5,
-        "train_steps": 10000,
-        "batch_size": 100,
+        "train_steps": 100000,
+        "batch_size": 128,
         "seed": 0,
         "immutable_features": "_optional_",
-        "ranges": "_optional_",
+        "constrained_ranges": "_optional_",
         "train": True,
     }
-    _OPTIONAL_HYPERPARAMS = {"immutable_features", "ranges"}
+    _OPTIONAL_HYPERPARAMS = {"immutable_features", "constrained_ranges"}
 
     def __init__(self, mlmodel: MLModel, hyperparams: Optional[Dict] = None) -> None:
         supported_backends = {"pytorch"}
@@ -169,8 +173,36 @@ class CFRL(RecourseMethod):
             if self._params[key] == "_optional_":
                 self._params[key] = None
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # pyright: ignore[reportAttributeAccessIssue]
+        set_seed(self._params["seed"])
 
         self._metadata = self._prepare_metadata()
+        self._feature_count = len(self._metadata.feature_names)
+        self._raw_feature_set = set(self._metadata.feature_names)
+        self._short_feature_names = [
+            self._metadata.long_to_short[name] for name in self._metadata.feature_names
+        ]
+        self._lower_bounds = np.array(
+            [self._metadata.attr_bounds[name][0] for name in self._metadata.feature_names],
+            dtype=np.float32,
+        )
+        self._upper_bounds = np.array(
+            [self._metadata.attr_bounds[name][1] for name in self._metadata.feature_names],
+            dtype=np.float32,
+        )
+        self._encoded_cat_columns: Dict[int, List[str]] = {}
+        self._categorical_sizes: Dict[int, int] = {}
+        for idx, long_name in enumerate(self._metadata.feature_names):
+            attr_type = self._metadata.attr_types[long_name]
+            if attr_type in {"numeric-int", "numeric-real", "binary"}:
+                continue
+            categories = self._metadata.category_map.get(idx, [])
+            self._categorical_sizes[idx] = len(categories)
+            short_name = self._metadata.long_to_short[long_name]
+            if "ordinal" in attr_type:
+                cols = [f"{short_name}_ord_{i}" for i in range(len(categories))]
+            else:
+                cols = [f"{short_name}_cat_{i}" for i in range(len(categories))]
+            self._encoded_cat_columns[idx] = cols
 
         self._encoder: Optional[HeterogeneousEncoder] = None
         self._decoder: Optional[HeterogeneousDecoder] = None
@@ -253,141 +285,110 @@ class CFRL(RecourseMethod):
     # --------------------------------------------------------------------- #
     # Helper conversions between representations                            #
     # --------------------------------------------------------------------- #
-    def _raw_df_to_zero_array(self, df_raw: pd.DataFrame) -> np.ndarray:
-        arr = df_raw[self._metadata.feature_names].to_numpy(dtype=np.float32, copy=True)  # pyright: ignore[reportOptionalMemberAccess]
-        for col_idx in self._metadata.categorical_indices:
-            name = self._metadata.feature_names[col_idx]
-            mapping = self._metadata.raw_to_idx[name]
-            raw_values = df_raw[name].round().astype(int).to_numpy()  # pyright: ignore[reportOptionalMemberAccess]
-            arr[:, col_idx] = np.vectorize(mapping.__getitem__)(raw_values)  # pyright: ignore[reportIndexIssue]
-        return arr
+    def _ordered_to_cfrl(self, frame: pd.DataFrame) -> np.ndarray:
+        """
+        Collapse the benchmark's ordered/normalized dataframe (or a raw dataframe with
+        long feature names) into CFRL's integer-coded representation using vectorised
+        numpy operations to minimise CPU overhead.
+        """
+        if self._raw_feature_set.issubset(frame.columns):
+            raw_df = frame[self._metadata.feature_names]
+            num_rows = raw_df.shape[0]  # pyright: ignore[reportOptionalMemberAccess]
+            arr = np.zeros((num_rows, self._feature_count), dtype=np.float32)
 
-    def _zero_array_to_raw_df(self, arr_zero: np.ndarray) -> pd.DataFrame:
-        arr = np.asarray(arr_zero, dtype=np.float32).copy()  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
-        for col_idx in self._metadata.categorical_indices:
-            name = self._metadata.feature_names[col_idx]
-            mapping = self._metadata.idx_to_raw[name]
-            values = np.clip(
-                np.round(arr[:, col_idx]).astype(int),
-                0,
-                len(mapping) - 1,
-            )
-            arr[:, col_idx] = np.vectorize(mapping.__getitem__)(values)
+            for idx, name in enumerate(self._metadata.feature_names):
+                col = raw_df[name].to_numpy()  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess]
+                if idx in self._metadata.categorical_indices:
+                    mapping = self._metadata.raw_to_idx[name]
+                    raw_vals = np.rint(col).astype(int, copy=False)  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+                    arr[:, idx] = np.vectorize(lambda v: mapping.get(int(v), 0))(raw_vals)  # pyright: ignore[reportGeneralTypeIssues]
+                else:
+                    arr[:, idx] = col.astype(np.float32, copy=False)  # pyright: ignore[reportAttributeAccessIssue]
+            return arr
 
-        df = pd.DataFrame(arr, columns=self._metadata.feature_names)
-        for name, dtype in self._metadata.feature_types.items():
-            df[name] = df[name].astype(dtype)  # pyright: ignore[reportOptionalMemberAccess]
-        return df
-
-    def _model_input_to_raw_df(self, ordered: pd.DataFrame) -> pd.DataFrame:
-        ordered = ordered.copy()
-        ordered = ordered.reindex(
+        ordered = frame.reindex(
             columns=self._mlmodel.feature_input_order, fill_value=0.0
         )
+        num_rows = ordered.shape[0]
+        arr = np.zeros((num_rows, self._feature_count), dtype=np.float32)
 
-        data: Dict[str, np.ndarray] = {}
         for idx, long_name in enumerate(self._metadata.feature_names):
-            short_name = self._metadata.long_to_short[long_name]
             attr_type = self._metadata.attr_types[long_name]
-            lower, upper = self._metadata.attr_bounds[long_name]
+            short_name = self._metadata.long_to_short[long_name]
 
             if attr_type in {"numeric-int", "numeric-real", "binary"}:
-                values = ordered[short_name].to_numpy(dtype=np.float32)  # pyright: ignore[reportOptionalMemberAccess]
-                values = values * (upper - lower) + lower  # pyright: ignore[reportOperatorIssue]
+                values = ordered[short_name].to_numpy(dtype=np.float32, copy=False)
+                lower, upper = self._metadata.attr_bounds[long_name]
+                raw_vals = values * (upper - lower) + lower
                 if attr_type in {"numeric-int", "binary"}:
-                    values = np.rint(values).astype(int)  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
-                data[long_name] = values
+                    raw_vals = np.rint(raw_vals)  # pyright: ignore[reportCallIssue]
+                arr[:, idx] = raw_vals.astype(np.float32, copy=False)  # pyright: ignore[reportAttributeAccessIssue]
                 continue
 
-            categories = self._metadata.category_map.get(idx, [])
-            if not categories:
-                raise KeyError(f"Missing category map for feature {long_name}")
+            columns = self._encoded_cat_columns.get(idx)
+            if not columns:
+                raise KeyError(f"Missing encoded columns for feature {long_name}")
 
-            raw_to_idx = self._metadata.raw_to_idx[long_name]
-            n_categories = len(categories)
-
+            block = ordered[columns].to_numpy(dtype=np.float32, copy=False)
             if "ordinal" in attr_type:
-                cols = [f"{short_name}_ord_{i}" for i in range(n_categories)]
-                thermo = ordered[cols].to_numpy(dtype=np.float32)  # pyright: ignore[reportOptionalMemberAccess]
-                idxs = (thermo > 0.5).astype(np.int32).sum(axis=1) - 1  # pyright: ignore[reportOperatorIssue]
+                idxs = (block > 0.5).astype(np.int32).sum(axis=1) - 1
             else:
-                cols = [f"{short_name}_cat_{i}" for i in range(n_categories)]
-                one_hot = ordered[cols].to_numpy(dtype=np.float32)  # pyright: ignore[reportOptionalMemberAccess]
-                idxs = np.argmax(one_hot, axis=1)
+                idxs = np.argmax(block, axis=1)
+            n_categories = self._categorical_sizes[idx]
+            arr[:, idx] = np.clip(idxs, 0, n_categories - 1)
 
-            idxs = np.clip(idxs.astype(int), 0, n_categories - 1)
-            raw_vals = np.array([
-                self._metadata.idx_to_raw[long_name][int(i)] for i in idxs
-            ])
-            data[long_name] = raw_vals
+        return arr
 
-        df = pd.DataFrame(data, columns=self._metadata.feature_names)
-        for name, dtype in self._metadata.feature_types.items():
-            df[name] = df[name].astype(dtype)  # pyright: ignore[reportOptionalMemberAccess]
-        return df
-
-    def _normalize_df(self, df_raw: pd.DataFrame) -> pd.DataFrame:
-        df = df_raw.copy()
-        for name in self._metadata.feature_names:
-            lower, upper = self._metadata.attr_bounds[name]
-            if np.isclose(upper, lower):
-                df[name] = 0.0
-                continue
-            df[name] = (df[name] - lower) / (upper - lower)  # pyright: ignore[reportOperatorIssue]
-            df[name] = df[name].clip(0.0, 1.0)  # pyright: ignore[reportOptionalMemberAccess]
-        return df
-
-    def _denormalize_df(self, df_norm: pd.DataFrame) -> pd.DataFrame:
-        df = df_norm.copy()
-        for name in self._metadata.feature_names:
-            lower, upper = self._metadata.attr_bounds[name]
-            df[name] = df[name] * (upper - lower) + lower  # pyright: ignore[reportOperatorIssue]
-            if name in self._metadata.raw_to_idx:
-                df[name] = df[name].round().clip(lower, upper)  # pyright: ignore[reportOptionalMemberAccess]
-        return df
-
-    def _to_model_input(
-        self, df_raw: pd.DataFrame, df_norm_short: pd.DataFrame
-    ) -> pd.DataFrame:
-        frames: List[pd.DataFrame] = []
-        num_rows = df_raw.shape[0]
+    def _cfrl_to_ordered(self, arr_zero: np.ndarray) -> pd.DataFrame:
+        """
+        Reverse of :meth:`_ordered_to_cfrl` with vectorised numpy logic to reduce
+        per-call overhead during RL training.
+        """
+        arr = np.atleast_2d(arr_zero).astype(np.float32, copy=False)  # pyright: ignore[reportAttributeAccessIssue]
+        num_rows = arr.shape[0]
+        blocks: List[np.ndarray] = []
+        columns: List[str] = []
 
         for idx, long_name in enumerate(self._metadata.feature_names):
-            short_name = self._metadata.long_to_short[long_name]
             attr_type = self._metadata.attr_types[long_name]
+            short_name = self._metadata.long_to_short[long_name]
 
             if attr_type in {"numeric-int", "numeric-real", "binary"}:
-                frames.append(
-                    pd.DataFrame(
-                        {short_name: df_norm_short[short_name].to_numpy(dtype=np.float32)}  # pyright: ignore[reportOptionalMemberAccess]
-                    )
-                )
+                lower, upper = self._metadata.attr_bounds[long_name]
+                diff = upper - lower
+                if np.isclose(diff, 0.0):
+                    norm_vals = np.zeros(num_rows, dtype=np.float32)
+                else:
+                    norm_vals = (arr[:, idx] - lower) / diff
+                norm_vals = norm_vals.clip(0.0, 1.0)
+                blocks.append(norm_vals.reshape(-1, 1))
+                columns.append(short_name)
                 continue
 
-            categories = self._metadata.category_map.get(idx, [])
-            if not categories:
+            n_categories = self._categorical_sizes.get(idx, 0)
+            if n_categories == 0:
                 continue
 
-            raw_to_idx = self._metadata.raw_to_idx[long_name]
-            raw_vals = df_raw[long_name].round().astype(int).to_numpy()  # pyright: ignore[reportOptionalMemberAccess]
-            mapped_idx = np.array([raw_to_idx.get(val, 0) for val in raw_vals], dtype=int)  # pyright: ignore[reportGeneralTypeIssues]
-            n_categories = len(categories)
-
+            idxs = np.clip(
+                np.rint(arr[:, idx]).astype(int, copy=False), 0, n_categories - 1  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+            )
             if "ordinal" in attr_type:
-                block = (np.arange(n_categories) <= mapped_idx[:, None]).astype(np.float32)
-                columns = [f"{short_name}_ord_{i}" for i in range(n_categories)]
+                block = (np.arange(n_categories) <= idxs[:, None]).astype(np.float32)
             else:
                 block = np.zeros((num_rows, n_categories), dtype=np.float32)
-                block[np.arange(num_rows), mapped_idx] = 1.0
-                columns = [f"{short_name}_cat_{i}" for i in range(n_categories)]
+                block[np.arange(num_rows), idxs] = 1.0
 
-            frames.append(pd.DataFrame(block, columns=columns))
+            blocks.append(block)
+            columns.extend(self._encoded_cat_columns[idx])
 
-        if frames:
-            model_df = pd.concat(frames, axis=1)
+        if blocks:
+            data = np.concatenate(blocks, axis=1).astype(np.float32, copy=False)  # pyright: ignore[reportAttributeAccessIssue]
+            model_df = pd.DataFrame(data, columns=columns)
         else:
             model_df = pd.DataFrame(
-                np.zeros((num_rows, len(self._mlmodel.feature_input_order)), dtype=np.float32),
+                np.zeros(
+                    (num_rows, len(self._mlmodel.feature_input_order)), dtype=np.float32
+                ),
                 columns=self._mlmodel.feature_input_order,
             )
 
@@ -402,11 +403,7 @@ class CFRL(RecourseMethod):
     def _build_predictor(self):
         def predictor(x: np.ndarray) -> np.ndarray:
             array = np.atleast_2d(x)
-            df_zero = pd.DataFrame(array, columns=self._metadata.feature_names)
-            df_raw = self._zero_array_to_raw_df(df_zero.to_numpy())
-            df_norm = self._normalize_df(df_raw)
-            df_norm_short = df_norm.rename(columns=self._metadata.long_to_short)
-            model_input = self._to_model_input(df_raw, df_norm_short)
+            model_input = self._cfrl_to_ordered(array)
             preds = self._mlmodel.predict_proba(model_input)
             if isinstance(preds, torch.Tensor):
                 preds = preds.detach().cpu().numpy()
@@ -415,7 +412,7 @@ class CFRL(RecourseMethod):
         return predictor
 
     def _train_autoencoder(self, X_pre: np.ndarray, X_zero: np.ndarray) -> None:
-        epochs = int(self._params["autoencoder_epochs"])
+        train_budget = int(self._params["autoencoder_epochs"])
         batch_size = int(self._params["autoencoder_batch_size"])
         lr = float(self._params["autoencoder_lr"])
 
@@ -444,45 +441,70 @@ class CFRL(RecourseMethod):
         optimiser = optim.Adam(params, lr=lr)
 
         num_samples = inputs.size(0)
-        for epoch in range(epochs):
-            perm = torch.randperm(num_samples, device=self._device)
-            epoch_loss = 0.0
+        if train_budget <= 0:
+            raise ValueError("autoencoder_epochs must be a positive integer.")
+        steps_per_epoch = max(1, math.ceil(num_samples / batch_size))
+        interpret_as_steps = train_budget > steps_per_epoch
+        if interpret_as_steps:
+            target_steps = train_budget
+        else:
+            target_steps = train_budget * steps_per_epoch
 
-            for start in range(0, num_samples, batch_size):
-                idx = perm[start : start + batch_size]
-                batch_x = inputs[idx]
-                outputs = self._decoder(self._encoder(batch_x))  # pyright: ignore[reportOptionalCall]
+        max_epochs = math.ceil(target_steps / steps_per_epoch)
+        steps_run = 0
 
-                loss = torch.zeros((), device=self._device)
+        with tqdm(total=target_steps, desc="AE steps", leave=False) as pbar:
+            for epoch in range(max_epochs):
+                perm = torch.randperm(num_samples, device=self._device)
+                epoch_loss = 0.0
+                steps_this_epoch = 0
 
-                output_offset = 0
-                if num_dim > 0 and num_targets is not None:
-                    recon_num = outputs[0]
-                    target_num = num_targets[idx]
-                    loss = loss + F.mse_loss(recon_num, target_num)
-                    output_offset = 1
+                for start in range(0, num_samples, batch_size):
+                    idx = perm[start : start + batch_size]
+                    batch_x = inputs[idx]
+                    outputs = self._decoder(self._encoder(batch_x))  # pyright: ignore[reportOptionalCall]
 
-                cat_outputs = outputs[output_offset:]
-                cat_batches = [target[idx] for target in cat_targets]
+                    loss = torch.zeros((), device=self._device)
 
-                if cat_outputs and cat_batches:
-                    weight = 1.0 / len(cat_outputs)
-                    for logits, target in zip(cat_outputs, cat_batches):
-                        loss = loss + weight * F.cross_entropy(logits, target)
+                    output_offset = 0
+                    if num_dim > 0 and num_targets is not None:
+                        recon_num = outputs[0]
+                        target_num = num_targets[idx]
+                        loss = loss + F.mse_loss(recon_num, target_num)
+                        output_offset = 1
 
-                optimiser.zero_grad()
-                loss.backward()
-                optimiser.step()
+                    cat_outputs = outputs[output_offset:]
+                    cat_batches = [target[idx] for target in cat_targets]
 
-                epoch_loss += loss.item()
+                    if cat_outputs and cat_batches:
+                        weight = 1.0 / len(cat_outputs)
+                        for logits, target in zip(cat_outputs, cat_batches):
+                            loss = loss + weight * F.cross_entropy(logits, target)
 
-            if epochs <= 10 or (epoch + 1) % max(1, epochs // 5) == 0:
-                log.info(
-                    "CFRL autoencoder epoch %s/%s | loss %.4f",
-                    epoch + 1,
-                    epochs,
-                    epoch_loss / max(1, num_samples // batch_size),
-                )
+                    optimiser.zero_grad()
+                    loss.backward()
+                    optimiser.step()
+
+                    epoch_loss += loss.item()
+                    steps_run += 1
+                    steps_this_epoch += 1
+                    pbar.update(1)
+
+                    if steps_run >= target_steps:
+                        break
+
+                if max_epochs <= 10 or (epoch + 1) % max(1, max_epochs // 5) == 0 or steps_run >= target_steps:
+                    log.info(
+                        "CFRL autoencoder epoch %s/%s (~%s/%s steps) | loss %.4f",
+                        epoch + 1,
+                        max_epochs,
+                        steps_run,
+                        target_steps,
+                        epoch_loss / max(1, steps_this_epoch),
+                    )
+
+                if steps_run >= target_steps:
+                    break
 
         self._encoder.eval()  # pyright: ignore[reportOptionalMemberAccess]
         self._decoder.eval()  # pyright: ignore[reportOptionalMemberAccess]
@@ -491,17 +513,15 @@ class CFRL(RecourseMethod):
     # Public API                                                            #
     # --------------------------------------------------------------------- #
     def train(self) -> None:  # noqa: D401
-        dataset_name = getattr(self._mlmodel.data, "name", None)
+        data_obj = getattr(self._mlmodel, "data", None)
+        if data_obj is None or not hasattr(data_obj, "df_train"):
+            raise ValueError("ML model data object must expose a df_train attribute.")
+        df_train = data_obj.df_train
+        target_name = getattr(data_obj, "target", None)
+        if target_name and target_name in df_train.columns:
+            df_train = df_train.drop(columns=[target_name])
 
-        dataset = loadDataset(
-            dataset_name,
-            return_one_hot=False,
-            load_from_cache=True,
-            debug_flag=False,
-        )
-        df_raw = dataset.data_frame_long[self._metadata.feature_names].copy()
-
-        X_zero = self._raw_df_to_zero_array(df_raw).astype(np.float32)
+        X_zero = self._ordered_to_cfrl(df_train).astype(np.float32)
         self._encoder_preprocessor, self._decoder_inv_preprocessor = get_he_preprocessor(
             X=X_zero,
             feature_names=self._metadata.feature_names,
@@ -510,8 +530,8 @@ class CFRL(RecourseMethod):
         )
 
         X_pre = self._encoder_preprocessor(X_zero).astype(np.float32)
-        latent_dim = int(self._params["latent_dim"])
-        hidden_dim = int(self._params["encoder_hidden_dim"])
+        latent_dim = int(self._params["autoencoder_latent_dim"])
+        hidden_dim = int(self._params["autoencoder_hidden_dim"])
 
         input_dim = X_pre.shape[1]
         self._encoder = HeterogeneousEncoder(
@@ -552,11 +572,17 @@ class CFRL(RecourseMethod):
                 for name in immutable_features
             ]
 
-        ranges = self._params.get("ranges") or {}
+        ranges = self._params.get("constrained_ranges") or {}
         ranges_long = {
             self._metadata.short_to_long.get(name, name): bounds
             for name, bounds in ranges.items()
         }
+
+        # Compute explicit actor/critic input dimensions.
+        preds_shape = predictor(X_zero[:1]).shape  # type: ignore[reportOptionalOperand]
+        num_classes = preds_shape[1] if len(preds_shape) == 2 else 1
+        cond_dim = get_conditional_dim(self._metadata.feature_names, self._metadata.category_map)
+        actor_input_dim = latent_dim + 2 * num_classes + cond_dim
 
         log.info("Training CFRL explainer (train_steps=%s).", self._params["train_steps"])
         self._cf_model = CFRLExplainer(
@@ -575,14 +601,14 @@ class CFRL(RecourseMethod):
             train_steps=int(self._params["train_steps"]),
             batch_size=int(self._params["batch_size"]),
             seed=int(self._params["seed"]),
+            actor_input_dim=actor_input_dim,
         )
         self._cf_model.fit(X_zero.astype(np.float32))
         self._trained = True
 
     def _generate_counterfactual(self, factual_row: pd.DataFrame) -> pd.DataFrame:
         factual_ordered = self._mlmodel.get_ordered_features(factual_row)
-        raw_df = self._model_input_to_raw_df(factual_ordered)
-        zero_input = self._raw_df_to_zero_array(raw_df)
+        zero_input = self._ordered_to_cfrl(factual_ordered)
 
         preds = self._mlmodel.predict_proba(factual_ordered)
         if isinstance(preds, torch.Tensor):
@@ -592,7 +618,7 @@ class CFRL(RecourseMethod):
         explanation = self._cf_model.explain(  # pyright: ignore[reportOptionalMemberAccess]
             X=zero_input.astype(np.float32),
             Y_t=np.array([target_class]),
-            C=[{}],
+            C=[],
         )
         cf_data = explanation.get("cf", {}).get("X")
         if cf_data is None:
@@ -604,10 +630,7 @@ class CFRL(RecourseMethod):
             cf_array = cf_array[:, 0, :]  # pyright: ignore[reportIndexIssue]
         cf_array = np.atleast_2d(cf_array)
 
-        cf_raw = self._zero_array_to_raw_df(cf_array)
-        cf_norm = self._normalize_df(cf_raw)
-        cf_norm_short = cf_norm.rename(columns=self._metadata.long_to_short)
-        cf_ordered = self._to_model_input(cf_raw, cf_norm_short)
+        cf_ordered = self._cfrl_to_ordered(cf_array)
         cf_ordered.index = factual_ordered.index
         return cf_ordered
 
