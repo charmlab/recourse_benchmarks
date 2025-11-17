@@ -1,7 +1,8 @@
 from typing import Dict, Optional, Tuple
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
+import torch
+# from sklearn.linear_model import LogisticRegression
 from methods.api.recourse_method import RecourseMethod
 from methods.catalog.larr.library.larr import LARRecourse
 from methods.processing.counterfactuals import check_counterfactuals, merge_default_parameters
@@ -44,15 +45,10 @@ class Larr(RecourseMethod):
     """
     _DEFAULT_HYPERPARAMS = {
         "feature_cost": "_optional_",
-        "lr": 0.01,
         "alpha": 0.5,
-        "norm": 1,
-        "lambda_": None,
         "loss_type": "BCE",
-        "y_target": [0, 1],
         "lime_seed": 0,
-        "binary_cat_features": True,
-        
+        "beta": 0.5,
     }
 
     def __init__(self, 
@@ -72,15 +68,9 @@ class Larr(RecourseMethod):
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
 
-        self.feature_cost = checked_hyperparams["feature_cost"]
-        self.lr = checked_hyperparams["lr"]
         self.alpha = checked_hyperparams["alpha"]
-        self.norm = checked_hyperparams["norm"]
-        self.lambda_ = checked_hyperparams["labmda_"]
-        self.loss_type = checked_hyperparams["loss_type"]
-        self.y_target = checked_hyperparams["y_target"]
         self.lime_seed = checked_hyperparams["lime_seed"]
-        self.binary_cat_features = checked_hyperparams["binary_cat_features"]
+        self.beta = checked_hyperparams["beta"]
 
         self.method = LARRecourse(weights=self._coeffs, 
                                   bias=self._intercepts, 
@@ -126,7 +116,7 @@ class Larr(RecourseMethod):
                 factual,
                 self._mlmodel.predict_proba,
                 num_features=len(self._mlmodel.feature_input_order),
-                model_regressor=LogisticRegression(),
+                # model_regressor=LogisticRegression(),
             )
             intercepts.append(explanations.intercept[1])
 
@@ -137,7 +127,10 @@ class Larr(RecourseMethod):
 
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
+        factuals = factuals.reset_index()
         factuals = self._mlmodel.get_ordered_features(factuals)
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         encoded_feature_names = self._mlmodel.data.categorical
         cat_features_indices = [
@@ -181,14 +174,24 @@ class Larr(RecourseMethod):
             elif self._mlmodel.model_type == "mlp":
                 coeffs, intercepts = self._get_lime_coefficients(factuals)
 
-
         # we now need to find the optimal Lambda value
+        # print(self._data.df_train.head())
+        
+        df_train_processed = self._data.df_train[self._mlmodel.feature_input_order]
 
-        recourse_needed_X_train = self._data.df_train.values[np.where(self._mlmodel.raw_model.predict_fn(self._data.df_train.values) == 0)]
+        # X_train_t = torch.from_numpy(df_train_processed.values).float().to(device)
 
-        # first choose the optmial lambda value
-        if self.lambda_ == None:
-            self.method.choose_lambda(recourse_needed_X_train, self._mlmodel.raw_model.predict_fn, self._data.df_train.values)
+        preds_gpu_probs = self._mlmodel.predict_proba(df_train_processed)
+        # preds_gpu_labels = torch.argmax(preds_gpu_probs, dim=1) # since the models use softmax, we need argmax to see which class was predicted
+        # preds_cpu_labels = preds_gpu_labels.cpu().numpy()
+
+        # print(X_train_t[:5])
+
+        # recourse_needed_X_train = df_train_processed[np.where(preds_gpu_probs == 0)]
+        recourse_needed_X_train = df_train_processed.values[:5]
+
+        # first choose the optimal lambda value
+        self.method.choose_lambda(recourse_needed_X_train, self._mlmodel.predict_proba, df_train_processed.values) # self._data.df_train.values)
 
         cfs = []
         for index, row in factuals.iterrows():
@@ -196,10 +199,11 @@ class Larr(RecourseMethod):
             intercept = intercepts[index]
 
             cf = self.method.run_method(
-                self._mlmodel.raw_model,
+                # self._mlmodel.raw_model,
                 row.to_numpy().reshape((1, -1)),
                 coeff,
                 intercept,
+                self.beta,
             )
             cfs.append(cf)
 

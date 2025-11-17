@@ -11,10 +11,12 @@ from sklearn.linear_model import LogisticRegression
 import torch
 import tqdm
 
+def l1_cost(x1, x2):
+    return np.linalg.norm(x1-x2, 1, -1)
 
 class RecourseCost:
 
-    def __init__(self, x_0, lamb, cost_fn):
+    def __init__(self, x_0, lamb, cost_fn: Callable = l1_cost):
         """
         - x_0: The original input vector (the one we want to change).
         
@@ -159,7 +161,7 @@ class LARRecourse:
                 weights[i] = self.weights[i] - (self.alpha * np.sign(x_0[i]))
             else:
                 if np.abs(self.weights[i]) > self.alpha:
-                    weights[i] = self.weights - (self.alpha * np.sign(self.weights[i]))
+                    weights[i] = self.weights[i] - (self.alpha * np.sign(self.weights[i]))
                 else:
                     imm_features.append(i)
 
@@ -187,6 +189,7 @@ class LARRecourse:
     
     def get_consistent_recourse(self,  x_0: np.ndarray, theta_p: Tuple[np.ndarray, np.ndarray]):
         x = deepcopy(x_0)
+        print(theta_p)
         weights, bias = theta_p
         weights_c = np.abs(weights)
         while True:
@@ -252,16 +255,68 @@ class LARRecourse:
     
     def lime_explanation(self, predict_proba_fn: Callable, X: np.ndarray, x: np.ndarray):
         explainer = lime.lime_tabular.LimeTabularExplainer(training_data=X, mode='regression', discretize_continuous=False, feature_selection='none')
-        exp = explainer.explain_instance(x, predict_proba_fn, num_features=X.shape[1], model_regressor=LogisticRegression())
-        weights = exp.local_exp[1][0][1]
+        # print(f"num features is being set to this: {X.shape[1]}")
+        exp = explainer.explain_instance(x, predict_proba_fn, num_features=X.shape[1]) #,model_regressor=LogisticRegression())
+        weights = np.zeros(X.shape[1])
+    
+        # exp.local_exp[1] gets the explanation for class 1
+        explanation_tuples = exp.local_exp[1] 
+        
+        for feature_index, feature_weight in explanation_tuples:
+            weights[feature_index] = feature_weight
+
+        # weights = exp.local_exp[1][0][1]
         bias = exp.intercept[1]
+        # print(weights)
         return weights, bias
     
     def recourse_validity(self, predict_fn: Callable, recourses: np.ndarray, y_target: Union[float, int] = 1):
-        return sum(predict_fn(recourses) == y_target) / len(recourses)
+        recourses = np.array(recourses)
+        if recourses.shape[0] == 0:
+            return 0.0
+        
+        # 1. Get the predictions
+        preds = predict_fn(recourses)
+        
+        # 2. Convert to NumPy if it's a PyTorch tensor
+        if hasattr(preds, 'detach'):
+            preds = preds.detach().cpu().numpy()
+        
+        # 3. Check dimensions to get class labels
+        if preds.ndim == 2:
+            # CASE 1: Softmax output (shape [N, num_classes])
+            pred_labels = np.argmax(preds, axis=1)
+        else:
+            # CASE 2: Sigmoid output (shape [N,])
+            # We assume these are probabilities for class 1
+            pred_labels = (preds > 0.5).astype(int)
+
+        # 4. Calculate validity
+        return np.sum(pred_labels == y_target) / len(recourses)
 
     def recourse_expectation(self, predict_proba_fn: Callable, recourses: np.ndarray):
-        return sum(predict_proba_fn(recourses)[:,1]) / len(recourses)
+        if recourses.shape[0] == 0:
+            return 0.0
+
+        # 1. Get the predictions
+        preds = predict_proba_fn(recourses)
+        
+        # 2. Convert to NumPy if it's a PyTorch tensor
+        if hasattr(preds, 'detach'):
+            preds = preds.detach().cpu().numpy()
+            
+        # 3. Check dimensions
+        if preds.ndim == 2:
+            # CASE 1: Softmax output (shape [N, num_classes])
+            # Get the probability of class 1
+            probs_class_1 = preds[:, 1]
+        else:
+            # CASE 2: Sigmoid output (shape [N,])
+            # These are already the probabilities for class 1
+            probs_class_1 = preds
+
+        # 4. Return the mean expectation
+        return np.mean(probs_class_1)
 
     def choose_lambda(self, recourse_needed_X, predict_fn, X_train=None, predict_proba_fn=None):
         lambdas = np.arange(0.1, 1.1, 0.1).round(1)
@@ -273,10 +328,12 @@ class LARRecourse:
             recourses = []
             for xi in tqdm.trange(len(recourse_needed_X), desc=f'lambda={lamb}'):
                 x = recourse_needed_X[xi]
+                # print(x)
                 if self.weights is None and self.bias is None:
                     # set seed for lime
                     np.random.seed(xi)
                     weights, bias = self.lime_explanation(predict_fn, X_train, x)
+                    # print(f"These are the weights that the lime gets: {weights}")
                     weights, bias = np.round(weights, 4), np.round(bias, 4)
                     self.weights = weights
                     self.bias = bias
@@ -307,20 +364,22 @@ class LARRecourse:
         x: np.ndarray,
         coeff: np.ndarray,
         intercept: np.ndarray,
+        beta: float = 0.5,
     ) -> np.ndarray:
         self.weights = coeff
         self.bias = intercept
         # theta_0 = np.hstack((self.weights, self.bias))
 
         J = RecourseCost(x, self.lamb)
+        x = x[0] # this input is passed as a 2d ndarray
+        print("This is the counterfactual we are looking at ", x)
 
         # robust recourse
 
         x_r = self.get_recourse(x, beta=1.)
         weights_r, bias_r = self.calc_theta_adv(x_r)
-        theta_r = np.hstack((weights_r, bias_r))
+        theta_r = (weights_r, bias_r)
         J_r_opt = J.eval(x_r, weights_r, bias_r)
-
 
         # get predictions for future model weights
         # in the original codebase, the way they get 
@@ -368,7 +427,7 @@ class LARRecourse:
         J_c_opt = J.eval(x_c, *theta_r)
 
         # get augmented Recourse
-        beta = 0.5 # this can be tweeked to get more or less robust/consistent perhaps be made into a user defined param
+        # beta = 0.5 # this can be tweeked to get more or less robust/consistent perhaps be made into a user defined param
 
         cf = self.get_recourse(x, beta=beta, theta_p=theta_r)
         # weights_r, bias_r = self.calc_theta_adv(x)
