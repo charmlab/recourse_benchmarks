@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from data.catalog.loadData import loadDataset
 from methods.api import RecourseMethod
-from methods.processing import merge_default_parameters
+from methods.processing import merge_default_parameters, check_counterfactuals
 from models.api import MLModel
 from tools.log import log
 
@@ -513,6 +513,8 @@ class CFRL(RecourseMethod):
     # Public API                                                            #
     # --------------------------------------------------------------------- #
     def train(self) -> None:  # noqa: D401
+        set_seed(self._params["seed"])
+
         data_obj = getattr(self._mlmodel, "data", None)
         if data_obj is None or not hasattr(data_obj, "df_train"):
             raise ValueError("ML model data object must expose a df_train attribute.")
@@ -636,12 +638,16 @@ class CFRL(RecourseMethod):
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:  # noqa: D401
         assert self._trained, "Error: run train() first."
-        results: List[pd.DataFrame] = []
+        set_seed(self._params["seed"])
 
+        factuals = self._mlmodel.get_ordered_features(factuals)
+
+        results: List[pd.DataFrame] = []
         for index, row in factuals.iterrows():
             cf_row = self._generate_counterfactual(pd.DataFrame([row]))
             cf_row.index = [index]  # pyright: ignore[reportAttributeAccessIssue]
             results.append(cf_row)
 
         counterfactuals = pd.concat(results, axis=0)
+        counterfactuals = check_counterfactuals(self._mlmodel, counterfactuals, factuals.index)
         return self._mlmodel.get_ordered_features(counterfactuals)
