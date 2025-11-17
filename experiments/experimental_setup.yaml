@@ -144,16 +144,16 @@ recourse_methods:
        train: True
   cfrl:
     hyperparams:
+       seed: 0
+       autoencoder_batch_size: 128
+       autoencoder_target_steps: 100_000
+       autoencoder_lr: 1e-3
        autoencoder_latent_dim: 15
        autoencoder_hidden_dim: 128
-       autoencoder_epochs: 50
-       autoencoder_batch_size: 128
-       autoencoder_lr: 1e-3
        coeff_sparsity: 0.5
        coeff_consistency: 0.5
-       train_steps: 10000
-       batch_size: 100
-       seed: 0
+       train_steps: 100_000
+       batch_size: 128
        train: True
   probe:
     hyperparams:

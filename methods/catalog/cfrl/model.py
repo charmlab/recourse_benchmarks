@@ -108,28 +108,26 @@ class CFRL(RecourseMethod):
     -----
     - Hyperparams
 
+        * ``seed``: :class:`int`, default ``0`` \
+          Seed forwarded to the CFRL explainer.
+        * ``autoencoder_batch_size``: :class:`int`, default ``128`` \
+          Batch size used when training the auto-encoder.
+        * ``autoencoder_target_steps``: :class:`int`, default ``100_000`` \
+          Training budget for the auto-encoder expressed in optimiser steps.
+        * ``autoencoder_lr``: :class:`float`, default ``1e-3`` \
+          Learning rate for the auto-encoder optimiser.
         * ``autoencoder_latent_dim``: :class:`int`, default ``15`` \
           Latent dimension of the auto-encoder.
         * ``autoencoder_hidden_dim``: :class:`int`, default ``128`` \
           Hidden dimension of encoder/decoder.
-        * ``autoencoder_epochs``: :class:`int`, default ``100000`` \
-          Training budget for the auto-encoder. Values larger than one epoch's
-          minibatch count are interpreted as a target number of optimiser steps;
-          smaller values behave as literal epochs for backward compatibility.
-        * ``autoencoder_batch_size``: :class:`int`, default ``128`` \
-          Batch size used when training the auto-encoder.
-        * ``autoencoder_lr``: :class:`float`, default ``1e-3`` \
-          Learning rate for the auto-encoder optimiser.
         * ``coeff_sparsity``: :class:`float`, default ``0.5`` \
           Sparsity loss coefficient for the CFRL explainer.
         * ``coeff_consistency``: :class:`float`, default ``0.5`` \
           Consistency loss coefficient for the CFRL explainer.
-        * ``train_steps``: :class:`int`, default ``100000`` \
+        * ``train_steps``: :class:`int`, default ``100_000`` \
           Number of reinforcement learning optimisation steps.
         * ``batch_size``: :class:`int`, default ``128`` \
           Batch size used by the CFRL explainer.
-        * ``seed``: :class:`int`, default ``0`` \
-          Seed forwarded to the CFRL explainer.
         * ``immutable_features``: :class:`List[str]`, optional \
           Override list of immutable features (long names). \
           Defaults to dataset metadata when available.
@@ -143,16 +141,16 @@ class CFRL(RecourseMethod):
     """
 
     _DEFAULT_HYPERPARAMS: Dict[str, object] = {
+        "seed": 0,
+        "autoencoder_batch_size": 128,
+        "autoencoder_target_steps": 100_000,
+        "autoencoder_lr": 1e-3,
         "autoencoder_latent_dim": 15,
         "autoencoder_hidden_dim": 128,
-        "autoencoder_epochs": 100000,
-        "autoencoder_batch_size": 128,
-        "autoencoder_lr": 1e-3,
         "coeff_sparsity": 0.5,
         "coeff_consistency": 0.5,
-        "train_steps": 100000,
+        "train_steps": 100_000,
         "batch_size": 128,
-        "seed": 0,
         "immutable_features": "_optional_",
         "constrained_ranges": "_optional_",
         "train": True,
@@ -412,7 +410,7 @@ class CFRL(RecourseMethod):
         return predictor
 
     def _train_autoencoder(self, X_pre: np.ndarray, X_zero: np.ndarray) -> None:
-        train_budget = int(self._params["autoencoder_epochs"])
+        target_steps = int(self._params["autoencoder_target_steps"])
         batch_size = int(self._params["autoencoder_batch_size"])
         lr = float(self._params["autoencoder_lr"])
 
@@ -441,15 +439,9 @@ class CFRL(RecourseMethod):
         optimiser = optim.Adam(params, lr=lr)
 
         num_samples = inputs.size(0)
-        if train_budget <= 0:
-            raise ValueError("autoencoder_epochs must be a positive integer.")
+        if target_steps <= 0:
+            raise ValueError("autoencoder_target_steps must be a positive integer.")
         steps_per_epoch = max(1, math.ceil(num_samples / batch_size))
-        interpret_as_steps = train_budget > steps_per_epoch
-        if interpret_as_steps:
-            target_steps = train_budget
-        else:
-            target_steps = train_budget * steps_per_epoch
-
         max_epochs = math.ceil(target_steps / steps_per_epoch)
         steps_run = 0
 
