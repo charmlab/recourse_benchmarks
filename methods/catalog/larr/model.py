@@ -1,14 +1,17 @@
 from typing import Dict, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-import torch
+from lime.lime_tabular import LimeTabularExplainer
+
 # from sklearn.linear_model import LogisticRegression
 from methods.api.recourse_method import RecourseMethod
 from methods.catalog.larr.library.larr import LARRecourse
-from methods.processing.counterfactuals import check_counterfactuals, merge_default_parameters
+from methods.processing.counterfactuals import (
+    check_counterfactuals,
+    merge_default_parameters,
+)
 from models.catalog.catalog import ModelCatalog
-from lime.lime_tabular import LimeTabularExplainer
-
 
 
 class Larr(RecourseMethod):
@@ -43,6 +46,7 @@ class Larr(RecourseMethod):
 
     .. [1] Kayastha, K., Gkatzelis, V., Jabbari, S. (2025). Learning-Augmented Robust Algorithmic Recourse. Drexel University. (https://arxiv.org/pdf/2410.01580)
     """
+
     _DEFAULT_HYPERPARAMS = {
         "feature_cost": "_optional_",
         "alpha": 0.5,
@@ -51,12 +55,13 @@ class Larr(RecourseMethod):
         "beta": 0.5,
     }
 
-    def __init__(self, 
-                 mlmodel: ModelCatalog, 
-                 hyperparams: Dict,
-                 coeffs: Optional[np.ndarray] = None,
-                 intercepts: Optional[np.ndarray] = None,
-                 ):
+    def __init__(
+        self,
+        mlmodel: ModelCatalog,
+        hyperparams: Dict,
+        coeffs: Optional[np.ndarray] = None,
+        intercepts: Optional[np.ndarray] = None,
+    ):
         super().__init__(mlmodel)
 
         self._data = mlmodel.data
@@ -72,10 +77,10 @@ class Larr(RecourseMethod):
         self.lime_seed = checked_hyperparams["lime_seed"]
         self.beta = checked_hyperparams["beta"]
 
-        self.method = LARRecourse(weights=self._coeffs, 
-                                  bias=self._intercepts, 
-                                  alpha=self.alpha)
-        
+        self.method = LARRecourse(
+            weights=self._coeffs, bias=self._intercepts, alpha=self.alpha
+        )
+
     def _get_lime_coefficients(
         self, factuals: pd.DataFrame
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -107,7 +112,7 @@ class Larr(RecourseMethod):
             training_labels=lime_label,
             mode="regression",
             discretize_continuous=False,
-            feature_selection='none',
+            feature_selection="none",
         )
 
         for index, row in factuals.iterrows():
@@ -125,17 +130,16 @@ class Larr(RecourseMethod):
 
         return coeffs, np.array(intercepts)
 
-
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         factuals = factuals.reset_index()
         factuals = self._mlmodel.get_ordered_features(factuals)
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        encoded_feature_names = self._mlmodel.data.categorical
-        cat_features_indices = [
-            factuals.columns.get_loc(feature) for feature in encoded_feature_names
-        ]
+        # encoded_feature_names = self._mlmodel.data.categorical
+        # cat_features_indices = [
+        #     factuals.columns.get_loc(feature) for feature in encoded_feature_names
+        # ]
 
         coeffs = self._coeffs
         intercepts = self._intercepts
@@ -176,7 +180,7 @@ class Larr(RecourseMethod):
 
         # we now need to find the optimal Lambda value
         # print(self._data.df_train.head())
-        
+
         df_train_processed = self._data.df_train[self._mlmodel.feature_input_order]
 
         # X_train_t = torch.from_numpy(df_train_processed.values).float().to(device)
@@ -187,11 +191,15 @@ class Larr(RecourseMethod):
 
         # print(X_train_t[:5])
 
-        # recourse_needed_X_train = df_train_processed[np.where(preds_gpu_probs == 0)]
-        recourse_needed_X_train = df_train_processed.values[:5]
+        recourse_needed_X_train = df_train_processed[np.where(preds_gpu_probs == 0)]
+        # recourse_needed_X_train = df_train_processed.values[:5]
 
         # first choose the optimal lambda value
-        self.method.choose_lambda(recourse_needed_X_train, self._mlmodel.predict_proba, df_train_processed.values) # self._data.df_train.values)
+        self.method.choose_lambda(
+            recourse_needed_X_train,
+            self._mlmodel.predict_proba,
+            df_train_processed.values,
+        )  # self._data.df_train.values)
 
         cfs = []
         for index, row in factuals.iterrows():
