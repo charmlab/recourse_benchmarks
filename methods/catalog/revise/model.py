@@ -183,27 +183,35 @@ class Revise(RecourseMethod):
             candidate_distances = []
             all_loss = []
 
+            # Only round categorical features once optimization is done, to keep gradients during search.
+            round_during_search = False
+
             for idx in range(self._max_iter):
                 cf = self.vae.decode(z)
 
                 # add the immutable features to the reconstruction
                 temp = query_instance.clone()
                 temp[:, self.vae.mutable_mask] = cf
-                cf = temp
+                cf = temp  # continuous cf used for gradients
 
-                cf = reconstruct_encoding_constraints(
-                    cf, cat_features_indices, self._params["binary_cat_features"]
+                cf_for_pred = (
+                    reconstruct_encoding_constraints(
+                        cf, cat_features_indices, self._params["binary_cat_features"]
+                    )
+                    if round_during_search
+                    else cf
                 )
-                output = self._mlmodel.predict_proba(cf)[0]
+
+                output = self._mlmodel.forward(cf_for_pred)[0]
                 _, predicted = torch.max(output, 0)
 
                 z.requires_grad = True
-                loss = self._compute_loss(cf, query_instance, target)
+                loss = self._compute_loss(output, cf_for_pred, query_instance, target)
                 all_loss.append(loss)
 
                 if predicted == target_prediction:
                     candidate_counterfactuals.append(
-                        cf.cpu().detach().numpy().squeeze(axis=0)
+                        cf_for_pred.cpu().detach().numpy().squeeze(axis=0)
                     )
                     candidate_distances.append(loss.cpu().detach().numpy())
 
@@ -219,15 +227,30 @@ class Revise(RecourseMethod):
                 array_distances = np.array(candidate_distances)
 
                 index = np.argmin(array_distances)
-                list_cfs.append(array_counterfactuals[index])
+                cf_tensor = (
+                    torch.tensor(array_counterfactuals[index])
+                    .unsqueeze(0)
+                    .to(device)
+                    .float()
+                )
+                cf_tensor = reconstruct_encoding_constraints(
+                    cf_tensor,
+                    cat_features_indices,
+                    self._params["binary_cat_features"],
+                )
+                list_cfs.append(cf_tensor.cpu().detach().numpy().squeeze(axis=0))
             else:
                 log.info("No counterfactual found")
-                list_cfs.append(query_instance.cpu().detach().numpy().squeeze(axis=0))
+                cf_tensor = reconstruct_encoding_constraints(
+                    query_instance.clone(),
+                    cat_features_indices,
+                    self._params["binary_cat_features"],
+                )
+                list_cfs.append(cf_tensor.cpu().detach().numpy().squeeze(axis=0))
         return list_cfs
 
-    def _compute_loss(self, cf_initialize, query_instance, target):
+    def _compute_loss(self, output, cf_initialize, query_instance, target):
         loss_function = nn.BCELoss()
-        output = self._mlmodel.predict_proba(cf_initialize)[0]
 
         # classification loss
         loss1 = loss_function(output, target)
