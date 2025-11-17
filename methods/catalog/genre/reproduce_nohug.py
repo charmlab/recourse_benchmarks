@@ -1,12 +1,13 @@
 """
 GenRe Reproduction Script for Adult Dataset
 
-Models are automatically downloaded from HuggingFace Hub.
-https://huggingface.co/jamie250/genrereproduce
+This script reproduces the GenRe paper results using the author's trained models.
+Based on the author's genre_sampler.ipynb notebook.
 
 Usage:
     python reproduce.py --dataset adult-all --device cpu
 """
+import tqdm
 import argparse
 import os
 import sys
@@ -17,29 +18,25 @@ import numpy as np
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
 
-# Import huggingface_hub
-try:
-    from huggingface_hub import hf_hub_download
-except ImportError:
-    raise ImportError(
-        "huggingface_hub is required to download models. "
-        "Install it with: pip install huggingface-hub"
-    )
-
 # Suppress warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # Add GenRe library to path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GENRE_LIB_PATH = os.path.join(SCRIPT_DIR, 'library')
+# print(f"[DEBUG] Script dir: {SCRIPT_DIR}")
+# print(f"[DEBUG] Library path: {GENRE_LIB_PATH}")
+# print(f"[DEBUG] Library exists: {os.path.exists(GENRE_LIB_PATH)}")
+# print(f"[DEBUG] data/ exists: {os.path.exists(os.path.join(GENRE_LIB_PATH, 'data'))}")
 sys.path.insert(0, GENRE_LIB_PATH)
+
 
 # Import author's modules
 import data.utils as dutils
 import models.binnedpm as bpm
 import recourse.utils as rutils
 from recourse.genre import GenRe as GenReOriginal
-from models.classifiers.ann import BinaryClassifier
+from models.classifiers.ann import BinaryClassifier # ann
 import utils as genre_utils
 
 
@@ -60,55 +57,10 @@ def parse_args():
                        help='Number of candidates to generate')
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed')
-    parser.add_argument('--hf_repo', type=str,
-                       default='jamie250/genrereproduce',
-                       help='HuggingFace repository ID')
+    parser.add_argument('--saved_models_dir', type=str, 
+                   default=None,  # None
+                   help='Directory containing trained models')
     return parser.parse_args()
-
-
-def download_models_from_hf(hf_repo, dataset_name, cache_dir=None):
-    """Download pre-trained models from HuggingFace Hub"""
-    print(f"\n{'='*80}")
-    print(f"Downloading models from HuggingFace: {hf_repo}")
-    print(f"{'='*80}")
-    
-    if cache_dir is None:
-        cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "genre_models")
-    
-    os.makedirs(cache_dir, exist_ok=True)
-    
-    # Download files
-    try:
-        print("Downloading RF model...")
-        rf_path = hf_hub_download(
-            repo_id=hf_repo,
-            filename="rf_state.pkl",
-            cache_dir=cache_dir
-        )
-        print(f"  OK Downloaded to: {rf_path}")
-        
-        print("Downloading ANN model...")
-        ann_path = hf_hub_download(
-            repo_id=hf_repo,
-            filename="ann_state.pth",
-            cache_dir=cache_dir
-        )
-        print(f"  OK Downloaded to: {ann_path}")
-        
-        print("Downloading GenRe model...")
-        genre_path = hf_hub_download(
-            repo_id=hf_repo,
-            filename="genre_state.pth",
-            cache_dir=cache_dir
-        )
-        print(f"  OK Downloaded to: {genre_path}")
-        
-        print(f"{'='*80}\n")
-        
-        return rf_path, ann_path, genre_path
-        
-    except Exception as e:
-        raise RuntimeError(f"Failed to download models from HuggingFace: {e}")
 
 
 def load_data(dataset_name):
@@ -132,43 +84,73 @@ def load_data(dataset_name):
     return train_y, train_X, test_y, test_X, cat_mask, immutable_mask
 
 
-def load_models_hf(hf_repo, dataset_name, input_dim, device):
-    """Load pre-trained models from HuggingFace Hub"""
+def load_models(dataset_name, input_dim, device, saved_models_dir):
+    """Load pre-trained RF, ANN, and GenRe models"""
     print(f"\n{'='*80}")
-    print(f"Loading pre-trained models (HuggingFace)...")
+    print(f"Loading pre-trained models...")
     print(f"{'='*80}")
     
-    # Download models
-    rf_path, ann_path, genre_path = download_models_from_hf(hf_repo, dataset_name)
-    
-    # Load RF
+    # 1. Load Random Forest (for labels and gold evaluation)
+    rf_path = os.path.join(saved_models_dir, 'classifiers', dataset_name, 'rf_tt_mm', 'state.pkl')
     print(f"Loading RF from: {rf_path}")
+    
+    if not os.path.exists(rf_path):
+        raise FileNotFoundError(f"RF model not found: {rf_path}")
+    
     with open(rf_path, 'rb') as f:
         rf_clf = pickle.load(f)
     print(f"OK RF loaded")
     
-    # Load ANN
+    # 2. Load ANN Classifier
+    ann_dir = os.path.join(saved_models_dir, 'classifiers', dataset_name)
+    ann_folders = [f for f in os.listdir(ann_dir) if f.startswith('ann_rf')]
+    
+    if not ann_folders:
+        raise FileNotFoundError(f"No ANN model found in {ann_dir}")
+    
+    ann_path = os.path.join(ann_dir, ann_folders[0], 'state.pth')
     print(f"Loading ANN from: {ann_path}")
+    
     ann_state = torch.load(ann_path, map_location=device)
-    ann_clf = BinaryClassifier(layer_sizes=[input_dim, 10, 10, 10])
+    
+    # Reconstruct ANN (must match training config!)
+    ann_clf = BinaryClassifier(
+        layer_sizes=[input_dim, 10, 10, 10]
+    )
     ann_clf.load_state_dict(ann_state['state_dict'])
     ann_clf.to(device)
     ann_clf.eval()
     print(f"OK ANN loaded")
     
-    # Load GenRe
+    # 3. Load GenRe Transformer
+    genre_base = os.path.join(saved_models_dir, 'genre')
+    genre_folders = [f for f in os.listdir(genre_base) if f.startswith(dataset_name)]
+
+    if not genre_folders:
+        raise FileNotFoundError(f"No GenRe model found for {dataset_name} in {genre_base}")
+
+    genre_dir = os.path.join(genre_base, genre_folders[0])
+    
+    genre_state_files = [f for f in os.listdir(genre_dir) if f.startswith('state_') and f.endswith('.pth')]
+    if not genre_state_files:
+        raise FileNotFoundError(f"No state file found in {genre_dir}")
+
+    genre_path = os.path.join(genre_dir, genre_state_files[0])
     print(f"Loading GenRe from: {genre_path}")
+    
     genre_state = torch.load(genre_path, map_location=device)
+    
+    # Reconstruct GenRe Transformer (must match training config!)
     pair_model = bpm.PairedTransformerBinned(
         n_bins=50,
         num_inputs=input_dim,
         num_labels=1,
         num_encoder_layers=16,
         num_decoder_layers=16,
-        emb_size=32,
+        emb_size=32,           # From paper
         nhead=8,
-        dim_feedforward=32,
-        dropout=0.1
+        dim_feedforward=32,   # according to train_bpm.py
+        dropout=0.1            
     )
     pair_model.load_state_dict(genre_state['state_dict'])
     pair_model.to(device)
@@ -204,7 +186,7 @@ def generate_counterfactuals(test_X, test_y, ann_clf, pair_model, cat_mask,
         sigma=sigma,
         best_k=best_k,
         ann_clf=ann_clf,
-        ystar=1.0,
+        ystar=1.0,  # Target favorable outcome
         cat_mask=cat_mask
     )
     
@@ -215,6 +197,7 @@ def generate_counterfactuals(test_X, test_y, ann_clf, pair_model, cat_mask,
     
     # Generate counterfactuals
     with torch.no_grad():
+        
         sample_xcf = rec_module(xf_r).squeeze()
         sample_xcf = sample_xcf.to(torch.float32)
     
@@ -225,9 +208,9 @@ def generate_counterfactuals(test_X, test_y, ann_clf, pair_model, cat_mask,
 
 def evaluate_counterfactuals(xf_r, sample_xcf, rf_clf, train_X, test_X, device):
     """
-    Evaluate counterfactual quality using metrics from the paper:
+    Evaluate counterfactual quality using ONLY the 3 metrics from the paper:
     1. Cost: L1 distance between x and x+ 
-    2. Val (Validity): RF classifier assigns y+
+    2. Val (Validity): RF classifier assigns y+ (favorable outcome)
     3. LOF (Plausibility): Local Outlier Factor score
     4. Score: Val + LOF - (Cost/d)
     """
@@ -237,17 +220,21 @@ def evaluate_counterfactuals(xf_r, sample_xcf, rf_clf, train_X, test_X, device):
     
     xf_r_cpu = xf_r.cpu().to(torch.float32)
     sample_xcf_cpu = sample_xcf.cpu().to(torch.float32)
-    n_features = xf_r_cpu.shape[1]
+    n_features = xf_r_cpu.shape[1]  # d in the paper
     
-    # 1. Cost: L1 distance
+    # 1. Cost: L1 distance between x and x+
     cost_per_instance = torch.abs(sample_xcf_cpu - xf_r_cpu).sum(dim=1)
     cost_mean = cost_per_instance.mean().item()
-    print(f"\n1. Cost (L1 distance): {cost_mean:.4f}")
     
-    # 2. Val (Validity)
-    rf_pred_proba = rf_clf.predict_proba(sample_xcf_cpu.numpy())[:, 1]
+    print(f"\n1. Cost (L1 distance):")
+    print(f"   {cost_mean:.4f}")
+    
+    # 2. Val (Validity): RF assigns y+ (favorable outcome)
+    rf_pred_proba = rf_clf.predict_proba(sample_xcf_cpu.numpy())[:, 1]  # Prob of y=1
     validity = (rf_pred_proba > 0.5).mean()
-    print(f"\n2. Val (Validity with RF): {validity:.4f}")
+    
+    print(f"\n2. Val (Validity with RF):")
+    print(f"   {validity:.4f}")
     
     # 3. LOF (Plausibility)
     all_X = torch.cat((train_X, test_X)).cpu().numpy()
@@ -258,12 +245,16 @@ def evaluate_counterfactuals(xf_r, sample_xcf, rf_clf, train_X, test_X, device):
     lof_clf.fit(positive_instances)
     
     lof_predictions = lof_clf.predict(sample_xcf_cpu.numpy())
-    lof_score = (lof_predictions == 1).mean()
-    print(f"\n3. LOF (Plausibility): {lof_score:.4f}")
+    lof_score = (lof_predictions == 1).mean()  # Fraction classified as inliers
     
-    # 4. Score
+    print(f"\n3. LOF (Plausibility):")
+    print(f"   {lof_score:.4f}")
+    
+    # 4. Score: Val + LOF - (Cost/d)
     score = validity + lof_score - (cost_mean / n_features)
-    print(f"\n4. Score (Val + LOF - Cost/d): {score:.4f}")
+    
+    print(f"\n4. Score (Val + LOF - Cost/d):")
+    print(f"   {score:.4f}")
     
     print(f"\n{'='*80}")
     print(f"Summary")
@@ -284,6 +275,11 @@ def evaluate_counterfactuals(xf_r, sample_xcf, rf_clf, train_X, test_X, device):
 
 def main():
     args = parse_args()
+
+    # Set default saved_models_dir if not provided
+    if args.saved_models_dir is None:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        args.saved_models_dir = os.path.join(script_dir, 'library', 'saved_models')
     
     print(f"\n{'='*80}")
     print(f"GenRe Reproduction - {args.dataset}")
@@ -291,7 +287,6 @@ def main():
     print(f"Configuration:")
     print(f"  Dataset: {args.dataset}")
     print(f"  Device: {args.device}")
-    print(f"  HF Repo: {args.hf_repo}")
     print(f"  Temperature: {args.temp}")
     print(f"  Sigma: {args.sigma}")
     print(f"  Best-k: {args.best_k}")
@@ -307,9 +302,9 @@ def main():
     train_y, train_X, test_y, test_X, cat_mask, immutable_mask = load_data(args.dataset)
     input_dim = train_X.shape[1]
     
-    # 2. Load models from HuggingFace
-    rf_clf, ann_clf, pair_model = load_models_hf(
-        args.hf_repo, args.dataset, input_dim, device
+    # 2. Load models
+    rf_clf, ann_clf, pair_model = load_models(
+        args.dataset, input_dim, device, args.saved_models_dir
     )
     
     # 3. Generate counterfactuals
@@ -318,50 +313,55 @@ def main():
         device, args.temp, args.sigma, args.best_k, args.n_samples
     )
     
-    # 4. Evaluate
+    # 4. Evaluate (only use RF, not ANN)
     results = evaluate_counterfactuals(
         xf_r, sample_xcf, rf_clf, train_X, test_X, device
     )
     
-    # 5. Verify results
+    # 5. Verify results match paper expectations
     print(f"\n{'='*80}")
     print(f"Verification (Adult Dataset - Paper Table 3)")
     print(f"{'='*80}")
     
+    # Expected ranges from GenRe paper Table 3 (Adult dataset)
     EXPECTED_VAL = (0.95, 1.00)   
     EXPECTED_LOF = (0.95, 1.00)   
     EXPECTED_COST = (0.65, 0.75)    
-    EXPECTED_SCORE = (1.88, 2.00)
+    EXPECTED_SCORE = (1.88, 2.00) # max possible is 2
     
     val = results['validity']
     lof = results['lof']
     cost = results['cost']
     score = results['score']
     
-    # Check ranges
+    # Assertions with helpful messages
     try:
-        assert EXPECTED_VAL[0] <= val <= EXPECTED_VAL[1]
+        assert EXPECTED_VAL[0] <= val <= EXPECTED_VAL[1], \
+            f"Val={val:.4f} outside expected range {EXPECTED_VAL}"
         print(f"OK Val = {val:.4f} is within expected range {EXPECTED_VAL}")
-    except AssertionError:
-        print(f"FAIL Val = {val:.4f} outside expected range {EXPECTED_VAL}")
+    except AssertionError as e:
+        print(f"FAIL WARNING: {e}")
     
     try:
-        assert EXPECTED_LOF[0] <= lof <= EXPECTED_LOF[1]
+        assert EXPECTED_LOF[0] <= lof <= EXPECTED_LOF[1], \
+            f"LOF={lof:.4f} outside expected range {EXPECTED_LOF}"
         print(f"OK LOF = {lof:.4f} is within expected range {EXPECTED_LOF}")
-    except AssertionError:
-        print(f"FAIL LOF = {lof:.4f} outside expected range {EXPECTED_LOF}")
+    except AssertionError as e:
+        print(f"FAIL WARNING: {e}")
     
     try:
-        assert EXPECTED_COST[0] <= cost <= EXPECTED_COST[1]
+        assert EXPECTED_COST[0] <= cost <= EXPECTED_COST[1], \
+            f"Cost={cost:.4f} outside expected range {EXPECTED_COST}"
         print(f"OK Cost = {cost:.4f} is within expected range {EXPECTED_COST}")
-    except AssertionError:
-        print(f"FAIL Cost = {cost:.4f} outside expected range {EXPECTED_COST}")
+    except AssertionError as e:
+        print(f"FAIL WARNING: {e}")
     
     try:
-        assert EXPECTED_SCORE[0] <= score <= EXPECTED_SCORE[1]
+        assert EXPECTED_SCORE[0] <= score <= EXPECTED_SCORE[1], \
+            f"Score={score:.4f} outside expected range {EXPECTED_SCORE}"
         print(f"OK Score = {score:.4f} is within expected range {EXPECTED_SCORE}")
-    except AssertionError:
-        print(f"FAIL Score = {score:.4f} outside expected range {EXPECTED_SCORE}")
+    except AssertionError as e:
+        print(f"FAIL WARNING: {e}")
     
     print(f"\n{'='*80}")
     print(f"OK Reproduction Complete!")
@@ -375,8 +375,6 @@ def main():
     with open(results_file, 'w') as f:
         f.write(f"GenRe Reproduction Results - {args.dataset}\n")
         f.write(f"{'='*80}\n\n")
-        f.write(f"HF Repo: {args.hf_repo}\n")
-        f.write(f"\nMetrics:\n")
         for key, value in results.items():
             if value is not None:
                 f.write(f"{key}: {value}\n")
