@@ -405,6 +405,14 @@ class CFRL(RecourseMethod):
             preds = self._mlmodel.predict_proba(model_input)
             if isinstance(preds, torch.Tensor):
                 preds = preds.detach().cpu().numpy()
+            elif isinstance(preds, pd.DataFrame):
+                preds = preds.to_numpy()
+            elif isinstance(preds, np.ndarray):
+                pass
+            elif hasattr(preds, "numpy"):  # tf.Tensor or similar
+                preds = preds.numpy()
+            else:
+                preds = np.asarray(preds)
             return preds
 
         return predictor
