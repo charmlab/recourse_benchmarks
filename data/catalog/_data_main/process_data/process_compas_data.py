@@ -21,13 +21,13 @@ np.random.seed(SEED)
 
 
 def check_data_file(file_name):
-    this_files_directory = os.path.dirname(os.path.realpath(__file__))
-    files = os.listdir(this_files_directory)  # get the current directory listing
+    raw_data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "raw_data")
+    files = os.listdir(raw_data_dir)  # get the current directory listing
 
-    print(f"Looking for file {file_name} in the {this_files_directory} directory..")
+    print(f"Looking for file {file_name} in the {raw_data_dir} directory..")
 
     if file_name not in files:
-        full_file_name = os.path.join(this_files_directory, file_name)
+        full_file_name = os.path.join(raw_data_dir, file_name)
         print("'%s' not found! Downloading from GitHub..." % file_name)
         addr = "https://raw.githubusercontent.com/propublica/compas-analysis/master/compas-scores-two-years.csv"
         response = urllib.request.urlopen(addr)
