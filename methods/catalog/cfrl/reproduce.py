@@ -5,6 +5,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import pytest
 import requests
 from requests import RequestException
 from sklearn.compose import ColumnTransformer
@@ -714,6 +715,88 @@ def run_experiment() -> Dict[str, object]:
         "orig": orig_df,
         "counterfactuals": cf_df,
     }
+
+
+def compare_results(
+    results: Dict[str, object],
+    reference: Dict[str, float],
+    tolerances: List[float],
+    raise_on_fail: bool = False,
+) -> bool:
+    ref_items = list(reference.items())
+    if len(tolerances) != len(ref_items):
+        raise ValueError(
+            f"Expected {len(ref_items)} tolerances, received {len(tolerances)}"
+        )
+    success = True
+    failure_messages: List[str] = []
+
+    for idx, (metric_name, ref_value) in enumerate(ref_items):
+        tolerance = tolerances[idx]
+        result_value = results.get(metric_name)
+        if result_value is None:
+            message = f"[MISSING] Metric `{metric_name}` not found in results."
+            print(message)
+            failure_messages.append(message)
+            success = False
+            continue
+        if not isinstance(result_value, (int, float, np.floating, np.integer)):
+            message = (
+                f"[TYPE] Metric `{metric_name}` is type "
+                f"`{type(result_value).__name__}`, expected scalar numeric."
+            )
+            print(message)
+            failure_messages.append(message)
+            success = False
+            continue
+
+        diff = abs(float(result_value) - float(ref_value))
+        if diff <= tolerance:
+            print(f"[OK] `{metric_name}` diff {diff:.6f} (tolerance {tolerance})")
+        else:
+            message = (
+                f"[DIFF] `{metric_name}` diff {diff:.6f} exceeds tolerance {tolerance}"
+            )
+            print(message)
+            failure_messages.append(message)
+            success = False
+
+    if raise_on_fail and failure_messages:
+        raise AssertionError("\n".join(failure_messages))
+
+    return success
+
+
+@pytest.mark.parametrize(
+    "tolerances",
+    [
+        [
+            1e-2,      # accuracy
+            0.0097*3,  # validity
+            0.10*3,    # sparsity_cat_l0
+            0.06*3,    # sparsity_num_l1
+            1e-6,      # immutability_violation_rate
+            0.06*3,    # target_conditional_mmd_cls_0
+            0.13*5,    # target_conditional_mmd_cls_1
+        ]
+    ],
+)
+def test_cfrl_reproduce(tolerances: List[float]) -> None:
+    REFERENCE_RESULTS = {
+        "accuracy": 0.86,
+        "validity": 0.9859,
+        "sparsity_cat_l0": 0.11,
+        "sparsity_num_l1": 0.19,
+        "immutability_violation_rate": 0.0,
+        "target_conditional_mmd_cls_0": 0.36,
+        "target_conditional_mmd_cls_1": 0.43,
+    }
+    compare_results(
+        run_experiment(),
+        REFERENCE_RESULTS,
+        tolerances=tolerances,
+        raise_on_fail=True,
+    )
 
 
 if __name__ == "__main__":

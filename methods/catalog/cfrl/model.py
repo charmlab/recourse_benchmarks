@@ -412,7 +412,7 @@ class CFRL(RecourseMethod):
             elif hasattr(preds, "numpy"):  # tf.Tensor or similar
                 preds = preds.numpy()
             else:
-                preds = np.asarray(preds)
+                preds = np.asarray(preds)  # pyright: ignore[reportCallIssue]
             return preds
 
         return predictor
@@ -636,7 +636,7 @@ class CFRL(RecourseMethod):
         cf_ordered.index = factual_ordered.index
         return cf_ordered
 
-    def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:  # noqa: D401
+    def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:  # noqa: D401  # pyright: ignore[reportIncompatibleMethodOverride]
         assert self._trained, "Error: run train() first."
         set_seed(self._params["seed"])
 

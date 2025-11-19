@@ -7,7 +7,7 @@ from data.pipelining import order_data
 from methods.catalog.cfrl.model import CFRL
 
 
-def run_roundtrip_check(
+def test_adapter_roundtrip(
     dataset_name: str = "adult",
     model_type: str = "mlp",
     backend: str = "pytorch",
@@ -65,7 +65,7 @@ def run_roundtrip_check(
     mlmodel = DummyMLModel(data)
 
     # Do not train CFRL; we only need the metadata and conversion helpers.
-    cfrl = CFRL(mlmodel, {"train": False})
+    cfrl = CFRL(mlmodel, {"train": False})  # pyright: ignore[reportArgumentType]
 
     df_train = data.df_train
     target_name = data.target
@@ -74,8 +74,8 @@ def run_roundtrip_check(
     else:
         df_features = df_train
 
-    if len(df_features) > n_samples:
-        sample = df_features.sample(n=n_samples, random_state=0)
+    if len(df_features) > n_samples:  # pyright: ignore[reportArgumentType]
+        sample = df_features.sample(n=n_samples, random_state=0)  # pyright: ignore[reportOptionalMemberAccess]
     else:
         sample = df_features
 
@@ -87,9 +87,9 @@ def run_roundtrip_check(
     print("columns (first 30):", list(ordered.columns)[:30])
     print("dtypes (first 10):", ordered.dtypes.head(10).to_dict())
 
-    # Summarize per logical feature based on CFRL metadata
+    # Summarize per feature based on CFRL metadata
     meta = cfrl._metadata  # type: ignore[attr-defined]
-    print("\n[ordered] per-logical-feature summary:")
+    print("\n[ordered] per-feature summary:")
     for idx, long_name in enumerate(meta.feature_names):
         short = meta.long_to_short[long_name]
         attr_type = meta.attr_types[long_name]
@@ -97,7 +97,7 @@ def run_roundtrip_check(
             col = ordered[short]
             print(
                 f"  NUM  long={long_name:20s} short={short:8s} "
-                f"type={attr_type:12s} min={col.min():.4g} max={col.max():.4g}"
+                f"type={attr_type:12s} min={col.min():.4g} max={col.max():.4g}"  # pyright: ignore[reportOptionalMemberAccess]
             )
         else:
             cols = cfrl._encoded_cat_columns.get(idx, [])  # type: ignore[attr-defined]
@@ -108,9 +108,9 @@ def run_roundtrip_check(
                 )
                 continue
             block = ordered[cols]
-            min_v = float(block.min().min())
-            max_v = float(block.max().max())
-            row_sums = block.sum(axis=1)
+            min_v = float(block.min().min())  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+            max_v = float(block.max().max())  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+            row_sums = block.sum(axis=1)  # pyright: ignore[reportOptionalMemberAccess]
             print(
                 f"  CAT  long={long_name:20s} short={short:8s} "
                 f"type={attr_type:12s} cols={len(cols):2d} "
@@ -146,10 +146,10 @@ def run_roundtrip_check(
     ordered_back = ordered_back[ordered.columns]
 
     print("\n=== ordered_back (after roundtrip) ===")
-    print("shape:", ordered_back.shape)
-    print("columns (first 30):", list(ordered_back.columns)[:30])
+    print("shape:", ordered_back.shape)  # pyright: ignore[reportOptionalMemberAccess]
+    print("columns (first 30):", list(ordered_back.columns)[:30])  # pyright: ignore[reportOptionalMemberAccess]
 
-    diff = np.abs(ordered_back.to_numpy() - ordered.to_numpy())
+    diff = np.abs(ordered_back.to_numpy() - ordered.to_numpy())  # pyright: ignore[reportOptionalMemberAccess]
     max_abs_diff = float(diff.max())
     mean_abs_diff = float(diff.mean())
 
@@ -169,9 +169,7 @@ def run_roundtrip_check(
         f"max_abs_diff={max_abs_diff2:.6g}, mean_abs_diff={mean_abs_diff2:.6g}"
     )
 
-    # ------------------------------------------------------------------ #
-    # 2) 对比「原始长名数据」和 CFRL X_zero（直接从非 one-hot 数据生成）   #
-    # ------------------------------------------------------------------ #
+
     raw_dataset = loadDataset(
         data.name,
         return_one_hot=False,
@@ -191,7 +189,7 @@ def run_roundtrip_check(
 
     X_zero_raw = cfrl._ordered_to_cfrl(df_raw_sample)  # type: ignore[attr-defined]
 
-    print("\n[raw long] vs [X_zero_raw] per-feature comparison:")
+    print("\nAdaptor per-feature change:")
     for idx, long_name in enumerate(feature_names):
         attr_type = meta.attr_types[long_name]
         col_raw = df_raw_sample[long_name].to_numpy()
@@ -207,7 +205,7 @@ def run_roundtrip_check(
             )
         else:
             uniq_raw = np.unique(col_raw)[:10]
-            uniq_idx = np.unique(col_cfrl).astype(int)[:10]
+            uniq_idx = np.unique(col_cfrl).astype(int)[:10]  # pyright: ignore[reportAttributeAccessIssue]
             idx_to_raw = meta.idx_to_raw[long_name]
             recon = np.vectorize(lambda i: idx_to_raw[int(i)])(col_cfrl)
             mismatch_rate = float(np.mean(recon != col_raw))
@@ -222,6 +220,8 @@ def run_roundtrip_check(
                 f"mismatch_rate={mismatch_rate:.4g}"
             )
 
+    assert abs(max_abs_diff) + abs(max_abs_diff2) < 1e-6
+
 
 if __name__ == "__main__":
-    run_roundtrip_check()
+    test_adapter_roundtrip()
