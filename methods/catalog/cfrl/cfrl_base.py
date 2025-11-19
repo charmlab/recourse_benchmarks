@@ -143,9 +143,7 @@ class NormalActionNoise:
         -------
         Normal noise with the appropriate mean, standard deviation and shape.
         """
-        return self.mu + self.sigma * np.random.randn(
-            *shape
-        )  # pyright: ignore[reportAttributeAccessIssue]
+        return self.mu + self.sigma * np.random.randn(*shape)
 
     def __repr__(self) -> str:
         return "NormalActionNoise(mu={}, sigma={})".format(self.mu, self.sigma)

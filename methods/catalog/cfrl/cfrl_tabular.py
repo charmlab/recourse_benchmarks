@@ -185,9 +185,9 @@ def generate_categorical_condition(
         # If the feature is not immutable, add noise to modify the mask
         if feature_name not in immutable_features:
             mask += (
-                np.random.rand(
+                np.random.rand(  # pyright: ignore[reportAttributeAccessIssue]
                     *mask.shape
-                )  # pyright: ignore[reportAttributeAccessIssue]
+                )
                 if conditional
                 else np.ones_like(mask)
             )

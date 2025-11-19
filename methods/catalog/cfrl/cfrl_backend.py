@@ -6,10 +6,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import (  # pyright: ignore[reportPrivateImportUsage]
-    DataLoader,
-    Dataset,
-)
+from torch.utils.data import DataLoader  # pyright: ignore[reportPrivateImportUsage]
+from torch.utils.data import Dataset  # pyright: ignore[reportPrivateImportUsage]
 
 if TYPE_CHECKING:
     from .cfrl_base import NormalActionNoise
@@ -42,15 +40,15 @@ class Actor(nn.Module):
                 "input_dim must be provided when torch.nn.LazyLinear is unavailable."
             )
         if use_lazy:
-            self.fc1 = nn.LazyLinear(
+            self.fc1 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
                 hidden_dim
-            )  # pyright: ignore[reportAttributeAccessIssue]
-            self.fc2 = nn.LazyLinear(
+            )
+            self.fc2 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
                 hidden_dim
-            )  # pyright: ignore[reportAttributeAccessIssue]
-            self.fc3 = nn.LazyLinear(
+            )
+            self.fc3 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
                 output_dim
-            )  # pyright: ignore[reportAttributeAccessIssue]
+            )
         else:
             assert input_dim is not None
             self.fc1 = nn.Linear(input_dim, hidden_dim)
@@ -101,12 +99,12 @@ class Critic(nn.Module):
                 "input_dim must be provided when torch.nn.LazyLinear is unavailable."
             )
         if use_lazy:
-            self.fc1 = nn.LazyLinear(
+            self.fc1 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
                 hidden_dim
-            )  # pyright: ignore[reportAttributeAccessIssue]
-            self.fc2 = nn.LazyLinear(
+            )
+            self.fc2 = nn.LazyLinear(  # pyright: ignore[reportAttributeAccessIssue]
                 hidden_dim
-            )  # pyright: ignore[reportAttributeAccessIssue]
+            )
             self.fc3 = nn.LazyLinear(1)  # pyright: ignore[reportAttributeAccessIssue]
         else:
             assert input_dim is not None

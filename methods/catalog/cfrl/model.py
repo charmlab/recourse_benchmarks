@@ -171,8 +171,10 @@ class CFRL(RecourseMethod):
             if self._params[key] == "_optional_":
                 self._params[key] = None
         self._device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )  # pyright: ignore[reportAttributeAccessIssue]
+            "cuda"
+            if torch.cuda.is_available()  # pyright: ignore[reportAttributeAccessIssue]
+            else "cpu"
+        )
         set_seed(self._params["seed"])
 
         self._metadata = self._prepare_metadata()
@@ -301,21 +303,25 @@ class CFRL(RecourseMethod):
             arr = np.zeros((num_rows, self._feature_count), dtype=np.float32)
 
             for idx, name in enumerate(self._metadata.feature_names):
-                col = raw_df[
+                col = raw_df[  # pyright: ignore[reportOptionalSubscript]
                     name
-                ].to_numpy()  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess]
+                ].to_numpy()  # pyright: ignore[reportOptionalMemberAccess]
                 if idx in self._metadata.categorical_indices:
                     mapping = self._metadata.raw_to_idx[name]
-                    raw_vals = np.rint(col).astype(
+                    raw_vals = np.rint(
+                        col
+                    ).astype(  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
                         int, copy=False
-                    )  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+                    )
                     arr[:, idx] = np.vectorize(lambda v: mapping.get(int(v), 0))(
                         raw_vals
                     )  # pyright: ignore[reportGeneralTypeIssues]
                 else:
-                    arr[:, idx] = col.astype(
+                    arr[
+                        :, idx
+                    ] = col.astype(  # pyright: ignore[reportAttributeAccessIssue]
                         np.float32, copy=False
-                    )  # pyright: ignore[reportAttributeAccessIssue]
+                    )
             return arr
 
         ordered = frame.reindex(
@@ -334,9 +340,11 @@ class CFRL(RecourseMethod):
                 raw_vals = values * (upper - lower) + lower
                 if attr_type in {"numeric-int", "binary"}:
                     raw_vals = np.rint(raw_vals)  # pyright: ignore[reportCallIssue]
-                arr[:, idx] = raw_vals.astype(
+                arr[
+                    :, idx
+                ] = raw_vals.astype(  # pyright: ignore[reportAttributeAccessIssue]
                     np.float32, copy=False
-                )  # pyright: ignore[reportAttributeAccessIssue]
+                )
                 continue
 
             columns = self._encoded_cat_columns.get(idx)
@@ -358,9 +366,11 @@ class CFRL(RecourseMethod):
         Reverse of :meth:`_ordered_to_cfrl` with vectorised numpy logic to reduce
         per-call overhead during RL training.
         """
-        arr = np.atleast_2d(arr_zero).astype(
+        arr = np.atleast_2d(
+            arr_zero
+        ).astype(  # pyright: ignore[reportAttributeAccessIssue]
             np.float32, copy=False
-        )  # pyright: ignore[reportAttributeAccessIssue]
+        )
         num_rows = arr.shape[0]
         blocks: List[np.ndarray] = []
         columns: List[str] = []
@@ -386,10 +396,13 @@ class CFRL(RecourseMethod):
                 continue
 
             idxs = np.clip(
-                np.rint(arr[:, idx]).astype(int, copy=False),
+                np.rint(
+                    arr[:, idx]
+                ).astype(  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+                    int, copy=False
+                ),
                 0,
-                n_categories
-                - 1,  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+                n_categories - 1,
             )
             if "ordinal" in attr_type:
                 block = (np.arange(n_categories) <= idxs[:, None]).astype(np.float32)
@@ -401,9 +414,11 @@ class CFRL(RecourseMethod):
             columns.extend(self._encoded_cat_columns[idx])
 
         if blocks:
-            data = np.concatenate(blocks, axis=1).astype(
+            data = np.concatenate(
+                blocks, axis=1
+            ).astype(  # pyright: ignore[reportAttributeAccessIssue]
                 np.float32, copy=False
-            )  # pyright: ignore[reportAttributeAccessIssue]
+            )
             model_df = pd.DataFrame(data, columns=columns)
         else:
             model_df = pd.DataFrame(
@@ -466,9 +481,11 @@ class CFRL(RecourseMethod):
             for idx in self._metadata.categorical_indices
         ]
 
-        params = list(self._encoder.parameters()) + list(
-            self._decoder.parameters()
-        )  # pyright: ignore[reportOptionalMemberAccess]
+        params = list(
+            self._encoder.parameters()  # pyright: ignore[reportOptionalMemberAccess]
+        ) + list(
+            self._decoder.parameters()  # pyright: ignore[reportOptionalMemberAccess]
+        )
         optimiser = optim.Adam(params, lr=lr)
 
         num_samples = inputs.size(0)
@@ -488,8 +505,8 @@ class CFRL(RecourseMethod):
                     idx = perm[start : start + batch_size]
                     batch_x = inputs[idx]
                     outputs = self._decoder(
-                        self._encoder(batch_x)
-                    )  # pyright: ignore[reportOptionalCall]
+                        self._encoder(batch_x)  # pyright: ignore[reportOptionalCall]
+                    )
 
                     loss = torch.zeros((), device=self._device)
 
@@ -678,9 +695,9 @@ class CFRL(RecourseMethod):
         cf_ordered.index = factual_ordered.index
         return cf_ordered
 
-    def get_counterfactuals(
+    def get_counterfactuals(  # noqa: D401  # pyright: ignore[reportIncompatibleMethodOverride]
         self, factuals: pd.DataFrame
-    ) -> pd.DataFrame:  # noqa: D401  # pyright: ignore[reportIncompatibleMethodOverride]
+    ) -> pd.DataFrame:
         assert self._trained, "Error: run train() first."
         set_seed(self._params["seed"])
 
