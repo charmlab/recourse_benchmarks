@@ -2,8 +2,9 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+
+# import torch
 from lime.lime_tabular import LimeTabularExplainer
-import torch
 
 # from sklearn.linear_model import LogisticRegression
 from methods.api.recourse_method import RecourseMethod
@@ -190,7 +191,9 @@ class Larr(RecourseMethod):
         # X_train_t = torch.from_numpy(df_train_processed.values).float().to(device)
 
         preds_gpu_probs = self._mlmodel.predict_proba(df_train_processed)
-        preds_gpu_labels = preds_gpu_probs.argmax(axis=1) # since the models use softmax, we need argmax to see which class was predicted
+        preds_gpu_labels = preds_gpu_probs.argmax(
+            axis=1
+        )  # since the models use softmax, we need argmax to see which class was predicted
         # preds_cpu_labels = preds_gpu_labels.cpu().numpy()
 
         # print(preds_gpu_labels)
@@ -199,7 +202,9 @@ class Larr(RecourseMethod):
         # print(recourse_needed_X_train)
 
         if len(recourse_needed_X_train) == 0:
-            raise Exception("The model did not predict any failures in the original training data. It cannot search for the Lambda parameter")
+            raise Exception(
+                "The model did not predict any failures in the original training data. It cannot search for the Lambda parameter"
+            )
 
         # recourse_needed_X_train = df_train_processed.values[:5]
 

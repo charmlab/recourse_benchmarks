@@ -416,18 +416,18 @@ class LARRecourse:
                 else:
                     # print("Not getting LIME")
                     x_r = self.get_robust_recourse(x)
-                recourses.append(x_r)          
+                recourses.append(x_r)
 
             recourses = np.array(recourses)
             # print(recourses)
             # in the original, predict_fn would provide predictions {0, 1} and predict_proba_fn would
-            # provide probablilites for class 1. Since our models work different, I will just use 
+            # provide probablilites for class 1. Since our models work different, I will just use
             # our predict_fn, which provides probabilites for class 1 instead.
             if predict_proba_fn:
                 v = self.recourse_expectation(predict_fn, recourses)
             else:
                 v = self.recourse_validity(predict_fn, recourses, self.y_target)
-            
+
             print(f"This is the validity: {v}")
             if v >= v_old:
                 v_old = v
