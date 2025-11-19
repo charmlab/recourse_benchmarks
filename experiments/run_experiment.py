@@ -161,7 +161,7 @@ def initialize_recourse_method(
         hyperparams["vae_params"]["layers"] = [
             sum(mlmodel.get_mutable_mask())
         ] + hyperparams["vae_params"]["layers"]
-        return Revise(mlmodel, data, hyperparams)
+        return Revise(mlmodel, hyperparams)
     elif method == "wachter":
         return Wachter(mlmodel, hyperparams)
     elif method == "cfvae":

@@ -25,8 +25,6 @@ class Revise(RecourseMethod):
     ----------
     mlmodel : model.MLModel
         Black-Box-Model
-    data: data.Data
-        Dataset to perform on
     hyperparams : dict
         Dictionary containing hyperparameters. See notes below for its contents.
 
@@ -94,7 +92,7 @@ class Revise(RecourseMethod):
         },
     }
 
-    def __init__(self, mlmodel: MLModel, data: Data, hyperparams: Dict = None) -> None:
+    def __init__(self, mlmodel: MLModel, hyperparams: Dict = None) -> None:
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
@@ -103,6 +101,7 @@ class Revise(RecourseMethod):
 
         super().__init__(mlmodel)
         self._params = merge_default_parameters(hyperparams, self._DEFAULT_HYPERPARAMS)
+        data = self._mlmodel.data
 
         self._target_column = data.target
         self._lambda = self._params["lambda"]
