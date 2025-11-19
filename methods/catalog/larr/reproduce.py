@@ -132,4 +132,4 @@ def test_with_carla(dataset_name, model_type, backend):
 
 if __name__ == "__main__":
     test_run_experiment()
-    test_with_carla("german", "mlp", "pytorch")
+    test_with_carla("german", "linear", "pytorch")

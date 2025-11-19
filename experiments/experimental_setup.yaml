@@ -142,3 +142,7 @@ recourse_methods:
     hyperparams:
   roar:
     hyperparams:
+  larr:
+    hyperparams:
+      alpha: 0.5
+      beta: 1.0

@@ -1,5 +1,5 @@
 """
-This file contains all relevant logic to perform the LARR method
+This file contains all relevant logic to perform the LARR method.
 The original source code can be found at https://github.com/kshitij-kayastha/learning-augmented-robust-recourse
 """
 from copy import deepcopy
@@ -227,7 +227,7 @@ class LARRecourse:
         self, x_0: np.ndarray, theta_p: Tuple[np.ndarray, np.ndarray]
     ):
         x = deepcopy(x_0)
-        print(theta_p)
+        # print(theta_p)
         weights, bias = theta_p
         weights_c = np.abs(weights)
         while True:
@@ -337,9 +337,9 @@ class LARRecourse:
         recourses: np.ndarray,
         y_target: Union[float, int] = 1,
     ):
-        recourses = np.array(recourses)
-        if recourses.shape[0] == 0:
-            return 0.0
+        # recourses = np.array(recourses)
+        # if recourses.shape[0] == 0:
+        #     return 0.0
 
         # 1. Get the predictions
         preds = predict_fn(recourses)
@@ -349,37 +349,39 @@ class LARRecourse:
             preds = preds.detach().cpu().numpy()
 
         # 3. Check dimensions to get class labels
-        if preds.ndim == 2:
+        if preds.ndim == 2 and preds.shape[1] != 1:
             # CASE 1: Softmax output (shape [N, num_classes])
             pred_labels = np.argmax(preds, axis=1)
         else:
             # CASE 2: Sigmoid output (shape [N,])
             # We assume these are probabilities for class 1
-            pred_labels = (preds > 0.5).astype(int)
+            pred_labels = (preds.reshape(-1) > 0.5).astype(int)
 
         # 4. Calculate validity
         return np.sum(pred_labels == y_target) / len(recourses)
 
     def recourse_expectation(self, predict_proba_fn: Callable, recourses: np.ndarray):
-        if recourses.shape[0] == 0:
-            return 0.0
+        # if recourses.shape[0] == 0:
+        #     return 0.0
 
         # 1. Get the predictions
         preds = predict_proba_fn(recourses)
+
+        # print(recourses.shape)
 
         # 2. Convert to NumPy if it's a PyTorch tensor
         if hasattr(preds, "detach"):
             preds = preds.detach().cpu().numpy()
 
         # 3. Check dimensions
-        if preds.ndim == 2:
+        if preds.ndim == 2 and preds.shape[1] != 1:
             # CASE 1: Softmax output (shape [N, num_classes])
             # Get the probability of class 1
             probs_class_1 = preds[:, 1]
         else:
             # CASE 2: Sigmoid output (shape [N,])
             # These are already the probabilities for class 1
-            probs_class_1 = preds
+            probs_class_1 = preds.reshape(-1)
 
         # 4. Return the mean expectation
         return np.mean(probs_class_1)
@@ -398,6 +400,7 @@ class LARRecourse:
                 x = recourse_needed_X[xi]
                 # print(x)
                 if self.weights is None and self.bias is None:
+                    # print("Getting Lime")
                     # set seed for lime
                     np.random.seed(xi)
                     weights, bias = self.lime_explanation(predict_fn, X_train, x)
@@ -411,13 +414,21 @@ class LARRecourse:
                     self.weights = None
                     self.bias = None
                 else:
+                    # print("Not getting LIME")
                     x_r = self.get_robust_recourse(x)
-                recourses.append(x_r)
+                recourses.append(x_r)          
 
+            recourses = np.array(recourses)
+            # print(recourses)
+            # in the original, predict_fn would provide predictions {0, 1} and predict_proba_fn would
+            # provide probablilites for class 1. Since our models work different, I will just use 
+            # our predict_fn, which provides probabilites for class 1 instead.
             if predict_proba_fn:
-                v = self.recourse_expectation(predict_proba_fn, recourses)
+                v = self.recourse_expectation(predict_fn, recourses)
             else:
                 v = self.recourse_validity(predict_fn, recourses, self.y_target)
+            
+            print(f"This is the validity: {v}")
             if v >= v_old:
                 v_old = v
             else:
