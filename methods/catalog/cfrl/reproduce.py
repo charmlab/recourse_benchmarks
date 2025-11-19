@@ -1,12 +1,14 @@
+import math
 from dataclasses import dataclass, field
 from io import StringIO
-import math
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import pytest
 import requests
+import torch
+import torch.nn.functional as F
 from requests import RequestException
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
@@ -14,9 +16,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 from sklearn.utils import Bunch
-import torch
 from torch import optim
-import torch.nn.functional as F
 from tqdm import tqdm
 
 from tools.log import log
@@ -119,11 +119,26 @@ def fetch_adult(
 
     raw_data = pd.read_csv(
         StringIO(resp.text), names=raw_features, delimiter=", ", engine="python"
-    ).fillna("?")  # pyright: ignore[reportAttributeAccessIssue]
+    ).fillna(  # pyright: ignore[reportAttributeAccessIssue]
+        "?"
+    )
 
-    labels = (raw_data["Target"] == ">50K").astype(int).values  # pyright: ignore[reportOptionalSubscript, reportAttributeAccessIssue]
+    labels = (
+        (
+            raw_data[  # pyright: ignore[reportOptionalSubscript, reportAttributeAccessIssue]
+                "Target"
+            ]
+            == ">50K"
+        )
+        .astype(  # pyright: ignore[reportOptionalSubscript, reportAttributeAccessIssue]
+            int
+        )
+        .values
+    )
     features_drop += ["Target"]
-    data = raw_data.drop(features_drop, axis=1)  # pyright: ignore[reportOptionalMemberAccess]
+    data = raw_data.drop(  # pyright: ignore[reportOptionalMemberAccess]
+        features_drop, axis=1
+    )
     features = list(data.columns)  # pyright: ignore[reportOptionalMemberAccess]
 
     education_map = {
@@ -223,11 +238,22 @@ def fetch_adult(
             data_tmp[data_tmp == key] = value
         data[feat] = data_tmp  # pyright: ignore[reportOptionalSubscript]
 
-    categorical_features = [f for f in features if data[f].dtype == "O"]  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess]
+    categorical_features = [
+        f
+        for f in features
+        if data[  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess]
+            f
+        ].dtype  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess]
+        == "O"
+    ]
     category_map: Dict[int, List[str]] = {}
     for feat in categorical_features:
         encoder = LabelEncoder()
-        data_tmp = encoder.fit_transform(data[feat].values)  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess]
+        data_tmp = encoder.fit_transform(
+            data[  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess]
+                feat
+            ].values  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess]
+        )
         data[feat] = data_tmp  # pyright: ignore[reportOptionalSubscript]
         category_map[features.index(feat)] = list(encoder.classes_)
 
@@ -329,6 +355,7 @@ def _train_autoencoder(
     encoder.eval()
     decoder.eval()
 
+
 def _train_classifier(
     X_train: np.ndarray,
     Y_train: np.ndarray,
@@ -337,7 +364,9 @@ def _train_classifier(
     config: ExperimentConfig,
 ) -> Tuple[RandomForestClassifier, ColumnTransformer]:
     cat_transf = OneHotEncoder(
-        categories=[range(int(X_train[:, idx].max()) + 1) for idx in categorical_ids],  # pyright: ignore[reportArgumentType]
+        categories=[
+            range(int(X_train[:, idx].max()) + 1) for idx in categorical_ids
+        ],  # pyright: ignore[reportArgumentType]
         handle_unknown="ignore",
     )
     num_transf = StandardScaler()
@@ -375,7 +404,11 @@ def _prepare_autoencoder(
     Callable[[np.ndarray], np.ndarray],
     Callable[[np.ndarray], np.ndarray],
 ]:
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # pyright: ignore[reportAttributeAccessIssue]
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()  # pyright: ignore[reportAttributeAccessIssue]
+        else "cpu"
+    )
     torch.manual_seed(config.seed)
 
     heae_preprocessor, heae_inv_preprocessor = get_he_preprocessor(
@@ -490,7 +523,9 @@ def _evaluate_counterfactuals(
         violation = False
 
         for idx, (val_o, val_c) in enumerate(zip(row_orig, row_cf)):
-            name = feature_names[idx]
+            name = feature_names[  # noqa:F841
+                idx
+            ]  # pyright: ignore[reportUnusedVariable]
             if idx in categorical_idx_set:
                 changed = val_o != val_c
                 if changed:
@@ -531,7 +566,11 @@ def _evaluate_counterfactuals(
 
         z = np.concatenate([x, y], axis=0)
         if z.shape[0] > 2000:  # pyright: ignore[reportAttributeAccessIssue]
-            idx = rng.choice(z.shape[0], size=2000, replace=False)  # pyright: ignore[reportAttributeAccessIssue]
+            idx = rng.choice(
+                z.shape[0],  # pyright: ignore[reportAttributeAccessIssue]
+                size=2000,
+                replace=False,
+            )
             z_sample = z[idx]
         else:
             z_sample = z
@@ -544,7 +583,11 @@ def _evaluate_counterfactuals(
         k_yy = np.exp(-gamma * _pairwise_sq(y, y))  # pyright: ignore[reportCallIssue]
         k_xy = np.exp(-gamma * _pairwise_sq(x, y))  # pyright: ignore[reportCallIssue]
 
-        mmd = k_xx.mean() + k_yy.mean() - 2 * k_xy.mean()  # pyright: ignore[reportAttributeAccessIssue]
+        mmd = (
+            k_xx.mean()  # pyright: ignore[reportAttributeAccessIssue]
+            + k_yy.mean()  # pyright: ignore[reportAttributeAccessIssue]
+            - 2 * k_xy.mean()  # pyright: ignore[reportAttributeAccessIssue]
+        )
         return float(max(mmd, 0.0))
 
     # Target-conditional MMD: report per-class as in the paper (no validity filtering).
@@ -593,16 +636,22 @@ def run_experiment() -> Dict[str, object]:
 
     adult = fetch_adult()
 
-    categorical_ids = list(adult.category_map.keys())  # pyright: ignore[reportAttributeAccessIssue]
+    categorical_ids = list(
+        adult.category_map.keys()  # pyright: ignore[reportAttributeAccessIssue]
+    )
     numerical_ids = [
-        idx for idx in range(len(adult.feature_names)) if idx not in categorical_ids  # pyright: ignore[reportAttributeAccessIssue]
+        idx
+        for idx in range(
+            len(adult.feature_names)  # pyright: ignore[reportAttributeAccessIssue]
+        )
+        if idx not in categorical_ids
     ]
 
     X, Y = adult.data, adult.target  # pyright: ignore[reportAttributeAccessIssue]
     X_train, X_test, Y_train, Y_test = train_test_split(
         X,
         Y,
-        test_size=config.test_size,
+        test_size=config.test_size,  # noqa:E731
         random_state=config.seed,
         stratify=Y,
     )
@@ -610,15 +659,27 @@ def run_experiment() -> Dict[str, object]:
     clf, preprocessor = _train_classifier(
         X_train, Y_train, categorical_ids, numerical_ids, config
     )
-    predictor = lambda data: clf.predict_proba(preprocessor.transform(data))
+    predictor = lambda data: clf.predict_proba(  # noqa:E731
+        preprocessor.transform(data)
+    )
 
     # Compute explicit actor/critic input dimensions.
     sample_pred = predictor(X_train[:1])
-    num_classes = sample_pred.shape[1] if sample_pred.ndim == 2 else 1  # pyright: ignore[reportAttributeAccessIssue]
-    cond_dim = get_conditional_dim(adult.feature_names, adult.category_map)  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+    num_classes = (
+        sample_pred.shape[1]  # pyright: ignore[reportAttributeAccessIssue]
+        if sample_pred.ndim == 2  # pyright: ignore[reportAttributeAccessIssue]
+        else 1
+    )
+    cond_dim = get_conditional_dim(
+        adult.feature_names,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+        adult.category_map,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+    )
     actor_input_dim = config.autoencoder_latent_dim + 2 * num_classes + cond_dim
 
-    accuracy = accuracy_score(Y_test, predictor(X_test).argmax(axis=1))  # pyright: ignore[reportAttributeAccessIssue]
+    accuracy = accuracy_score(
+        Y_test,
+        predictor(X_test).argmax(axis=1),  # pyright: ignore[reportAttributeAccessIssue]
+    )
     log.info("Random forest accuracy on test split: %.3f", accuracy)
 
     feature_types = {
@@ -627,7 +688,13 @@ def run_experiment() -> Dict[str, object]:
         "Capital Loss": int,
         "Hours per week": int,
     }
-    encoder, decoder, X_pre, heae_preprocessor, heae_inv_preprocessor = _prepare_autoencoder(
+    (
+        encoder,
+        decoder,
+        X_pre,
+        heae_preprocessor,
+        heae_inv_preprocessor,
+    ) = _prepare_autoencoder(
         X_train,
         categorical_ids,
         adult.feature_names,  # pyright: ignore[reportAttributeAccessIssue]
@@ -649,13 +716,23 @@ def run_experiment() -> Dict[str, object]:
     explainer.fit(X_train)
 
     predictions = predictor(X_test)
-    num_samples = min(1000, X_test.shape[0])  # pyright: ignore[reportAttributeAccessIssue]
+    num_samples = min(
+        1000, X_test.shape[0]  # pyright: ignore[reportAttributeAccessIssue]
+    )
     rng = np.random.default_rng(config.seed)
-    sample_idx = rng.choice(X_test.shape[0], size=num_samples, replace=False)  # pyright: ignore[reportAttributeAccessIssue]
+    sample_idx = rng.choice(
+        X_test.shape[0],  # pyright: ignore[reportAttributeAccessIssue]
+        size=num_samples,
+        replace=False,
+    )
     batch = X_test[sample_idx]
     # Assign a random target different from the model's predicted label.
     pred_labels = np.argmax(predictions, axis=1)
-    num_classes = predictions.shape[1] if predictions.ndim == 2 else 2  # pyright: ignore[reportAttributeAccessIssue]
+    num_classes = (
+        predictions.shape[1]  # pyright: ignore[reportAttributeAccessIssue]
+        if predictions.ndim == 2  # pyright: ignore[reportAttributeAccessIssue]
+        else 2
+    )
     if num_classes == 2:
         target_labels = 1 - pred_labels[sample_idx]
     else:
@@ -670,11 +747,28 @@ def run_experiment() -> Dict[str, object]:
     orig = explanation["orig"]["X"]
     cf = explanation["cf"]["X"]
     numeric_stats = {
-        idx: (float(X_train[:, idx].mean()), float(X_train[:, idx].std()))  # pyright: ignore[reportCallIssue, reportArgumentType]
-        for idx in range(len(adult.feature_names))  # pyright: ignore[reportAttributeAccessIssue]
+        idx: (
+            float(
+                X_train[
+                    :, idx
+                ].mean()  # pyright: ignore[reportCallIssue, reportArgumentType]
+            ),
+            float(
+                X_train[
+                    :, idx
+                ].std()  # pyright: ignore[reportCallIssue, reportArgumentType]
+            ),
+        )
+        for idx in range(
+            len(adult.feature_names)  # pyright: ignore[reportAttributeAccessIssue]
+        )
         if idx not in categorical_ids
     }
-    train_preds = predictor(X_train).argmax(axis=1)  # pyright: ignore[reportAttributeAccessIssue]
+    train_preds = predictor(
+        X_train
+    ).argmax(  # pyright: ignore[reportAttributeAccessIssue]
+        axis=1
+    )
     metric_summary = _evaluate_counterfactuals(
         orig=orig,
         cf=cf,
@@ -690,19 +784,27 @@ def run_experiment() -> Dict[str, object]:
         rng=rng,
     )
 
-    feature_names = adult.feature_names + ["Label"]  # pyright: ignore[reportAttributeAccessIssue]
-    category_map = adult.category_map.copy()  # pyright: ignore[reportAttributeAccessIssue]
-    category_map[len(feature_names) - 1] = adult.target_names  # pyright: ignore[reportAttributeAccessIssue]
+    feature_names = adult.feature_names + ["Label"]
+    category_map = (
+        adult.category_map.copy()  # pyright: ignore[reportAttributeAccessIssue]
+    )
+    category_map[
+        len(feature_names) - 1
+    ] = adult.target_names  # pyright: ignore[reportAttributeAccessIssue]
     orig_df = pd.DataFrame(
         apply_category_mapping(
-            np.concatenate([explanation["orig"]["X"], explanation["orig"]["class"]], axis=1),
+            np.concatenate(
+                [explanation["orig"]["X"], explanation["orig"]["class"]], axis=1
+            ),
             category_map,
         ),
         columns=feature_names,
     )
     cf_df = pd.DataFrame(
         apply_category_mapping(
-            np.concatenate([explanation["cf"]["X"], explanation["cf"]["class"]], axis=1),
+            np.concatenate(
+                [explanation["cf"]["X"], explanation["cf"]["class"]], axis=1
+            ),
             category_map,
         ),
         columns=feature_names,
@@ -750,7 +852,10 @@ def compare_results(
             success = False
             continue
 
-        diff = abs(float(result_value) - float(ref_value))
+        diff = abs(
+            float(result_value)  # pyright: ignore[reportArgumentType]
+            - float(ref_value)
+        )
         if diff <= tolerance:
             print(f"[OK] `{metric_name}` diff {diff:.6f} (tolerance {tolerance})")
         else:
@@ -771,13 +876,13 @@ def compare_results(
     "tolerances",
     [
         [
-            1e-2,      # accuracy
-            0.0097*3,  # validity
-            0.10*3,    # sparsity_cat_l0
-            0.06*3,    # sparsity_num_l1
-            1e-6,      # immutability_violation_rate
-            0.06*3,    # target_conditional_mmd_cls_0
-            0.13*5,    # target_conditional_mmd_cls_1
+            1e-2,  # accuracy
+            0.0097 * 3,  # validity
+            0.10 * 3,  # sparsity_cat_l0
+            0.06 * 3,  # sparsity_num_l1
+            1e-6,  # immutability_violation_rate
+            0.06 * 3,  # target_conditional_mmd_cls_0
+            0.13 * 5,  # target_conditional_mmd_cls_1
         ]
     ],
 )
@@ -804,4 +909,9 @@ if __name__ == "__main__":
     for key, value in results.items():
         if isinstance(value, float):
             log.info("%s: %.4f", key, value)
-    log.info("Counterfactual preview:\n%s", results["counterfactuals"].head())  # pyright: ignore[reportAttributeAccessIssue]
+    log.info(
+        "Counterfactual preview:\n%s",
+        results[
+            "counterfactuals"
+        ].head(),  # pyright: ignore[reportAttributeAccessIssue]
+    )

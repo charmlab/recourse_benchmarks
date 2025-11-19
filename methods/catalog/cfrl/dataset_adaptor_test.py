@@ -75,7 +75,9 @@ def test_adapter_roundtrip(
         df_features = df_train
 
     if len(df_features) > n_samples:  # pyright: ignore[reportArgumentType]
-        sample = df_features.sample(n=n_samples, random_state=0)  # pyright: ignore[reportOptionalMemberAccess]
+        sample = df_features.sample(
+            n=n_samples, random_state=0
+        )  # pyright: ignore[reportOptionalMemberAccess]
     else:
         sample = df_features
 
@@ -108,8 +110,12 @@ def test_adapter_roundtrip(
                 )
                 continue
             block = ordered[cols]
-            min_v = float(block.min().min())  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
-            max_v = float(block.max().max())  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+            min_v = float(
+                block.min().min()
+            )  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+            max_v = float(
+                block.max().max()
+            )  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
             row_sums = block.sum(axis=1)  # pyright: ignore[reportOptionalMemberAccess]
             print(
                 f"  CAT  long={long_name:20s} short={short:8s} "
@@ -147,9 +153,13 @@ def test_adapter_roundtrip(
 
     print("\n=== ordered_back (after roundtrip) ===")
     print("shape:", ordered_back.shape)  # pyright: ignore[reportOptionalMemberAccess]
-    print("columns (first 30):", list(ordered_back.columns)[:30])  # pyright: ignore[reportOptionalMemberAccess]
+    print(
+        "columns (first 30):", list(ordered_back.columns)[:30]
+    )  # pyright: ignore[reportOptionalMemberAccess]
 
-    diff = np.abs(ordered_back.to_numpy() - ordered.to_numpy())  # pyright: ignore[reportOptionalMemberAccess]
+    diff = np.abs(
+        ordered_back.to_numpy() - ordered.to_numpy()
+    )  # pyright: ignore[reportOptionalMemberAccess]
     max_abs_diff = float(diff.max())
     mean_abs_diff = float(diff.mean())
 
@@ -168,7 +178,6 @@ def test_adapter_roundtrip(
         "[CFRL -> ordered -> CFRL] "
         f"max_abs_diff={max_abs_diff2:.6g}, mean_abs_diff={mean_abs_diff2:.6g}"
     )
-
 
     raw_dataset = loadDataset(
         data.name,
@@ -205,7 +214,9 @@ def test_adapter_roundtrip(
             )
         else:
             uniq_raw = np.unique(col_raw)[:10]
-            uniq_idx = np.unique(col_cfrl).astype(int)[:10]  # pyright: ignore[reportAttributeAccessIssue]
+            uniq_idx = np.unique(col_cfrl).astype(int)[
+                :10
+            ]  # pyright: ignore[reportAttributeAccessIssue]
             idx_to_raw = meta.idx_to_raw[long_name]
             recon = np.vectorize(lambda i: idx_to_raw[int(i)])(col_cfrl)
             mismatch_rate = float(np.mean(recon != col_raw))

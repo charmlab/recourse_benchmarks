@@ -1,12 +1,15 @@
 import os
 import random
-from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset  # pyright: ignore[reportPrivateImportUsage]
+from torch.utils.data import (  # pyright: ignore[reportPrivateImportUsage]
+    DataLoader,
+    Dataset,
+)
 
 if TYPE_CHECKING:
     from .cfrl_base import NormalActionNoise
@@ -19,7 +22,9 @@ class Actor(nn.Module):
     tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
     """
 
-    def __init__(self, hidden_dim: int, output_dim: int, input_dim: Optional[int] = None) -> None:
+    def __init__(
+        self, hidden_dim: int, output_dim: int, input_dim: Optional[int] = None
+    ) -> None:
         """
         Constructor.
 
@@ -37,9 +42,15 @@ class Actor(nn.Module):
                 "input_dim must be provided when torch.nn.LazyLinear is unavailable."
             )
         if use_lazy:
-            self.fc1 = nn.LazyLinear(hidden_dim)  # pyright: ignore[reportAttributeAccessIssue]
-            self.fc2 = nn.LazyLinear(hidden_dim)  # pyright: ignore[reportAttributeAccessIssue]
-            self.fc3 = nn.LazyLinear(output_dim)  # pyright: ignore[reportAttributeAccessIssue]
+            self.fc1 = nn.LazyLinear(
+                hidden_dim
+            )  # pyright: ignore[reportAttributeAccessIssue]
+            self.fc2 = nn.LazyLinear(
+                hidden_dim
+            )  # pyright: ignore[reportAttributeAccessIssue]
+            self.fc3 = nn.LazyLinear(
+                output_dim
+            )  # pyright: ignore[reportAttributeAccessIssue]
         else:
             assert input_dim is not None
             self.fc1 = nn.Linear(input_dim, hidden_dim)
@@ -90,8 +101,12 @@ class Critic(nn.Module):
                 "input_dim must be provided when torch.nn.LazyLinear is unavailable."
             )
         if use_lazy:
-            self.fc1 = nn.LazyLinear(hidden_dim)  # pyright: ignore[reportAttributeAccessIssue]
-            self.fc2 = nn.LazyLinear(hidden_dim)  # pyright: ignore[reportAttributeAccessIssue]
+            self.fc1 = nn.LazyLinear(
+                hidden_dim
+            )  # pyright: ignore[reportAttributeAccessIssue]
+            self.fc2 = nn.LazyLinear(
+                hidden_dim
+            )  # pyright: ignore[reportAttributeAccessIssue]
             self.fc3 = nn.LazyLinear(1)  # pyright: ignore[reportAttributeAccessIssue]
         else:
             assert input_dim is not None
@@ -318,7 +333,9 @@ def get_optimizer(
     )
 
 
-def get_actor(hidden_dim: int, output_dim: int, input_dim: Optional[int] = None) -> nn.Module:
+def get_actor(
+    hidden_dim: int, output_dim: int, input_dim: Optional[int] = None
+) -> nn.Module:
     """
     Constructs the actor network.
 

@@ -21,7 +21,9 @@ np.random.seed(SEED)
 
 
 def check_data_file(file_name):
-    raw_data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "raw_data")
+    raw_data_dir = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", "raw_data"
+    )
     files = os.listdir(raw_data_dir)  # get the current directory listing
 
     print(f"Looking for file {file_name} in the {raw_data_dir} directory..")

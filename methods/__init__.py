@@ -4,6 +4,7 @@ from .api import RecourseMethod
 from .catalog import (
     CCHVAE,
     CEM,
+    CFRL,
     CFVAE,
     CRUD,
     FOCUS,
@@ -22,6 +23,4 @@ from .catalog import (
     Revise,
     Roar,
     Wachter,
-    CFVAE,
-    CFRL,
 )

@@ -1,1 +1,1 @@
-from .model import CFRL
+from .model import CFRL  # noqa:F401

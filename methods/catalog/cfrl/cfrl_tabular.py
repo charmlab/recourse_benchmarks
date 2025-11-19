@@ -110,18 +110,14 @@ def generate_numerical_condition(
         coeff_lower = (
             np.random.beta(  # pyright: ignore[reportAttributeAccessIssue]
                 a=2, b=2, size=size
-            ).reshape(
-                -1, 1
-            )
+            ).reshape(-1, 1)
             if conditional
             else np.ones((size, 1))
         )
         coeff_upper = (
             np.random.beta(  # pyright: ignore[reportAttributeAccessIssue]
                 a=2, b=2, size=size
-            ).reshape(
-                -1, 1
-            )
+            ).reshape(-1, 1)
             if conditional
             else np.ones((size, 1))
         )
@@ -189,7 +185,9 @@ def generate_categorical_condition(
         # If the feature is not immutable, add noise to modify the mask
         if feature_name not in immutable_features:
             mask += (
-                np.random.rand(*mask.shape)  # pyright: ignore[reportAttributeAccessIssue]
+                np.random.rand(
+                    *mask.shape
+                )  # pyright: ignore[reportAttributeAccessIssue]
                 if conditional
                 else np.ones_like(mask)
             )
@@ -1435,7 +1433,9 @@ class CounterfactualRLTabular(CounterfactualRL):
 
             # Find unique counterfactuals.
             _, indices = np.unique(
-                np.floor(X_cf / tolerance).astype(  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+                np.floor(
+                    X_cf / tolerance
+                ).astype(  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
                     int
                 ),
                 return_index=True,
