@@ -60,7 +60,7 @@ class Revise(RecourseMethod):
                 Number of neurons and layer of autoencoder.
             + "train": bool
                 Decides if a new autoencoder will be learned.
-            + "lambda_reg": flot
+            + "lambda_reg": float
                 Hyperparameter for variational autoencoder.
             + "epochs": int
                 Number of epochs to train VAE
@@ -156,6 +156,15 @@ class Revise(RecourseMethod):
         test_loader = torch.utils.data.DataLoader(
             df_fact.values, batch_size=1, shuffle=False
         )
+        mutable_mask_tensor = torch.tensor(
+            self.vae.mutable_mask, dtype=torch.bool, device=device
+        )
+        mutable_indices = torch.nonzero(
+            mutable_mask_tensor, as_tuple=False
+        ).squeeze(1)
+        mutable_indices = (
+            mutable_indices if mutable_indices.ndim else mutable_indices.unsqueeze(0)
+        )
 
         list_cfs = []
         for query_instance in test_loader:
@@ -182,35 +191,31 @@ class Revise(RecourseMethod):
             candidate_distances = []
             all_loss = []
 
-            # Only round categorical features once optimization is done, to keep gradients during search.
-            round_during_search = False
-
             for idx in range(self._max_iter):
-                cf = self.vae.decode(z)
+                decoded_cf = self.vae.decode(z)
 
-                # add the immutable features to the reconstruction
-                temp = query_instance.clone()
-                temp[:, self.vae.mutable_mask] = cf
-                cf = temp  # continuous cf used for gradients
+                index = mutable_indices.unsqueeze(0).expand(
+                    query_instance.size(0), -1
+                )
+                cf = query_instance.scatter(1, index, decoded_cf)
 
-                cf_for_pred = (
+                cf_soft, cf_hard = (cf,
                     reconstruct_encoding_constraints(
                         cf, cat_features_indices, self._params["binary_cat_features"]
                     )
-                    if round_during_search
-                    else cf
                 )
 
-                output = self._mlmodel.forward(cf_for_pred)[0]
-                _, predicted = torch.max(output, 0)
+                output_soft = self._mlmodel.forward(cf_soft)[0]
+                output_hard = self._mlmodel.predict_proba(cf_hard)[0]
+                _, predicted = torch.max(output_hard, 0)
 
                 z.requires_grad = True
-                loss = self._compute_loss(output, cf_for_pred, query_instance, target)
+                loss = self._compute_loss(output_soft, cf_soft, query_instance, target)
                 all_loss.append(loss)
 
                 if predicted == target_prediction:
                     candidate_counterfactuals.append(
-                        cf_for_pred.cpu().detach().numpy().squeeze(axis=0)
+                        cf_hard.cpu().detach().numpy().squeeze(axis=0)
                     )
                     candidate_distances.append(loss.cpu().detach().numpy())
 
