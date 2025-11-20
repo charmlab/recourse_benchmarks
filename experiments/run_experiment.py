@@ -329,6 +329,17 @@ def create_parser():
     return parser
 
 
+def _csv_has_data(path: str) -> bool:
+    with open(path, "r") as csv_file:
+        for line in csv_file:
+            if line.strip():
+                return True
+
+    # Empty or whitespace-only file; clear contents to keep CSV detection consistent.
+    open(path, "w").close()
+    return False
+
+
 if __name__ == "__main__":
     """
     Runs experiments on recourse methods extracted from academic papers, iterating over different combinations of datasets, model types, and recourse methods.
@@ -367,7 +378,7 @@ if __name__ == "__main__":
     setup = load_setup()
 
     path = file_path = os.path.join(os.path.dirname(__file__), "results.csv")
-    if os.path.isfile(path):
+    if os.path.isfile(path) and _csv_has_data(path):
         results = pd.read_csv(path)
     else:
         results = pd.DataFrame()
