@@ -5,7 +5,7 @@ import pandas as pd
 import data.catalog.loadData as loadData
 from methods import RecourseMethod
 from methods.catalog.mace.library.mace import generateExplanations
-from methods.processing import merge_default_parameters, check_counterfactuals
+from methods.processing import check_counterfactuals, merge_default_parameters
 from models.catalog import ModelCatalog
 
 # Custom recourse implementations need to
@@ -137,7 +137,9 @@ class MACE(RecourseMethod):
             ignore_index=True,
         )
 
-        df_cfs = check_counterfactuals(self._mlmodel, recourse_counterfactuals, factuals.index)
+        df_cfs = check_counterfactuals(
+            self._mlmodel, recourse_counterfactuals, factuals.index
+        )
         df_cfs = self._mlmodel.get_ordered_features(df_cfs)
 
         return df_cfs

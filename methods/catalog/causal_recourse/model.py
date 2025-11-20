@@ -8,7 +8,7 @@ from sklearn import preprocessing
 from methods.api import RecourseMethod
 from models.catalog import ModelCatalog
 
-from ...processing import merge_default_parameters, check_counterfactuals
+from ...processing import check_counterfactuals, merge_default_parameters
 from . import constraints, samplers
 from .action_set import get_discretized_action_sets
 from .cost import action_set_cost
