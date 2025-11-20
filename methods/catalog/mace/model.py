@@ -1,5 +1,6 @@
 from typing import Dict, Optional
 
+import numpy as np
 import pandas as pd
 
 import data.catalog.loadData as loadData
@@ -125,16 +126,34 @@ class MACE(RecourseMethod):
                     norm_type_string,
                 )
 
-                recourse_counterfactuals.append([mace_counterfactuals["cfe_sample"]])
+                cfe_sample = mace_counterfactuals.get("cfe_sample", None)
+                if not cfe_sample:
+                    cfe_sample = {
+                        feature: factual_sample.get(feature, np.nan)
+                        for feature in self._mlmodel.feature_input_order
+                    }
+                else:
+                    for feature in self._mlmodel.feature_input_order:
+                        cfe_sample.setdefault(
+                            feature, factual_sample.get(feature, np.nan)
+                        )
 
-        recourse_counterfactuals = pd.concat(
-            [
-                (pd.DataFrame(counterfactuals)).drop(
-                    ["y"] if not pd.DataFrame(counterfactuals).empty else {}, axis=1
-                )
-                for counterfactuals in recourse_counterfactuals
-            ],
-            ignore_index=True,
+                recourse_counterfactuals.append(pd.DataFrame([cfe_sample]))
+
+        if recourse_counterfactuals:
+            recourse_counterfactuals = pd.concat(
+                recourse_counterfactuals, ignore_index=True
+            )
+        else:
+            recourse_counterfactuals = pd.DataFrame(
+                columns=self._mlmodel.feature_input_order
+            )
+
+        recourse_counterfactuals = recourse_counterfactuals.drop(
+            columns=[self._mlmodel.data.target], errors="ignore"
+        )
+        recourse_counterfactuals = recourse_counterfactuals.reindex(
+            columns=self._mlmodel.feature_input_order
         )
 
         df_cfs = check_counterfactuals(
