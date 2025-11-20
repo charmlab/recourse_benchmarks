@@ -382,7 +382,11 @@ if __name__ == "__main__":
     args = create_parser().parse_args()
     setup = load_setup()
 
-    path = file_path = os.path.join(os.path.dirname(__file__), "results.csv")
+    default_path = os.path.join(os.path.dirname(__file__), "results.csv")
+    path = args.path if args.path else default_path
+    path_dir = os.path.dirname(path)
+    if path_dir:
+        os.makedirs(path_dir, exist_ok=True)
     if os.path.isfile(path) and _csv_has_data(path):
         results = pd.read_csv(path)
     else:
