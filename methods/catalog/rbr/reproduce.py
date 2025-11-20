@@ -28,6 +28,7 @@ def calc_future_validity(x, shifted_models):
     for model in shifted_models:
         pred = model.raw_model.predict(x)
         pred = pred.detach().cpu().numpy() if torch.is_tensor(pred) else pred
+        pred = 1 if pred >= 0.5 else 0
         preds.append(pred)
     preds = np.array(preds)
     return np.mean(preds)
@@ -66,6 +67,7 @@ def run_single_instance(
 
     # current validity
     cur_valid = method_object._mlmodel.raw_model.predict(cf_tensor)
+    cur_valid = 1 if cur_valid >= 0.5 else 0
 
     # future validity
     # fut_valid = calc_future_validity(x_cf_numpy, shifted_models)
@@ -84,6 +86,7 @@ def test_rbr(dataset_name, model_type, backend):
 
     np.random.seed(RANDOM_SEED)
     torch.manual_seed(RANDOM_SEED)
+
 
     # load the csv as a pandas DataFrame
     dataset = pd.read_csv(f"methods/catalog/rbr/library/{dataset_name}.csv")
@@ -244,21 +247,21 @@ def test_rbr(dataset_name, model_type, backend):
         },
     )
 
-    X_test = dataset.df_test.drop(columns=["y"], axis=1)
+    real_x_test = dataset.df_test.drop(columns=["y"], axis=1)
     # y_test = dataset.df_test['y']
 
     # X_test = X_test[y_test == 0]  # only negative class
     # want a few samples that the original model classifies as negative
     preds_test = model.raw_model.predict(
-        torch.from_numpy(X_test.values.astype(np.float32))
+        torch.from_numpy(real_x_test.values.astype(np.float32))
     )
     # print(f"Predictions on test set: {preds_test.flatten()}")
     mask = (preds_test.flatten() < 0.5).detach().cpu().numpy()
-    X_test = X_test[mask]
+    real_x_test = real_x_test[mask]
 
     n = 5  # X_test.shape[0]
 
-    factuals = X_test.sample(n=n, random_state=RANDOM_SEED)
+    factuals = real_x_test.sample(n=n, random_state=RANDOM_SEED)
 
     running_current_val = 0
     running_future_val = 0
@@ -290,8 +293,8 @@ def test_rbr(dataset_name, model_type, backend):
         f"Average: L1 cost = {running_cost/n}, Current Validity = {running_current_val/n}, Future Validity = {running_future_val/n}"
     )
 
-    assert running_current_val / n >= 0.78
-    assert running_future_val / n >= 0.83
+    assert running_current_val / n >= 0.9
+    assert running_future_val / n >= 0.9
 
 
 if __name__ == "__main__":

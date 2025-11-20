@@ -94,8 +94,8 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
         """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # device = next(self.parameters()).device
-        x_train_tensor = torch.from_numpy(np.array(x_train).astype(np.float32))
-        y_train_tensor = torch.from_numpy(np.array(y_train)).type(torch.float32)
+        x_train_tensor = torch.from_numpy(np.array(x_train, dtype=np.float32))
+        y_train_tensor = torch.from_numpy(np.array(y_train, dtype=np.float32))
         # print(f"x_train_tensor shape: {x_train_tensor[:5]}")
         # print(f"y_train_tensor shape: {y_train_tensor.view(-1,1)[:5]}")
 
@@ -115,7 +115,7 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
         max_stable_iter = 3
 
         epochs = 1000  # TODO increase epochs because paper base is 1000
-        for _ in range(epochs):
+        for i in range(epochs):
             # for i, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
             output = self(x_train_tensor.to(device))
@@ -123,6 +123,8 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
 
             loss.backward()
             optimizer.step()
+
+            # print("Iter %d: loss: %f" % (i, loss.data.item()))
 
             loss_diff = prev_loss - loss.data.item()
 
@@ -138,6 +140,7 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
         self.eval()
 
         return self
+
 
     def predict(self, test):
         """

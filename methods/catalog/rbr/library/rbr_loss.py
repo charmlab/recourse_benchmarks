@@ -6,6 +6,13 @@ import numpy as np
 import torch
 from sklearn.utils import check_random_state
 
+"""
+This code is largely ported over from the original authors codebase. 
+Light restructuring and modifications have been made in order to make it compatible with CARLAs structure.
+
+Original code can be found at: https://github.com/VinAIResearch/robust-bayesian-recourse
+"""
+
 # ---------- low-level helpers & projections ----------
 
 
@@ -22,15 +29,13 @@ def l2_projection(x: torch.Tensor, radius: float) -> torch.Tensor:
     scale = (radius / denom).unsqueeze(1)
     return scale * x
 
-
+# In the original code but never seemed to be used
 def reconstruct_encoding_constraints(x: torch.Tensor, cat_pos: Optional[Sequence[int]]):
     x_enc = x.clone()
     for pos in cat_pos:
         x_enc.data[pos] = torch.clamp(torch.round(x_enc[pos]), 0, 1)
     return x_enc
 
-
-# in the original code but never used
 
 
 # ---------- likelihood modules ----------
@@ -315,7 +320,7 @@ def robust_bayesian_recourse(
     epsilon_op: float = 0.1,
     epsilon_pe: float = 0.1,
     max_iter: int = 1000,
-    device: str = "cpu",
+    dev: str = "cpu",
     random_state: Optional[int] = None,
     verbose: bool = False,
 ) -> np.ndarray:
@@ -367,7 +372,7 @@ def robust_bayesian_recourse(
             return x
         u, _ = torch.sort(x, descending=True)
         cssv = torch.cumsum(u, 0)
-        rho = torch.nonzero(u * torch.arange(1, p + 1).to(device) > (cssv - delta))[
+        rho = torch.nonzero(u * torch.arange(1, p + 1).to(dev) > (cssv - delta))[
             -1, 0
         ]
         theta = (cssv[rho] - delta) / (rho + 1.0)
@@ -392,7 +397,6 @@ def robust_bayesian_recourse(
     #     dev = torch.device(device)
     # else:
     #     dev = torch.device("cpu")
-    dev = device
 
     rng = check_random_state(random_state)
 

@@ -144,4 +144,3 @@ recourse_methods:
     hyperparams:
   rbr:
     hyperparams:
-      device: "cpu"

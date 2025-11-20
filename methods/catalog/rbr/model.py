@@ -6,6 +6,7 @@ import pandas as pd
 from methods.catalog.rbr.library.rbr_loss import robust_bayesian_recourse
 from methods.processing import check_counterfactuals
 from methods.processing.counterfactuals import merge_default_parameters
+from models.catalog.catalog import ModelCatalog
 
 from ...api import RecourseMethod
 
@@ -78,7 +79,7 @@ class RBR(RecourseMethod):
         "reproduce": False,
     }
 
-    def __init__(self, mlmodel, hyperparams: Optional[Dict] = None):
+    def __init__(self, mlmodel: ModelCatalog, hyperparams: Optional[Dict] = None):
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
@@ -100,6 +101,7 @@ class RBR(RecourseMethod):
         self._reproduce = checked["reproduce"]
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
+        factuals = factuals.reset_index()
         factuals = self._mlmodel.get_ordered_features(factuals)
 
         # print(factuals)
@@ -135,7 +137,7 @@ class RBR(RecourseMethod):
                 epsilon_op=self._epsilon_op,
                 epsilon_pe=self._epsilon_pe,
                 max_iter=self._max_iter,
-                device=self._device,
+                dev=self._device,
                 random_state=RANDOM_SEED,
                 verbose=False,
             )
