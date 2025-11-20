@@ -340,6 +340,11 @@ def _csv_has_data(path: str) -> bool:
     return False
 
 
+def _append_to_csv(path: str, df: pd.DataFrame):
+    write_header = not os.path.isfile(path) or not _csv_has_data(path)
+    df.to_csv(path, mode="a", header=write_header, index=False)
+
+
 if __name__ == "__main__":
     """
     Runs experiments on recourse methods extracted from academic papers, iterating over different combinations of datasets, model types, and recourse methods.
@@ -381,7 +386,22 @@ if __name__ == "__main__":
     if os.path.isfile(path) and _csv_has_data(path):
         results = pd.read_csv(path)
     else:
-        results = pd.DataFrame()
+        results = pd.DataFrame(
+            columns=[
+                "Recourse_Method",
+                "Dataset",
+                "ML_Model",
+                "L0_distance",
+                "L1_distance",
+                "L2_distance",
+                "Linf_distance",
+                "Constraint_Violation",
+                "Redundancy",
+                "y-Nearest-Neighbours",
+                "Success_Rate",
+                "Average_Time",
+            ]
+        )
 
     session_models = ["cem", "cem_vae", "greedy"]
     torch_methods = [
@@ -540,6 +560,6 @@ if __name__ == "__main__":
                     f"==={method_name}==={data_name}==============================="
                 )
 
-                results.to_csv(path, index=False)
+                _append_to_csv(path, df_benchmark)
                 # deliberately saving this after every addition
                 # save_result(results, path)
