@@ -127,7 +127,6 @@ class ClaPROAR(RecourseMethod):
         )
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
-        factuals = factuals.drop(columns=self._mlmodel.data.target)
         factuals = self._mlmodel.get_ordered_features(factuals)
 
         x = torch.tensor(factuals.values, dtype=torch.float32)

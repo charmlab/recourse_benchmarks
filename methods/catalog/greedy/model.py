@@ -94,7 +94,7 @@ class Greedy(RecourseMethod):
         # Iterate over each row in the DataFrame
         for index, row in factuals.iterrows():
             # Prepare the original instance
-            original_instance = row.drop("y")
+            original_instance = row
             feature_names = original_instance.index
             original_instance = original_instance.values
 

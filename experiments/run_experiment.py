@@ -138,7 +138,7 @@ def initialize_recourse_method(
         hyperparams["vae_params"]["layers"] = [
             sum(mlmodel.get_mutable_mask())
         ] + hyperparams["vae_params"]["layers"]
-        return CRUD(mlmodel, hyperparams)
+        return CRUDS(mlmodel, hyperparams)
     elif method == "dice":
         return Dice(mlmodel, hyperparams)
     elif "face" in method:

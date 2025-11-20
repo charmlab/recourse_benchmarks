@@ -190,11 +190,9 @@ class CausalRecourse(RecourseMethod):
     def get_counterfactuals(self, factuals: pd.DataFrame):
         factuals = self._mlmodel.get_ordered_features(factuals)
 
-        factual_df = factuals.drop(columns=self._dataset.target)
-
         cfs = []
         # actions = []
-        for index, factual_instance in factual_df.iterrows():
+        for index, factual_instance in factuals.iterrows():
             min_action_set, _ = self.compute_optimal_action_set(
                 factual_instance, self._constraint_handle, self._sampler_handle
             )
