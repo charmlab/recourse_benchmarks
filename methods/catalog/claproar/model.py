@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from methods.api import RecourseMethod
-from methods.processing import merge_default_parameters
+from methods.processing import merge_default_parameters, check_counterfactuals
 from models.api import MLModel
 
 
@@ -127,7 +127,8 @@ class ClaPROAR(RecourseMethod):
         )
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
-        factuals = factuals.drop("y", axis=1)
+        factuals = factuals.drop(columns=self._mlmodel.data.target)
+        factuals = self._mlmodel.get_ordered_features(factuals)
 
         x = torch.tensor(factuals.values, dtype=torch.float32)
 
@@ -148,6 +149,8 @@ class ClaPROAR(RecourseMethod):
                 break
 
         cfs = x_prime.detach()
-        cfs_df = pd.DataFrame(cfs.numpy(), columns=factuals.columns)
+        df_cfs = pd.DataFrame(cfs.numpy(), columns=factuals.columns)
 
-        return cfs_df
+        df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
+        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        return df_cfs

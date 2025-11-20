@@ -4,7 +4,7 @@ import pandas as pd
 import tensorflow as tf
 
 from methods.api import RecourseMethod
-from methods.processing import merge_default_parameters
+from methods.processing import merge_default_parameters, check_counterfactuals
 from models.api import MLModel
 
 
@@ -86,6 +86,8 @@ class Greedy(RecourseMethod):
         )
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
+        factuals = self._mlmodel.get_ordered_features(factuals)
+
         # Initialize a list to collect the counterfactuals
         counterfactuals_list = []
 
@@ -137,6 +139,8 @@ class Greedy(RecourseMethod):
 
         # Concatenate all counterfactuals into a single DataFrame
         final_counterfactuals_df = pd.concat(counterfactuals_list, ignore_index=True)
-        df_cfs = self._mlmodel.get_ordered_features(final_counterfactuals_df)
+
+        df_cfs = check_counterfactuals(self._mlmodel, final_counterfactuals_df, factuals.index)
+        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
 
         return df_cfs

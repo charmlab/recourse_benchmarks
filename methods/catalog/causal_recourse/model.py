@@ -8,7 +8,7 @@ from sklearn import preprocessing
 from methods.api import RecourseMethod
 from models.catalog import ModelCatalog
 
-from ...processing import merge_default_parameters
+from ...processing import merge_default_parameters, check_counterfactuals
 from . import constraints, samplers
 from .action_set import get_discretized_action_sets
 from .cost import action_set_cost
@@ -188,6 +188,8 @@ class CausalRecourse(RecourseMethod):
         return min_action_set, min_cost
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
+        factuals = self._mlmodel.get_ordered_features(factuals)
+
         factual_df = factuals.drop(columns=self._dataset.target)
 
         cfs = []
@@ -202,6 +204,9 @@ class CausalRecourse(RecourseMethod):
             cfs.append(cf)
 
         # convert to dataframe
-        cfs = pd.DataFrame(cfs)
+        df_cfs = pd.DataFrame(cfs)
         # action_df = pd.DataFrame(actions)
-        return cfs
+
+        df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
+        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        return df_cfs
