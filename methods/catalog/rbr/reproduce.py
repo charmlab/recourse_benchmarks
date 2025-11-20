@@ -124,7 +124,7 @@ def test_rbr(dataset_name, model_type, backend):
 
     transformer = get_transformer(dataset_name, combined_df.copy())
 
-    dataset = DataTemp(
+    dataset_org = DataTemp(
         df_name=dataset_name,
         X_train=X_train,
         X_test=X_test,
@@ -220,7 +220,7 @@ def test_rbr(dataset_name, model_type, backend):
     # y_s = df['y']
 
     model = ModelCatalogTemp(
-        data=dataset, model_type=model_type, backend=backend
+        data=dataset_org, model_type=model_type, backend=backend
     )  # these are temporary classes for testing/reproducing
 
     model_shifted_1 = ModelCatalogTemp(
@@ -242,12 +242,13 @@ def test_rbr(dataset_name, model_type, backend):
         model,
         hyperparams={
             "device": device,
-            "train_data": dataset.df_train.drop(columns=["y"], axis=1),
+            "train_data": dataset_org.df_train.drop(columns=["y"], axis=1),
             "reproduce": True,
         },
     )
 
-    real_x_test = dataset.df_test.drop(columns=["y"], axis=1)
+    real_x_test = dataset_org.df_test.drop(columns=["y"], axis=1)
+    # print(real_x_test[:10])
     # y_test = dataset.df_test['y']
 
     # X_test = X_test[y_test == 0]  # only negative class

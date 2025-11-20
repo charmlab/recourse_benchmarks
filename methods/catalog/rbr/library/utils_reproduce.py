@@ -20,7 +20,6 @@ from data.api.data import Data
 from methods.catalog.rbr.library.utils_general import Transformer, get_transformer
 from models.api.mlmodel import MLModel
 
-
 # define the model used in the paper
 # Custom Pytorch Module for Neural Networks
 class PyTorchNeuralNetworkTemp(torch.nn.Module):
