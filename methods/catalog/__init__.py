@@ -1,5 +1,6 @@
 # flake8: noqa
 from .actionable_recourse import ActionableRecourse
+from .care import Care
 from .causal_recourse import CausalRecourse
 from .cchvae import CCHVAE
 from .cem import CEM

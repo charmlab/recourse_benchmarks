@@ -9,6 +9,7 @@ from .catalog import (
     FOCUS,
     MACE,
     ActionableRecourse,
+    Care,
     CausalRecourse,
     ClaPROAR,
     Clue,
