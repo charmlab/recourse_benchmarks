@@ -1,0 +1,5 @@
+numpy==1.21.6  # Updated from the repo's 1.19.4 for hdbscan compatibility
+deap==1.3.1
+cython==0.29.37
+dython==0.6.1
+hdbscan==0.8.33
