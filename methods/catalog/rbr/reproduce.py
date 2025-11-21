@@ -8,7 +8,10 @@ from sklearn.model_selection import train_test_split
 
 from data.catalog.online_catalog import DataCatalog
 from methods.catalog.rbr.library.reproduce.utils_general import get_transformer
-from methods.catalog.rbr.library.reproduce.utils_reproduce import DataCatalogWrapper, ModelCatalogWrapper
+from methods.catalog.rbr.library.reproduce.utils_reproduce import (
+    DataCatalogWrapper,
+    ModelCatalogWrapper,
+)
 from methods.catalog.rbr.model import RBR
 from models.catalog.catalog import ModelCatalog
 
@@ -89,9 +92,10 @@ def test_rbr(dataset_name, model_type, backend):
     np.random.seed(RANDOM_SEED)
     torch.manual_seed(RANDOM_SEED)
 
-
     # load the csv as a pandas DataFrame
-    dataset = pd.read_csv(f"methods/catalog/rbr/library/reproduce/data/{dataset_name}.csv")
+    dataset = pd.read_csv(
+        f"methods/catalog/rbr/library/reproduce/data/{dataset_name}.csv"
+    )
     dataset_shifted = pd.read_csv(
         f"methods/catalog/rbr/library/reproduce/data/{dataset_name}_modified.csv"
     )
@@ -255,9 +259,7 @@ def test_rbr(dataset_name, model_type, backend):
     model_shifted_4 = ModelCatalogWrapper(
         dataset_shifted_4, model_type, backend
     )  # these are temporary classes for testing/reproducing
-    model_shifted_5 = ModelCatalogWrapper(
-        dataset_shifted_5, model_type, backend
-    )
+    model_shifted_5 = ModelCatalogWrapper(dataset_shifted_5, model_type, backend)
     # model._test_accuracy()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -321,6 +323,7 @@ def test_rbr(dataset_name, model_type, backend):
     assert running_current_val / n >= 0.9
     assert running_future_val / n >= 0.7
 
+
 def sanity_check(dataset_name, model_type, backend):
     dataset = DataCatalog(dataset_name, model_type, 0.8)
 
@@ -332,15 +335,19 @@ def sanity_check(dataset_name, model_type, backend):
 
     # load a recourse model and pass black box model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    rbr = RBR(model, hyperparams={
+    rbr = RBR(
+        model,
+        hyperparams={
             "device": device,
             "train_data": dataset._df_train.drop(columns=["y"], axis=1),
             "reproduce": False,
-        },)
+        },
+    )
 
     # generate counterfactual examples
     counterfactuals = rbr.get_counterfactuals(factuals)
     print(counterfactuals)
+
 
 if __name__ == "__main__":
     test_rbr("german", "mlp", "pytorch")

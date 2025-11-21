@@ -21,7 +21,6 @@ from methods.catalog.rbr.library.reproduce.utils_general import Transformer
 from models.api.mlmodel import MLModel
 
 
-
 # define the model used in the paper
 # Custom Pytorch Module for Neural Networks
 class PyTorchNeuralNetworkWrapper(torch.nn.Module):
@@ -141,7 +140,6 @@ class PyTorchNeuralNetworkWrapper(torch.nn.Module):
         self.eval()
 
         return self
-
 
     def predict(self, test):
         """
@@ -409,7 +407,9 @@ class ModelCatalogWrapper(MLModel):
             columns=[data.target]
         ).columns.tolist()
 
-        self._model = PyTorchNeuralNetworkWrapper(n_inputs=len(self._feature_input_order))
+        self._model = PyTorchNeuralNetworkWrapper(
+            n_inputs=len(self._feature_input_order)
+        )
 
         if self.backend == "pytorch":
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

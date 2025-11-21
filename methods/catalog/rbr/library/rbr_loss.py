@@ -7,7 +7,7 @@ import torch
 from sklearn.utils import check_random_state
 
 """
-This code is largely ported over from the original authors codebase. 
+This code is largely ported over from the original authors codebase.
 Light restructuring and modifications have been made in order to make it compatible with CARLAs structure.
 
 Original code can be found at: https://github.com/VinAIResearch/robust-bayesian-recourse
@@ -29,13 +29,13 @@ def l2_projection(x: torch.Tensor, radius: float) -> torch.Tensor:
     scale = (radius / denom).unsqueeze(1)
     return scale * x
 
+
 # In the original code but never seemed to be used
 def reconstruct_encoding_constraints(x: torch.Tensor, cat_pos: Optional[Sequence[int]]):
     x_enc = x.clone()
     for pos in cat_pos:
         x_enc.data[pos] = torch.clamp(torch.round(x_enc[pos]), 0, 1)
     return x_enc
-
 
 
 # ---------- likelihood modules ----------
@@ -388,10 +388,10 @@ def robust_bayesian_recourse(
 
         # --- FINAL STEP: return scalar if batch size = 1 ---
         if preds.size == 1:
-            #print("This is the prediction ", int(preds.item()))
+            # print("This is the prediction ", int(preds.item()))
             return int(preds.item())
-        
-        #print("This is the prediction ", preds)
+
+        # print("This is the prediction ", preds)
         return preds
 
     # find boundary point between x0 and nearest opposite-label train point
@@ -419,9 +419,7 @@ def robust_bayesian_recourse(
             return x
         u, _ = torch.sort(x, descending=True)
         cssv = torch.cumsum(u, 0)
-        rho = torch.nonzero(u * torch.arange(1, p + 1).to(dev) > (cssv - delta))[
-            -1, 0
-        ]
+        rho = torch.nonzero(u * torch.arange(1, p + 1).to(dev) > (cssv - delta))[-1, 0]
         theta = (cssv[rho] - delta) / (rho + 1.0)
         w = torch.clip(x - theta, min=0)
         return w
