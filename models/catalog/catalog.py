@@ -273,6 +273,25 @@ class ModelCatalog(MLModel):
                 'Incorrect backend value. Please use only "pytorch" or "tensorflow".'
             )
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Like predict_proba() but with gradients enabled
+
+        Parameters
+        ----------
+        x : pytorch tensor
+
+        Returns
+        -------
+        output : pytorch tensor
+        """
+
+        assert self._backend == "pytorch", "forward() only supports pytorch"
+        assert torch.is_tensor(x), "forward() only supports pytorch tensor"
+
+        self._model = self._model.eval().to(x.device)
+        return self._model(x)
+
     @property
     def tree_iterator(self):
         """
