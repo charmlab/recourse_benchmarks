@@ -262,6 +262,9 @@ class RBRLoss(torch.nn.Module):
         self.sigma = torch.tensor(sigma, device=self.device)
         self.x_dim = torch.tensor(X_feas.shape[-1], device=self.device)
 
+        # print("This is epsilon op: ", self.epsilon_op)
+        # print("This is epsilon pe: ", self.epsilon_pe)
+
         self.op_likelihood = OptimisticLikelihood(
             self.x_dim, self.epsilon_op, self.sigma, self.device
         )
@@ -315,10 +318,10 @@ def robust_bayesian_recourse(
     train_data: Optional[np.ndarray] = None,
     num_samples: int = 200,
     perturb_radius: float = 0.2,
-    delta_plus: float = 0.6,
+    delta_plus: float = 1.0,
     sigma: float = 1.0,
-    epsilon_op: float = 0.1,
-    epsilon_pe: float = 0.1,
+    epsilon_op: float = 0.5,
+    epsilon_pe: float = 1.0,
     max_iter: int = 1000,
     dev: str = "cpu",
     random_state: Optional[int] = None,
@@ -328,26 +331,68 @@ def robust_bayesian_recourse(
     # helper to call raw_model.predict consistently
     def predict_fn_np(x):
         # raw_model might accept (n,d) and return probs or labels
+        # preds_tensor = raw_model.predict(x)
+
+        # # print(f"This is the pred_tensor {preds_tensor}")
+
+        # if preds_tensor.ndim == 1:
+        #     preds_tensor = preds_tensor.unsqueeze(0)
+
+        # preds = preds_tensor.cpu().detach().numpy()
+        # # print(f"The prediction is {preds} before numpy array")
+        # preds = np.asarray(preds)
+
+        # # convert to single-label 0/1 if probabilities provided
+        # if preds.ndim == 2 and preds.shape[1] > 1:
+        #     return preds.argmax(axis=1)
+        # if preds.dtype.kind in ("f",):
+        #     return (preds >= 0.5).astype(int).squeeze()
+        # preds = preds.astype(int)
+
+        # if x.ndim == 1:
+        #     return preds.squeeze()
+        # return preds
+        # return torch.tensor(raw_model.predict(x.cpu().detach()))
+        # Ensure 2D shape: (batch_size, outputs)
         preds_tensor = raw_model.predict(x)
 
+        # Ensure 2D batch shape
         if preds_tensor.ndim == 1:
             preds_tensor = preds_tensor.unsqueeze(0)
 
-        preds = preds_tensor.cpu().detach().numpy()
-        # print(f"The prediction is {preds} before numpy array")
-        preds = np.asarray(preds)
+        # Move to CPU numpy
+        preds = preds_tensor.detach().cpu().numpy()
 
-        # convert to single-label 0/1 if probabilities provided
+        # ---- CASE 1: Softmax output (shape: [N, 2+]) ----
         if preds.ndim == 2 and preds.shape[1] > 1:
-            return preds.argmax(axis=1)
-        if preds.dtype.kind in ("f",):
-            return (preds >= 0.5).astype(int).squeeze()
-        preds = preds.astype(int)
+            preds = preds.argmax(axis=1)
 
-        if x.ndim == 1:
-            return preds.squeeze()
+        # ---- CASE 2: Sigmoid or 1D probability (shape: [N]) ----
+        elif preds.dtype.kind == "f":
+
+            # If shape is Nx1 → squeeze to N
+            if preds.ndim == 2 and preds.shape[1] == 1:
+                preds = preds.squeeze()
+
+            # If probabilities → threshold
+            preds = (preds >= 0.5).astype(int)
+
+        # ---- CASE 3: Raw logits (single value per instance) ----
+        elif preds.ndim == 2 and preds.shape[1] == 1:
+            probs = 1 / (1 + np.exp(-preds))
+            preds = (probs >= 0.5).astype(int)
+
+        # ---- Fallback ----
+        else:
+            preds = preds.astype(int)
+
+        # --- FINAL STEP: return scalar if batch size = 1 ---
+        if preds.size == 1:
+            #print("This is the prediction ", int(preds.item()))
+            return int(preds.item())
+        
+        #print("This is the prediction ", preds)
         return preds
-        # return torch.tensor(raw_model.predict(x.cpu().detach()))
 
     # find boundary point between x0 and nearest opposite-label train point
     def dist(a: torch.Tensor, b: torch.Tensor):
@@ -356,7 +401,9 @@ def robust_bayesian_recourse(
     # feasible set sampled around x_b
     def uniform_ball(x: torch.Tensor, r: float, n: int, rng_state):
         rng_local = check_random_state(rng_state)
+        # print(f"this is x: {x}")
         d = x.shape[0]
+        # print(d)
         V = rng_local.randn(n, d)
         V = V / np.linalg.norm(V, axis=1).reshape(-1, 1)
         V = V * (rng_local.random(n) ** (1.0 / d)).reshape(-1, 1)
@@ -416,7 +463,7 @@ def robust_bayesian_recourse(
 
     # -------- Implementation of find_x_boundary() ---------------
     # find nearest opposite label examples and search along line for boundary
-    x_label = torch.tensor(predict_fn_np(x0_t.clone()))
+    x_label = torch.tensor(predict_fn_np(x0_t.clone()), device=dev)
     print(f"x_label: {x_label}")
 
     dists = dist(train_t, x0_t)
@@ -529,8 +576,6 @@ def robust_bayesian_recourse(
 
         for i, e in enumerate(x_new.data):
             x_t.data[i] = e
-
-        # print(f"x_t after update: {x_t}")
 
         loss_sum = F_sum.item()
         loss_diff = min_loss - loss_sum

@@ -17,12 +17,14 @@ import torch.nn.functional as F
 from sklearn.model_selection import KFold, train_test_split
 
 from data.api.data import Data
-from methods.catalog.rbr.library.utils_general import Transformer, get_transformer
+from methods.catalog.rbr.library.reproduce.utils_general import Transformer
 from models.api.mlmodel import MLModel
+
+
 
 # define the model used in the paper
 # Custom Pytorch Module for Neural Networks
-class PyTorchNeuralNetworkTemp(torch.nn.Module):
+class PyTorchNeuralNetworkWrapper(torch.nn.Module):
     """
     Initializes a PyTorch neural network model with specified number of inputs, outputs, and neurons.
 
@@ -41,7 +43,7 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
 
     # Constructor
     def __init__(self, n_inputs):
-        super(PyTorchNeuralNetworkTemp, self).__init__()
+        super(PyTorchNeuralNetworkWrapper, self).__init__()
         self.fc1 = torch.nn.Linear(n_inputs, 20)
         self.fc2 = torch.nn.Linear(20, 50)
         self.fc3 = torch.nn.Linear(50, 20)
@@ -171,7 +173,7 @@ class PyTorchNeuralNetworkTemp(torch.nn.Module):
 
 
 # implement my own version of the DataCatalog that uses this model
-class DataTemp(Data):
+class DataCatalogWrapper(Data):
     """
     Custom Data class for handling dataset operations.
 
@@ -359,7 +361,7 @@ class DataTemp(Data):
 
 
 # Make my own verion of ModelCatalog that uses this model
-class ModelCatalogTemp(MLModel):
+class ModelCatalogWrapper(MLModel):
     """
     Use pretrained classifier.
 
@@ -407,7 +409,7 @@ class ModelCatalogTemp(MLModel):
             columns=[data.target]
         ).columns.tolist()
 
-        self._model = PyTorchNeuralNetworkTemp(n_inputs=len(self._feature_input_order))
+        self._model = PyTorchNeuralNetworkWrapper(n_inputs=len(self._feature_input_order))
 
         if self.backend == "pytorch":
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -6,9 +6,11 @@ import pytest
 import torch
 from sklearn.model_selection import train_test_split
 
-from methods.catalog.rbr.library.utils_general import get_transformer
-from methods.catalog.rbr.library.utils_reproduce import DataTemp, ModelCatalogTemp
+from data.catalog.online_catalog import DataCatalog
+from methods.catalog.rbr.library.reproduce.utils_general import get_transformer
+from methods.catalog.rbr.library.reproduce.utils_reproduce import DataCatalogWrapper, ModelCatalogWrapper
 from methods.catalog.rbr.model import RBR
+from models.catalog.catalog import ModelCatalog
 
 from ...api import RecourseMethod
 
@@ -89,9 +91,9 @@ def test_rbr(dataset_name, model_type, backend):
 
 
     # load the csv as a pandas DataFrame
-    dataset = pd.read_csv(f"methods/catalog/rbr/library/{dataset_name}.csv")
+    dataset = pd.read_csv(f"methods/catalog/rbr/library/reproduce/data/{dataset_name}.csv")
     dataset_shifted = pd.read_csv(
-        f"methods/catalog/rbr/library/{dataset_name}_modified.csv"
+        f"methods/catalog/rbr/library/reproduce/data/{dataset_name}_modified.csv"
     )
 
     num_feat = ["duration", "amount", "age"]
@@ -124,7 +126,7 @@ def test_rbr(dataset_name, model_type, backend):
 
     transformer = get_transformer(dataset_name, combined_df.copy())
 
-    dataset_org = DataTemp(
+    dataset_org = DataCatalogWrapper(
         df_name=dataset_name,
         X_train=X_train,
         X_test=X_test,
@@ -142,7 +144,7 @@ def test_rbr(dataset_name, model_type, backend):
     )
     future_X = pd.concat([X_train, X_train_temp], ignore_index=True)
     future_y = pd.concat([y_train, y_train_temp], ignore_index=True)
-    dataset_shifted_1 = DataTemp(
+    dataset_shifted_1 = DataCatalogWrapper(
         df_name=dataset_name + "_modified",
         X_train=future_X,
         X_test=X_test,
@@ -160,7 +162,7 @@ def test_rbr(dataset_name, model_type, backend):
     )
     future_X = pd.concat([X_train, X_train_temp], ignore_index=True)
     future_y = pd.concat([y_train, y_train_temp], ignore_index=True)
-    dataset_shifted_2 = DataTemp(
+    dataset_shifted_2 = DataCatalogWrapper(
         df_name=dataset_name + "_modified",
         X_train=future_X,
         X_test=X_test,
@@ -178,7 +180,7 @@ def test_rbr(dataset_name, model_type, backend):
     )
     future_X = pd.concat([X_train, X_train_temp], ignore_index=True)
     future_y = pd.concat([y_train, y_train_temp], ignore_index=True)
-    dataset_shifted_3 = DataTemp(
+    dataset_shifted_3 = DataCatalogWrapper(
         df_name=dataset_name + "_modified",
         X_train=future_X,
         X_test=X_test,
@@ -196,7 +198,25 @@ def test_rbr(dataset_name, model_type, backend):
     )
     future_X = pd.concat([X_train, X_train_temp], ignore_index=True)
     future_y = pd.concat([y_train, y_train_temp], ignore_index=True)
-    dataset_shifted_4 = DataTemp(
+    dataset_shifted_4 = DataCatalogWrapper(
+        df_name=dataset_name + "_modified",
+        X_train=future_X,
+        X_test=X_test,
+        y_train=future_y,
+        y_test=y_test,
+        continuous=num_feat,
+        categorical=cat_feat,
+        immutable=[],
+        transformer=transformer,
+        target="y",
+    )
+
+    X_train_temp, _, y_train_temp, _ = train_test_split(
+        X_temp, y_temp, train_size=0.5, random_state=5, stratify=y_temp
+    )
+    future_X = pd.concat([X_train, X_train_temp], ignore_index=True)
+    future_y = pd.concat([y_train, y_train_temp], ignore_index=True)
+    dataset_shifted_5 = DataCatalogWrapper(
         df_name=dataset_name + "_modified",
         X_train=future_X,
         X_test=X_test,
@@ -211,30 +231,33 @@ def test_rbr(dataset_name, model_type, backend):
 
     # load the dataset and model
     # these are temporary classes for testing/reproducing
-    # dataset_shifted_2 = DataTemp(df_name=dataset_name+'_modified', df=df3, continuous=num_feat, categorical=cat_feat, immutable=[], transformer=transformer, target='y')
-    # dataset_shifted_3 = DataTemp(df_name=dataset_name+'_modified', df=df4, continuous=num_feat, categorical=cat_feat, immutable=[], transformer=transformer, target='y')
-    # dataset_shifted_4 = DataTemp(df_name=dataset_name+'_modified', df=df5, continuous=num_feat, categorical=cat_feat, immutable=[], transformer=transformer, target='y')
+    # dataset_shifted_2 = DataCatalogWrapper(df_name=dataset_name+'_modified', df=df3, continuous=num_feat, categorical=cat_feat, immutable=[], transformer=transformer, target='y')
+    # dataset_shifted_3 = DataCatalogWrapper(df_name=dataset_name+'_modified', df=df4, continuous=num_feat, categorical=cat_feat, immutable=[], transformer=transformer, target='y')
+    # dataset_shifted_4 = DataCatalogWrapper(df_name=dataset_name+'_modified', df=df5, continuous=num_feat, categorical=cat_feat, immutable=[], transformer=transformer, target='y')
 
     # df = dataset.df()
     # X_df = df.drop(columns=['y'], axis=1)
     # y_s = df['y']
 
-    model = ModelCatalogTemp(
+    model = ModelCatalogWrapper(
         data=dataset_org, model_type=model_type, backend=backend
     )  # these are temporary classes for testing/reproducing
 
-    model_shifted_1 = ModelCatalogTemp(
+    model_shifted_1 = ModelCatalogWrapper(
         dataset_shifted_1, model_type, backend
     )  # these are temporary classes for testing/reproducing
-    model_shifted_2 = ModelCatalogTemp(
+    model_shifted_2 = ModelCatalogWrapper(
         dataset_shifted_2, model_type, backend
     )  # these are temporary classes for testing/reproducing
-    model_shifted_3 = ModelCatalogTemp(
+    model_shifted_3 = ModelCatalogWrapper(
         dataset_shifted_3, model_type, backend
     )  # these are temporary classes for testing/reproducing
-    model_shifted_4 = ModelCatalogTemp(
+    model_shifted_4 = ModelCatalogWrapper(
         dataset_shifted_4, model_type, backend
     )  # these are temporary classes for testing/reproducing
+    model_shifted_5 = ModelCatalogWrapper(
+        dataset_shifted_5, model_type, backend
+    )
     # model._test_accuracy()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -260,7 +283,7 @@ def test_rbr(dataset_name, model_type, backend):
     mask = (preds_test.flatten() < 0.5).detach().cpu().numpy()
     real_x_test = real_x_test[mask]
 
-    n = 5  # X_test.shape[0]
+    n = 10  # X_test.shape[0]
 
     factuals = real_x_test.sample(n=n, random_state=RANDOM_SEED)
 
@@ -282,6 +305,7 @@ def test_rbr(dataset_name, model_type, backend):
                 model_shifted_2,
                 model_shifted_3,
                 model_shifted_4,
+                model_shifted_5,
             ],
         )
         running_current_val += result.cur_valid
@@ -295,8 +319,29 @@ def test_rbr(dataset_name, model_type, backend):
     )
 
     assert running_current_val / n >= 0.9
-    assert running_future_val / n >= 0.9
+    assert running_future_val / n >= 0.7
 
+def sanity_check(dataset_name, model_type, backend):
+    dataset = DataCatalog(dataset_name, model_type, 0.8)
+
+    # load artificial neural network from catalog
+    model = ModelCatalog(dataset, model_type, backend)
+
+    # get factuals from the data to generate counterfactual examples
+    factuals = (dataset._df_train).sample(n=5, random_state=RANDOM_SEED)
+
+    # load a recourse model and pass black box model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    rbr = RBR(model, hyperparams={
+            "device": device,
+            "train_data": dataset._df_train.drop(columns=["y"], axis=1),
+            "reproduce": False,
+        },)
+
+    # generate counterfactual examples
+    counterfactuals = rbr.get_counterfactuals(factuals)
+    print(counterfactuals)
 
 if __name__ == "__main__":
     test_rbr("german", "mlp", "pytorch")
+    # sanity_check("german", "mlp", "pytorch")

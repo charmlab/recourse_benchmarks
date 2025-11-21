@@ -59,7 +59,8 @@ class RBR(RecourseMethod):
             Strictly for reproducibility tests.
 
     - Restrictions
-        * Requires training data to be provided
+        * Requires training data to be provided. There must be instances of target class in the training data.
+        * This method only works with mlp. Not guaranteed to get counterfactual.
 
     .. [1] Nguyen, Tuan-Duy Hien, Ngoc Bui, Duy Nguyen, Man-Chung Yue, and Viet Anh Nguyen. 2022.
            "Robust Bayesian Recourse." (UAI 2022)
@@ -156,6 +157,8 @@ class RBR(RecourseMethod):
             )
             df_cfs.loc[df_cfs[self._mlmodel.data.target] == 0, :] = np.nan
         else:
+            df_cfs = np.array(df_cfs)
+            df_cfs = pd.DataFrame(df_cfs, columns=self._mlmodel.feature_input_order)
             df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
         df_cfs = self._mlmodel.get_ordered_features(df_cfs)
         return df_cfs
