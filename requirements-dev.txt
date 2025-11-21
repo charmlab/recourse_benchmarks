@@ -32,3 +32,4 @@ torchvision==0.8.1
 PySMT==0.9.5
 xgboost==1.4.2
 tqdm
+huggingface-hub==0.16.4

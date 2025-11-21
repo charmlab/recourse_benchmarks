@@ -1,0 +1,11 @@
+GenRe Reproduction Results - adult-all
+================================================================================
+
+HF Repo: jamie250/genrereproduce
+
+Metrics:
+cost: 0.7038596272468567
+validity: 0.9322825452422651
+lof: 0.899737302977233
+score: 1.7778767999697398
+n_features: 13

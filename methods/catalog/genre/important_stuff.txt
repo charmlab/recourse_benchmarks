@@ -1,0 +1,10 @@
+The models (rf/ann/transformer) were not pushed because they are too large for git!!!!!!!! >_< T_T 23333333333333333
+
+Now they are hosted on huggingface :D 66666666666666666
+https://huggingface.co/jamie250/genrereproduce
+
+Use "reproduce.py" if you don't have the models in genre/library/saved_models
+Otherwise use "reproduce_nohug.py", which is the original one.
+
+We need to add the huggingface-hub library to our environment to support fetching models from huggingface. 
+pip install huggingface-hub==0.16.4

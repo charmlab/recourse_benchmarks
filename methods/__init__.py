@@ -15,6 +15,7 @@ from .catalog import (
     Dice,
     Face,
     FeatureTweak,
+    GenRe,
     Gravitational,
     Greedy,
     GrowingSpheres,
