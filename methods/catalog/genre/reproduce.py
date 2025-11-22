@@ -32,6 +32,8 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # Add GenRe library to path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GENRE_LIB_PATH = os.path.join(SCRIPT_DIR, 'library')
+
+# added this line to solve pytest error
 sys.path.insert(0, GENRE_LIB_PATH)
 
 # Import author's modules
