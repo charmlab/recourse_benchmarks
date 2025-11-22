@@ -109,7 +109,6 @@ def get_discretized_action_sets(
         [intervenable_nodes["continuous"], intervenable_nodes["categorical"]]
     )
 
-    valid_action_sets = []
     for _tuple in itertools.product(*possible_actions_per_node):
         if (
             len([element for element in _tuple if element is not None])
@@ -117,7 +116,4 @@ def get_discretized_action_sets(
         ):
             continue
         action_set = dict(zip(nodes, _tuple))
-        valid_action_set = {k: v for k, v in action_set.items() if v is not None}
-        valid_action_sets.append(valid_action_set)
-
-    return valid_action_sets
+        yield {k: v for k, v in action_set.items() if v is not None}
