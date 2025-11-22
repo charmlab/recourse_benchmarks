@@ -146,3 +146,7 @@ recourse_methods:
     hyperparams:
   roar:
     hyperparams:
+  rbr:
+    hyperparams:
+      train_data: None
+      device: "cpu"
