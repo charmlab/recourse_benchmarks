@@ -1,10 +1,9 @@
 import numpy as np
-import pandas as pd
 
 from data.catalog import DataCatalog
 from data.catalog.loadData import loadDataset
-from data.pipelining import order_data
 from methods.catalog.cfrl.model import CFRL
+from models.catalog import ModelCatalog
 
 
 def test_adapter_roundtrip(
@@ -24,45 +23,7 @@ def test_adapter_roundtrip(
     """
     data = DataCatalog(dataset_name, model_type, train_split)
 
-    class DummyMLModel:
-        def __init__(self, data_obj):
-            self._data = data_obj
-            df_train_local = data_obj.df_train
-            target_local = data_obj.target
-            if target_local in df_train_local.columns:
-                feature_cols = [c for c in df_train_local.columns if c != target_local]
-            else:
-                feature_cols = list(df_train_local.columns)
-            self._feature_input_order = feature_cols
-
-        @property
-        def data(self):
-            return self._data
-
-        @property
-        def feature_input_order(self):
-            return self._feature_input_order
-
-        @property
-        def backend(self):
-            return backend
-
-        @property
-        def raw_model(self):
-            return None
-
-        def predict(self, x):
-            raise NotImplementedError
-
-        def predict_proba(self, x):
-            raise NotImplementedError
-
-        def get_ordered_features(self, x):
-            if isinstance(x, pd.DataFrame):
-                return order_data(self._feature_input_order, x)
-            return x
-
-    mlmodel = DummyMLModel(data)
+    mlmodel = ModelCatalog(data, model_type, backend)
 
     # Do not train CFRL; we only need the metadata and conversion helpers.
     cfrl = CFRL(mlmodel, {"train": False})  # pyright: ignore[reportArgumentType]
