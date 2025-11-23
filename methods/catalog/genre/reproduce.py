@@ -20,10 +20,13 @@ try:
 except ImportError:
     raise ImportError("Install huggingface-hub: pip install huggingface-hub")
 
-import library.data.utils as dutils
-import library.models.binnedpm as bpm
+import methods.catalog.genre.library.data.utils as dutils
+import methods.catalog.genre.library.models.binnedpm as bpm
 import utils as genre_utils
-from library.models.classifiers.ann import BinaryClassifier
+from methods.catalog.genre.library.models.classifiers.ann import BinaryClassifier
+
+from models.catalog import ModelCatalog
+from data.catalog import DataCatalog
 
 # Import our GenRe wrapper
 from methods.catalog.genre import GenRe
@@ -106,8 +109,6 @@ def load_author_models_from_hf(hf_repo, input_dim, device):
 
 
 def load_repo_data(dataset_name):
-    """Load data using repo's DataCatalog (FUTURE)"""
-    from data.catalog import DataCatalog
 
     # Map author's dataset names to repo names
     dataset_mapping = {"adult-all": "adult", "compas-all": "compas", "heloc": "heloc"}
@@ -118,8 +119,6 @@ def load_repo_data(dataset_name):
 
 
 def load_repo_models(data, device):
-    """Load models using repo's ModelCatalog (FUTURE)"""
-    from models.catalog import ModelCatalog
 
     # Load models
     rf_clf = ModelCatalog(data, model_type="rf", backend="sklearn")
