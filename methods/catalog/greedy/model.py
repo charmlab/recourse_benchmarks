@@ -145,9 +145,7 @@ class Greedy(RecourseMethod):
         df_cfs = pd.concat(counterfactuals_list, ignore_index=True)
 
         if not raw_output:
-            df_cfs = check_counterfactuals(
-                self._mlmodel, df_cfs, factuals.index
-            )
+            df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
 
         df_cfs = self._mlmodel.get_ordered_features(df_cfs)
         return df_cfs

@@ -126,7 +126,7 @@ class ClaPROAR(RecourseMethod):
             + self.external_cost_lambda * external_cost
         )
 
-    def get_counterfactuals(self, factuals: pd.DataFrame, raw_output: bool=False):
+    def get_counterfactuals(self, factuals: pd.DataFrame, raw_output: bool = False):
         factuals = self._mlmodel.get_ordered_features(factuals)
 
         x = torch.tensor(factuals.values, dtype=torch.float32)
