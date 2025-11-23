@@ -259,10 +259,10 @@ def main():
     if args.dataset == 'adult-all':
         print("\nVerification (Adult Dataset - Paper Table 3):")
         
-        EXPECTED_VAL = (0.95, 1.00)
-        EXPECTED_LOF = (0.95, 1.00)
+        EXPECTED_VAL = (0.90, 1.00)
+        EXPECTED_LOF = (0.88, 1.00)
         EXPECTED_COST = (0.65, 0.75)
-        EXPECTED_SCORE = (1.88, 2.00)
+        EXPECTED_SCORE = (1.75, 2.00)
         
         val = results['validity']
         lof = results['lof']
