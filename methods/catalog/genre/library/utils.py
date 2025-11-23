@@ -21,7 +21,7 @@ from typing import List
 
 from datetime import datetime
 
-from models.classifiers.ann import BinaryClassifier as ann_BinaryClassifier
+from library.models.classifiers.ann import BinaryClassifier as ann_BinaryClassifier
 
 def curr_time_hash(n=0):
     current_branch = subprocess.check_output(['git', 'branch','--show-current']).strip().decode('utf-8')

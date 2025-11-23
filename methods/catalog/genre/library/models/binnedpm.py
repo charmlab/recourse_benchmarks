@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Transformer
 from tqdm import tqdm
-from models.utils import RealEmbeddingNet, PositionalEncoding, Embedding2RealNet, LearnedPositionEncoding, HetLinearLayer
+from library.models.utils import RealEmbeddingNet, PositionalEncoding, Embedding2RealNet, LearnedPositionEncoding, HetLinearLayer
 
 class PairedTransformerBinnedExpanded(nn.Module):
     def __init__(self,

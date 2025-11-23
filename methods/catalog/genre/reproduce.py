@@ -21,22 +21,7 @@ try:
 except ImportError:
     raise ImportError("Install huggingface-hub: pip install huggingface-hub")
 
-# Add GenRe library to path
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-GENRE_LIB_PATH = os.path.join(SCRIPT_DIR, 'library')
-sys.path.insert(0, GENRE_LIB_PATH)
-
-# Add repo root to path for imports
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '../../..'))
-sys.path.insert(0, REPO_ROOT)
-
-# Debug: Print paths
-print(f"GENRE_LIB_PATH: {GENRE_LIB_PATH}")
-print(f"Path exists: {os.path.exists(GENRE_LIB_PATH)}")
-print(f"Contents: {os.listdir(GENRE_LIB_PATH) if os.path.exists(GENRE_LIB_PATH) else 'N/A'}")
-
-
-# Import author's modules
+# Import author's modules while GENRE_LIB_PATH is in front
 import library.data.utils as dutils
 import library.models.binnedpm as bpm
 from library.models.classifiers.ann import BinaryClassifier
