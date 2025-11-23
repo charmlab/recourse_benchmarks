@@ -5,7 +5,7 @@ sys.path.append("../")
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from library.models.utils import (
+from methods.catalog.genre.library.models.utils import (
     Embedding2RealNet,
     HetLinearLayer,
     LearnedPositionEncoding,
