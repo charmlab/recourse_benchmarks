@@ -86,7 +86,7 @@ class Greedy(RecourseMethod):
             labels=target, logits=prediction_val
         )
 
-    def get_counterfactuals(self, factuals: pd.DataFrame):
+    def get_counterfactuals(self, factuals: pd.DataFrame, raw_output: bool = False):
         factuals = self._mlmodel.get_ordered_features(factuals)
 
         # Initialize a list to collect the counterfactuals
@@ -142,11 +142,12 @@ class Greedy(RecourseMethod):
                 counterfactuals_list.append(counterfactual_df)
 
         # Concatenate all counterfactuals into a single DataFrame
-        final_counterfactuals_df = pd.concat(counterfactuals_list, ignore_index=True)
+        df_cfs = pd.concat(counterfactuals_list, ignore_index=True)
 
-        df_cfs = check_counterfactuals(
-            self._mlmodel, final_counterfactuals_df, factuals.index
-        )
+        if not raw_output:
+            df_cfs = check_counterfactuals(
+                self._mlmodel, df_cfs, factuals.index
+            )
+
         df_cfs = self._mlmodel.get_ordered_features(df_cfs)
-
         return df_cfs
