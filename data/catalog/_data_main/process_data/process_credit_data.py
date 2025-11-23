@@ -9,8 +9,11 @@ pd.options.mode.chained_assignment = None
 
 def load_credit_data():
     # input vars
-    raw_data_file = os.path.join(os.path.dirname(__file__), "credit_raw.csv")
-    processed_file = os.path.join(os.path.dirname(__file__), "credit_processed.csv")
+    raw_data_dir = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", "raw_data"
+    )
+    raw_data_file = os.path.join(raw_data_dir, "credit_raw.csv")
+    processed_file = os.path.join(raw_data_dir, "credit_processed.csv")
 
     # Credit Data Processing
     raw_df = pd.read_csv(raw_data_file, index_col=0)
