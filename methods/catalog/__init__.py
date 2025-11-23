@@ -16,6 +16,7 @@ from .gravitational import Gravitational
 from .greedy import Greedy
 from .growing_spheres import GrowingSpheres
 from .mace import MACE
+from .nice import NICE
 from .probe import Probe
 from .rbr import RBR
 from .revise import Revise
