@@ -30,10 +30,16 @@ sys.path.insert(0, GENRE_LIB_PATH)
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '../../..'))
 sys.path.insert(0, REPO_ROOT)
 
+# Debug: Print paths
+print(f"GENRE_LIB_PATH: {GENRE_LIB_PATH}")
+print(f"Path exists: {os.path.exists(GENRE_LIB_PATH)}")
+print(f"Contents: {os.listdir(GENRE_LIB_PATH) if os.path.exists(GENRE_LIB_PATH) else 'N/A'}")
+
+
 # Import author's modules
-import data.utils as dutils
-import models.binnedpm as bpm
-from models.classifiers.ann import BinaryClassifier
+import library.data.utils as dutils
+import library.models.binnedpm as bpm
+from library.models.classifiers.ann import BinaryClassifier
 import utils as genre_utils
 
 # Import our GenRe wrapper
@@ -311,7 +317,7 @@ def main():
     #     for key, value in results.items():
     #         f.write(f"{key}: {value}\n")
     
-    print(f"\nResults saved to: {results_file}")
+    # print(f"\nResults saved to: {results_file}")
 
 
 if __name__ == "__main__":
