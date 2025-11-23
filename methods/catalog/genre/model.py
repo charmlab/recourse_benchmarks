@@ -14,8 +14,7 @@ from typing import Dict
 import pandas as pd
 import torch
 
-# Author's library imports
-from library.recourse.genre import GenRe as GenReOriginal
+from methods.catalog.genre.library.recourse.genre import GenRe as GenReOriginal
 
 # Repo imports
 from methods.api import RecourseMethod
