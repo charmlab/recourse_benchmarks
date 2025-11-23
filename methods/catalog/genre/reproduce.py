@@ -108,26 +108,17 @@ def load_author_models_from_hf(hf_repo, input_dim, device):
 # ========== FUTURE: Repo format loading functions ==========
 
 
-def load_repo_data(dataset_name):
-
-    # Map author's dataset names to repo names
+def load_repo_data(dataset_name, model_type="mlp"):
     dataset_mapping = {"adult-all": "adult", "compas-all": "compas", "heloc": "heloc"}
     repo_dataset = dataset_mapping.get(dataset_name, dataset_name)
-
-    data = DataCatalog(repo_dataset, train_split=0.8)
+    data = DataCatalog(repo_dataset, model_type=model_type, train_split=0.8)
     return data
 
 
 def load_repo_models(data, device):
-
-    # Load models
-    rf_clf = ModelCatalog(data, model_type="rf", backend="sklearn")
-    ann_clf = ModelCatalog(data, model_type="ann", backend="pytorch")
-
-    # Note: Transformer not available in repo yet
-    # For now, still need to load from HuggingFace
-    transformer = None  # TODO: Get from repo when available
-
+    rf_clf = ModelCatalog(data, model_type="forest", backend="sklearn")
+    ann_clf = ModelCatalog(data, model_type="mlp", backend="pytorch")
+    transformer = None  # Repo does not provide transformer yet
     return rf_clf, ann_clf, transformer
 
 
@@ -197,7 +188,7 @@ def main():
     #
     # # 1. Load repo's data
     # print("Loading repo's data...")
-    # data = load_repo_data(args.dataset)
+    # data = load_repo_data(args.dataset, model_type="mlp")  # 加了model_type
     # train_X = torch.tensor(data.df_train.drop(columns=[data.target]).values)
     # test_X = torch.tensor(data.df_test.drop(columns=[data.target]).values)
     # cat_mask = torch.tensor([1 if f in data.categorical else 0

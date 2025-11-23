@@ -33,8 +33,11 @@ class GenRe(RecourseMethod):
 
     Parameters
     ----------
-    mlmodel : model.MLModel
-        Black-Box-Model (ANN classifier)
+    mlmodel : ModelCatalog or nn.Module
+        Black-Box-Model. Can be either:
+        - Repo's ModelCatalog (FUTURE)
+        - Author's BinaryClassifier nn.Module (CURRENT)
+
     hyperparams : dict
         Dictionary containing hyperparameters
 
@@ -63,25 +66,35 @@ class GenRe(RecourseMethod):
         "device": "cpu",
     }
 
-    def __init__(self, mlmodel: ModelCatalog, hyperparams: Dict) -> None:
+    def __init__(self, mlmodel, hyperparams: Dict) -> None:
         super().__init__(mlmodel)
 
         checked_hyperparams = merge_default_parameters(
             hyperparams, self._DEFAULT_HYPERPARAMS
         )
 
-        # ========== CURRENT: Use provided components (from reproduce.py) ==========
-        self._mlmodel = mlmodel  # Author's ANN from HuggingFace
-        self._transformer = checked_hyperparams[
-            "transformer"
-        ]  # Author's transformer from HuggingFace
-        self._cat_mask = checked_hyperparams["cat_mask"]  # From author's data
+        self._mlmodel = mlmodel
 
-        # ========== FUTURE: Use repo's models (when compatible) ==========
-        # self._mlmodel = mlmodel
-        # self._data = mlmodel.data
-        # self._transformer = mlmodel.transformer # probably？
-        # self._cat_mask = mlmodel.data.cat_mask # probably？
+        # Auto-detect mlmodel type and extract the actual nn.Module
+        if isinstance(mlmodel, ModelCatalog):
+            # FUTURE: Repo's ModelCatalog - extract internal nn.Module
+            self._ann_clf = mlmodel.raw_model
+            # Get cat_mask from data if not provided
+            if checked_hyperparams["cat_mask"] is not None:
+                self._cat_mask = checked_hyperparams["cat_mask"]
+            else:
+                # Build cat_mask from ModelCatalog's data
+                self._cat_mask = torch.tensor(
+                    [1 if f in mlmodel.data.categorical else 0
+                     for f in mlmodel.feature_input_order]
+                )
+        else:
+            # CURRENT: Author's BinaryClassifier - use directly
+            self._ann_clf = mlmodel
+            self._cat_mask = checked_hyperparams["cat_mask"]
+
+        # Transformer must be provided in hyperparams (repo doesn't have it yet)
+        self._transformer = checked_hyperparams["transformer"]
 
         self._temp = checked_hyperparams["temp"]
         self._sigma = checked_hyperparams["sigma"]
@@ -94,7 +107,7 @@ class GenRe(RecourseMethod):
             temp=self._temp,
             sigma=self._sigma,
             best_k=self._best_k,
-            ann_clf=self._mlmodel,
+            ann_clf=self._ann_clf,  # Use extracted nn.Module
             ystar=1.0,
             cat_mask=self._cat_mask,
         )
