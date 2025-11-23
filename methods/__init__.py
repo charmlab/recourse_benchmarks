@@ -9,6 +9,7 @@ from .catalog import (
     CRUDS,
     FOCUS,
     MACE,
+    RBR,
     ActionableRecourse,
     CausalRecourse,
     ClaPROAR,
