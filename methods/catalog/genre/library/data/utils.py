@@ -1,18 +1,20 @@
-import pandas as pd
-import numpy as np
 import math
-import torch
 import sys
-from sklearn.datasets import (
+
+import numpy as np
+import pandas as pd
+import torch
+from sklearn.datasets import (  # https://stackoverflow.com/questions/41467570/sklearn-doesnt-have-attribute-datasets
     make_circles,
     make_moons,
-)  # https://stackoverflow.com/questions/41467570/sklearn-doesnt-have-attribute-datasets
+)
 from sklearn.model_selection import train_test_split
 
 sys.path.append("../")
 
-import utils
 import os
+
+import utils
 
 
 def binary_gaussian(
@@ -59,15 +61,17 @@ def load_dataset(
     cust_labels_path=None,
     ret_tensor=False,
     min_max=False,
-    DATA_DIR=os.path.join(os.path.dirname(__file__), '..', 'datasets'), # changed for recourse benchmark paths
+    DATA_DIR=os.path.join(
+        os.path.dirname(__file__), "..", "datasets"
+    ),  # changed for recourse benchmark paths
     ret_norm_dict=False,
-    ret_masks = False,
+    ret_masks=False,
     **kwargs,
 ):
 
     immutable_idx = []
     cat_idx = []
-# ADD THIS NEW SECTION at the beginning
+    # ADD THIS NEW SECTION at the beginning
     if DATASET == "compas-all-preprocessed":
         """
         Load preprocessed COMPASS data from recourse_benchmarks.
@@ -76,35 +80,35 @@ def load_dataset(
         # Load CSV files
         train_df = pd.read_csv(DATA_DIR + "/compas/train.csv")
         test_df = pd.read_csv(DATA_DIR + "/compas/test.csv")
-        
+
         # Expected columns: x0_ord_0, x0_ord_1, x0_ord_2, x1, x2, x3, x4, score
         target = "score"
-        
+
         # Split features and target
         train_y = train_df[target]
         train_X = train_df.drop(columns=[target])
         test_y = test_df[target]
         test_X = test_df.drop(columns=[target])
-        
+
         # Define categorical and immutable features by index
         # x0_ord_0, x0_ord_1, x0_ord_2 (indices 0,1,2) - age (immutable)
         # x1 (index 3) - race (immutable, categorical)
         # x2 (index 4) - sex (immutable, categorical)
         # x3 (index 5) - priors count (mutable, integer)
         # x4 (index 6) - charge degree (mutable, categorical)
-        
+
         cat_idx = [0, 1, 2, 3, 4, 6]  # All except x3 (priors count)
         immutable_idx = [0, 1, 2, 3, 4]  # Age, race, sex
-        
+
         # Convert to numpy
         train_X = train_X.to_numpy(dtype=np.float32)
         test_X = test_X.to_numpy(dtype=np.float32)
         train_y = train_y.to_numpy(dtype=np.float32)
         test_y = test_y.to_numpy(dtype=np.float32)
-        
+
         # Data is already normalized to [0,1], no need to normalize again
-        
-    elif DATASET in ["adult-all", "compas-all","heloc"]:
+
+    elif DATASET in ["adult-all", "compas-all", "heloc"]:
         if DATASET == "adult-all":
             dataset = "adult"
             target = "income"
@@ -135,11 +139,11 @@ def load_dataset(
 
         immutable_cols = {
             "compas": ["race", "sex"],
-            "adult": ["race","sex"],
+            "adult": ["race", "sex"],
             "heloc": [],
         }
 
-        for i,col in enumerate(train_df.columns):
+        for i, col in enumerate(train_df.columns):
             if col in cat_cols[dataset]:
                 cat_idx.append(i)
 
@@ -304,14 +308,16 @@ def load_dataset(
         test_y = torch.from_numpy(test_y)
         test_X = torch.from_numpy(test_X)
 
-    immutable_mask = [False]*train_X.shape[1]
-    for idx in immutable_idx: immutable_mask[idx] = True
+    immutable_mask = [False] * train_X.shape[1]
+    for idx in immutable_idx:
+        immutable_mask[idx] = True
 
-    cat_mask = [False]*train_X.shape[1] 
-    for idx in cat_idx: cat_mask[idx] = True
+    cat_mask = [False] * train_X.shape[1]
+    for idx in cat_idx:
+        cat_mask[idx] = True
 
     if ret_masks:
-        assert not(ret_norm_dict)
+        assert not (ret_norm_dict)
         return train_y, train_X, test_y, test_X, cat_mask, immutable_mask
 
     if ret_norm_dict:
@@ -321,11 +327,15 @@ def load_dataset(
 
 
 def circles_bayes():
-    def density_normal_sampled(X,noise_std):
+    def density_normal_sampled(X, noise_std):
         # X is nxD
-        def density(x1,x2):
-            x = np.array([x1,x2]).reshape(1,-1)
-            return (np.exp(-((X-x)**2).sum(axis=1)/(2*noise_std**2))/(noise_std*math.sqrt(2*math.pi))).mean()
+        def density(x1, x2):
+            x = np.array([x1, x2]).reshape(1, -1)
+            return (
+                np.exp(-((X - x) ** 2).sum(axis=1) / (2 * noise_std**2))
+                / (noise_std * math.sqrt(2 * math.pi))
+            ).mean()
+
         return density
 
     factor = 0.7
@@ -341,64 +351,77 @@ def circles_bayes():
     X_neg = np.vstack([outer_circ_x, outer_circ_y]).T
     X_pos = np.vstack([inner_circ_x, inner_circ_y]).T
     pos_prob = 0.5
-    pos_density = density_normal_sampled(X_pos,0.04)
-    neg_density = density_normal_sampled(X_neg,0.04)
-    def bayesfunc(x1,x2, eps):
-        return (pos_prob*(eps+pos_density(x1,x2)))/(eps + pos_prob*pos_density(x1,x2) + (1 - pos_prob)*neg_density(x1,x2))
+    pos_density = density_normal_sampled(X_pos, 0.04)
+    neg_density = density_normal_sampled(X_neg, 0.04)
+
+    def bayesfunc(x1, x2, eps):
+        return (pos_prob * (eps + pos_density(x1, x2))) / (
+            eps + pos_prob * pos_density(x1, x2) + (1 - pos_prob) * neg_density(x1, x2)
+        )
+
     return bayesfunc
 
+
 def moons_bayes():
-    def density_normal_sampled(X,noise_std):
+    def density_normal_sampled(X, noise_std):
         # X is nxD
-        def density(x1,x2):
-            x = np.array([x1,x2]).reshape(1,-1)
-            return (np.exp(-((X-x)**2).sum(axis=1)/(2*noise_std**2))/(noise_std*math.sqrt(2*math.pi))).mean()
+        def density(x1, x2):
+            x = np.array([x1, x2]).reshape(1, -1)
+            return (
+                np.exp(-((X - x) ** 2).sum(axis=1) / (2 * noise_std**2))
+                / (noise_std * math.sqrt(2 * math.pi))
+            ).mean()
+
         return density
 
     n_samples_out = 500
     n_samples_in = 500
-    
+
     outer_circ_x = np.cos(np.linspace(0, np.pi, n_samples_out))
     outer_circ_y = np.sin(np.linspace(0, np.pi, n_samples_out))
     inner_circ_x = 1 - np.cos(np.linspace(0, np.pi, n_samples_in))
     inner_circ_y = 1 - np.sin(np.linspace(0, np.pi, n_samples_in)) - 0.5
 
-
     X_neg = np.vstack([outer_circ_x, outer_circ_y]).T
     X_pos = np.vstack([inner_circ_x, inner_circ_y]).T
     pos_prob = 0.5
-    pos_density = density_normal_sampled(X_pos,0.04)
-    neg_density = density_normal_sampled(X_neg,0.04)
-    def bayesfunc(x1,x2, eps):
-        return (pos_prob*(eps+pos_density(x1,x2)))/(eps + pos_prob*pos_density(x1,x2) + (1 - pos_prob)*neg_density(x1,x2))
+    pos_density = density_normal_sampled(X_pos, 0.04)
+    neg_density = density_normal_sampled(X_neg, 0.04)
+
+    def bayesfunc(x1, x2, eps):
+        return (pos_prob * (eps + pos_density(x1, x2))) / (
+            eps + pos_prob * pos_density(x1, x2) + (1 - pos_prob) * neg_density(x1, x2)
+        )
+
     return bayesfunc
+
 
 def corr_bayes_density():
     def uniform_over_interval(start, end):
         def func(x):
-            if start<x<end:
-                return 1/(end - start)
+            if start < x < end:
+                return 1 / (end - start)
             else:
                 return 0
+
         return func
 
-
     def sigmoid(x):
-        return 1/(1+math.exp(-x))
+        return 1 / (1 + math.exp(-x))
 
     def bayesfunc(x1, x2, *args):
         # ignores eps
-        return sigmoid((x2 + 60*x1**3)/0.5)
+        return sigmoid((x2 + 60 * x1**3) / 0.5)
 
     # def density(x1,x2):
     #     unif = uniform_over_interval(0,1)
-    #     return unif(x2/math.tanh(x1))*unif(x1) 
+    #     return unif(x2/math.tanh(x1))*unif(x1)
 
-    def density(x1,x2):
+    def density(x1, x2):
         tol = 0
-        u_x2 = uniform_over_interval(0,1)
-        u_x1 = uniform_over_interval(-0.5,0.5)
-        factor = (math.tanh(20*x1)+tol)/2
-        return (u_x2(x2/(factor))/factor)*u_x1(x1)
-    
+        u_x2 = uniform_over_interval(0, 1)
+        u_x1 = uniform_over_interval(-0.5, 0.5)
+        factor = (math.tanh(20 * x1) + tol) / 2
+        return (u_x2(x2 / (factor)) / factor) * u_x1(x1)
+
     return bayesfunc, density

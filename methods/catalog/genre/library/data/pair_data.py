@@ -1,6 +1,6 @@
-from torch.utils.data import Dataset
-import torch
 import numpy as np
+import torch
+from torch.utils.data import Dataset
 
 
 class PairData(Dataset):
@@ -189,7 +189,6 @@ class StochasticPairData(Dataset):
 
 
 class StochasticPairs(Dataset):
-
     def __init__(self, src_X, tgt_X, src_y, tgt_y, lambda_=0.9, k=2, p=2):
         self.src_X = src_X
         self.src_y = src_y
@@ -236,7 +235,7 @@ class StochasticPairs(Dataset):
 
 
 class StochasticPairsNegSamp(Dataset):
-    def __init__(self, src_X, tgt_X, src_y, tgt_y,num_neg,lambda_, k, p):
+    def __init__(self, src_X, tgt_X, src_y, tgt_y, num_neg, lambda_, k, p):
         self.src_X = src_X
         self.src_y = src_y
         self.tgt_X = tgt_X
@@ -275,19 +274,22 @@ class StochasticPairsNegSamp(Dataset):
             np.arange(0, self.k), p=self.pair_prob[idx].cpu().numpy()
         )
         pair_id = self.pair_idxs[idx][sampled_idx]
-        neg_pair_id  = list(np.random.choice(self.tgt_len, self.num_neg, replace=False)) # multiple, for each example we sample num_neg negative pairs
+        neg_pair_id = list(
+            np.random.choice(self.tgt_len, self.num_neg, replace=False)
+        )  # multiple, for each example we sample num_neg negative pairs
         return {
             "x": self.src_X[idx],
             "y": self.src_y[idx],
             "pair_x": self.tgt_X[pair_id],
             "pair_y": self.tgt_y[pair_id],
-            "neg_pair_x" : self.tgt_X[neg_pair_id]
+            "neg_pair_x": self.tgt_X[neg_pair_id],
         }
-    
+
 
 class StochasticPairsImmut(Dataset):
-
-    def __init__(self, src_X, tgt_X, src_y, tgt_y, immutable_mask,lambda_=0.9, k=2, p=2):
+    def __init__(
+        self, src_X, tgt_X, src_y, tgt_y, immutable_mask, lambda_=0.9, k=2, p=2
+    ):
         self.src_X = src_X
         self.src_y = src_y
         self.tgt_X = tgt_X
@@ -311,8 +313,15 @@ class StochasticPairsImmut(Dataset):
         expD = torch.exp(-self.lambda_ * D)
 
         if self.immutable_mask is not None:
-            immut_dist = 1 - 1.0*(torch.cdist(self.src_X[:,self.immutable_mask], self.tgt_X[:,self.immutable_mask], p=self.p) > 0)
-            expD = immut_dist*expD
+            immut_dist = 1 - 1.0 * (
+                torch.cdist(
+                    self.src_X[:, self.immutable_mask],
+                    self.tgt_X[:, self.immutable_mask],
+                    p=self.p,
+                )
+                > 0
+            )
+            expD = immut_dist * expD
 
         if self.k > D.shape[1]:
             topk_out = torch.topk(expD, k=D.shape[1], largest=True)

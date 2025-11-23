@@ -2,45 +2,43 @@ import sys
 
 sys.path.append("./")
 
-import warnings
 import os
+import warnings
 
 # Suppress FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import argparse
-import torch
+import os
+import pickle
 import time
 import traceback
-# disable GPU, some implementation don't work well GPU
-# torch.cuda.is_available = lambda: False
 
-import pickle
-import pandas as pd
-import os
-
+import baselines.bridge as bridge
 import numpy as np
 import pandas as pd
 import torch
-from torch.distributions.multivariate_normal import MultivariateNormal
-
 import utils
-import data.utils as dutils
-import baselines.bridge as bridge
-
-# mincost
-from carla.recourse_methods.catalog.wachter import Wachter
-from carla.recourse_methods.catalog.growing_spheres import GrowingSpheres
-from carla.recourse_methods.catalog.dice_diverse import DICEDiv
-
-# Robust
-from carla.recourse_methods.catalog.w_rip import Wachter_rip  # PROBE
-from carla.recourse_methods.catalog.roar import ROAR
 
 # data support
 from carla.recourse_methods.catalog.cchvae import CCHVAE
-from carla.recourse_methods.catalog.revise import Revise
 from carla.recourse_methods.catalog.crud import CRUD
+from carla.recourse_methods.catalog.dice_diverse import DICEDiv
+from carla.recourse_methods.catalog.growing_spheres import GrowingSpheres
+from carla.recourse_methods.catalog.revise import Revise
+from carla.recourse_methods.catalog.roar import ROAR
+
+# Robust
+from carla.recourse_methods.catalog.w_rip import Wachter_rip  # PROBE
+
+# mincost
+from carla.recourse_methods.catalog.wachter import Wachter
+from torch.distributions.multivariate_normal import MultivariateNormal
+
+import data.utils as dutils
+
+# disable GPU, some implementation don't work well GPU
+# torch.cuda.is_available = lambda: False
 
 
 def get_recourse(
@@ -113,9 +111,9 @@ def get_recourse(
 
     elif method == "probe":
         if lambda_ is not None:
-            hyperparams["invalidation_target"] = (
-                lambda_  # interpreted different more delta ---> far away ----> less lambda_
-            )
+            hyperparams[
+                "invalidation_target"
+            ] = lambda_  # interpreted different more delta ---> far away ----> less lambda_
 
         return Wachter_rip(mlmodel, hyperparams)
     elif method == "dice":
@@ -128,9 +126,9 @@ def get_recourse(
         return GrowingSpheres(mlmodel)
     elif "wachter" in method:
         if lambda_ is not None:
-            hyperparams["lambda_param"] = (
-                lambda_  # doesn't matter too much since they schedule it
-            )
+            hyperparams[
+                "lambda_param"
+            ] = lambda_  # doesn't matter too much since they schedule it
         return Wachter(mlmodel, hyperparams)
     else:
         raise ValueError("Recourse method not known")
@@ -160,7 +158,7 @@ if __name__ == "__main__":
         type=str,
         help="method(s) to run",
     )
-    parser.add_argument("--override", action='store_true',help='override existing')
+    parser.add_argument("--override", action="store_true", help="override existing")
     args = parser.parse_args()
 
     SEED = args.seed
@@ -199,18 +197,25 @@ if __name__ == "__main__":
             if DATASET_STR in _all_synth_datasets:
                 EPOCHS = 100
             else:
-                EPOCHS = 20 
+                EPOCHS = 20
 
             print(
                 f" =========================== [INFO] Executing  {rec_method} for dataset: {DATASET_STR} ==========================="
             )
             RF_FOLDER = utils.get_rf_folder(DATASET_STR, **exp_config["common"])
-            train_y, train_X, test_y, test_X, cat_mask, immutable_mask = dutils.load_dataset(
+            (
+                train_y,
+                train_X,
+                test_y,
+                test_X,
+                cat_mask,
+                immutable_mask,
+            ) = dutils.load_dataset(
                 DATASET_STR,
                 cust_labels_path=RF_FOLDER,
                 ret_tensor=True,
                 min_max=exp_config["common"]["MIN_MAX"],
-                ret_masks=True
+                ret_masks=True,
             )
             INPUT_SHAPE = train_X.shape[1]
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -231,12 +236,19 @@ if __name__ == "__main__":
             YSTAR = 1
             # construct relevant constructs for carla recourse methods
             data = bridge.CustomDataCatalog(
-                train_y, train_X, test_y, test_X, DATASET_STR, YSTAR=YSTAR, immutable_mask=immutable_mask, cat_mask=cat_mask
+                train_y,
+                train_X,
+                test_y,
+                test_X,
+                DATASET_STR,
+                YSTAR=YSTAR,
+                immutable_mask=immutable_mask,
+                cat_mask=cat_mask,
             )
             model = bridge.CustomModelCatalog(
                 ann_clf, data=data, model_type=MODEL_NAME, backend=BACKEND, YSTAR=YSTAR
             )
-            
+
             model._test_accuracy()
             common_dir = f"./results/{experiment_name}/{DATASET_STR}"
             with open(f"{common_dir}/xf_r", "rb") as fp:
@@ -253,7 +265,7 @@ if __name__ == "__main__":
                 else:
                     output_dir = f"{common_dir}/{rec_method}_{lambda_cost}"
 
-                if(os.path.isfile(f"{output_dir}/xcf") and not(OVERRIDE)):
+                if os.path.isfile(f"{output_dir}/xcf") and not (OVERRIDE):
                     print("[INFO] found existing recourse: skipping")
                     continue
 
@@ -267,12 +279,12 @@ if __name__ == "__main__":
                     lambda_=lambda_cost,
                 )
                 finnn = time.time()
-                print('time required for training', finnn - sttt)
+                print("time required for training", finnn - sttt)
 
                 sttt = time.time()
                 xcf = recourse_module.get_counterfactuals(test_factual)
                 finnn = time.time()
-                print('time required for inference', finnn - sttt)
+                print("time required for inference", finnn - sttt)
 
                 xcf.drop(data.target, axis=1, inplace=True)
                 xcf = xcf.to_numpy(dtype=np.float32)
