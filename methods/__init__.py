@@ -4,10 +4,12 @@ from .api import RecourseMethod
 from .catalog import (
     CCHVAE,
     CEM,
+    CFRL,
     CFVAE,
     CRUD,
     FOCUS,
     MACE,
+    RBR,
     ActionableRecourse,
     CausalRecourse,
     ClaPROAR,
@@ -22,6 +24,4 @@ from .catalog import (
     Revise,
     Roar,
     Wachter,
-    CFVAE,
-    CFRL,
 )

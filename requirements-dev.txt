@@ -1,6 +1,7 @@
 importlib_resources  # For python<=3.8
 black
 causalgraphicalmodels==0.0.4
+Flask==1.1.2
 dash==2.15.0
 dice-ml==0.5
 flake8
@@ -15,6 +16,8 @@ networkx==2.5.1
 numpydoc==1.1.0
 numpy==1.19.4
 markupsafe==2.0.1
+itsdangerous==2.0.1
+werkzeug==2.0.3
 pandas==1.1.4
 pre-commit==2.9.2
 protobuf<=3.21
@@ -29,6 +32,5 @@ sphinx-rtd-theme==0.5.2
 tensorflow==1.14.0
 torch==1.7.0 -f https://download.pytorch.org/whl/torch_stable.html
 torchvision==0.8.1
-PySMT==0.9.5
 xgboost==1.4.2
 tqdm

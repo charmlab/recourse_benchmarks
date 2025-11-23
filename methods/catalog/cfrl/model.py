@@ -1,17 +1,17 @@
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 import torch
-from torch import nn, optim
 import torch.nn.functional as F
+from torch import nn, optim
 from tqdm import tqdm
 
 from data.catalog.loadData import loadDataset
 from methods.api import RecourseMethod
-from methods.processing import merge_default_parameters
+from methods.processing import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
 from tools.log import log
 
@@ -170,7 +170,11 @@ class CFRL(RecourseMethod):
         for key in self._OPTIONAL_HYPERPARAMS:
             if self._params[key] == "_optional_":
                 self._params[key] = None
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # pyright: ignore[reportAttributeAccessIssue]
+        self._device = torch.device(
+            "cuda"
+            if torch.cuda.is_available()  # pyright: ignore[reportAttributeAccessIssue]
+            else "cpu"
+        )
         set_seed(self._params["seed"])
 
         self._metadata = self._prepare_metadata()
@@ -180,11 +184,17 @@ class CFRL(RecourseMethod):
             self._metadata.long_to_short[name] for name in self._metadata.feature_names
         ]
         self._lower_bounds = np.array(
-            [self._metadata.attr_bounds[name][0] for name in self._metadata.feature_names],
+            [
+                self._metadata.attr_bounds[name][0]
+                for name in self._metadata.feature_names
+            ],
             dtype=np.float32,
         )
         self._upper_bounds = np.array(
-            [self._metadata.attr_bounds[name][1] for name in self._metadata.feature_names],
+            [
+                self._metadata.attr_bounds[name][1]
+                for name in self._metadata.feature_names
+            ],
             dtype=np.float32,
         )
         self._encoded_cat_columns: Dict[int, List[str]] = {}
@@ -215,9 +225,7 @@ class CFRL(RecourseMethod):
     def _prepare_metadata(self) -> _FeatureMetadata:
         dataset_name = getattr(self._mlmodel.data, "name", None)
         if dataset_name is None:
-            raise ValueError(
-                "Unable to infer dataset name."
-            )
+            raise ValueError("Unable to infer dataset name.")
 
         dataset = loadDataset(
             dataset_name,
@@ -295,13 +303,25 @@ class CFRL(RecourseMethod):
             arr = np.zeros((num_rows, self._feature_count), dtype=np.float32)
 
             for idx, name in enumerate(self._metadata.feature_names):
-                col = raw_df[name].to_numpy()  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess]
+                col = raw_df[  # pyright: ignore[reportOptionalSubscript]
+                    name
+                ].to_numpy()  # pyright: ignore[reportOptionalMemberAccess]
                 if idx in self._metadata.categorical_indices:
                     mapping = self._metadata.raw_to_idx[name]
-                    raw_vals = np.rint(col).astype(int, copy=False)  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
-                    arr[:, idx] = np.vectorize(lambda v: mapping.get(int(v), 0))(raw_vals)  # pyright: ignore[reportGeneralTypeIssues]
+                    raw_vals = np.rint(
+                        col
+                    ).astype(  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+                        int, copy=False
+                    )
+                    arr[:, idx] = np.vectorize(lambda v: mapping.get(int(v), 0))(
+                        raw_vals
+                    )  # pyright: ignore[reportGeneralTypeIssues]
                 else:
-                    arr[:, idx] = col.astype(np.float32, copy=False)  # pyright: ignore[reportAttributeAccessIssue]
+                    arr[
+                        :, idx
+                    ] = col.astype(  # pyright: ignore[reportAttributeAccessIssue]
+                        np.float32, copy=False
+                    )
             return arr
 
         ordered = frame.reindex(
@@ -320,7 +340,11 @@ class CFRL(RecourseMethod):
                 raw_vals = values * (upper - lower) + lower
                 if attr_type in {"numeric-int", "binary"}:
                     raw_vals = np.rint(raw_vals)  # pyright: ignore[reportCallIssue]
-                arr[:, idx] = raw_vals.astype(np.float32, copy=False)  # pyright: ignore[reportAttributeAccessIssue]
+                arr[
+                    :, idx
+                ] = raw_vals.astype(  # pyright: ignore[reportAttributeAccessIssue]
+                    np.float32, copy=False
+                )
                 continue
 
             columns = self._encoded_cat_columns.get(idx)
@@ -342,7 +366,11 @@ class CFRL(RecourseMethod):
         Reverse of :meth:`_ordered_to_cfrl` with vectorised numpy logic to reduce
         per-call overhead during RL training.
         """
-        arr = np.atleast_2d(arr_zero).astype(np.float32, copy=False)  # pyright: ignore[reportAttributeAccessIssue]
+        arr = np.atleast_2d(
+            arr_zero
+        ).astype(  # pyright: ignore[reportAttributeAccessIssue]
+            np.float32, copy=False
+        )
         num_rows = arr.shape[0]
         blocks: List[np.ndarray] = []
         columns: List[str] = []
@@ -368,7 +396,13 @@ class CFRL(RecourseMethod):
                 continue
 
             idxs = np.clip(
-                np.rint(arr[:, idx]).astype(int, copy=False), 0, n_categories - 1  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+                np.rint(
+                    arr[:, idx]
+                ).astype(  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue]
+                    int, copy=False
+                ),
+                0,
+                n_categories - 1,
             )
             if "ordinal" in attr_type:
                 block = (np.arange(n_categories) <= idxs[:, None]).astype(np.float32)
@@ -380,7 +414,11 @@ class CFRL(RecourseMethod):
             columns.extend(self._encoded_cat_columns[idx])
 
         if blocks:
-            data = np.concatenate(blocks, axis=1).astype(np.float32, copy=False)  # pyright: ignore[reportAttributeAccessIssue]
+            data = np.concatenate(
+                blocks, axis=1
+            ).astype(  # pyright: ignore[reportAttributeAccessIssue]
+                np.float32, copy=False
+            )
             model_df = pd.DataFrame(data, columns=columns)
         else:
             model_df = pd.DataFrame(
@@ -412,7 +450,7 @@ class CFRL(RecourseMethod):
             elif hasattr(preds, "numpy"):  # tf.Tensor or similar
                 preds = preds.numpy()
             else:
-                preds = np.asarray(preds)
+                preds = np.asarray(preds)  # pyright: ignore[reportCallIssue]
             return preds
 
         return predictor
@@ -443,7 +481,11 @@ class CFRL(RecourseMethod):
             for idx in self._metadata.categorical_indices
         ]
 
-        params = list(self._encoder.parameters()) + list(self._decoder.parameters())  # pyright: ignore[reportOptionalMemberAccess]
+        params = list(
+            self._encoder.parameters()  # pyright: ignore[reportOptionalMemberAccess]
+        ) + list(
+            self._decoder.parameters()  # pyright: ignore[reportOptionalMemberAccess]
+        )
         optimiser = optim.Adam(params, lr=lr)
 
         num_samples = inputs.size(0)
@@ -462,7 +504,9 @@ class CFRL(RecourseMethod):
                 for start in range(0, num_samples, batch_size):
                     idx = perm[start : start + batch_size]
                     batch_x = inputs[idx]
-                    outputs = self._decoder(self._encoder(batch_x))  # pyright: ignore[reportOptionalCall]
+                    outputs = self._decoder(
+                        self._encoder(batch_x)  # pyright: ignore[reportOptionalCall]
+                    )
 
                     loss = torch.zeros((), device=self._device)
 
@@ -493,7 +537,11 @@ class CFRL(RecourseMethod):
                     if steps_run >= target_steps:
                         break
 
-                if max_epochs <= 10 or (epoch + 1) % max(1, max_epochs // 5) == 0 or steps_run >= target_steps:
+                if (
+                    max_epochs <= 10
+                    or (epoch + 1) % max(1, max_epochs // 5) == 0
+                    or steps_run >= target_steps
+                ):
                     log.info(
                         "CFRL autoencoder epoch %s/%s (~%s/%s steps) | loss %.4f",
                         epoch + 1,
@@ -513,6 +561,8 @@ class CFRL(RecourseMethod):
     # Public API                                                            #
     # --------------------------------------------------------------------- #
     def train(self) -> None:  # noqa: D401
+        set_seed(self._params["seed"])
+
         data_obj = getattr(self._mlmodel, "data", None)
         if data_obj is None or not hasattr(data_obj, "df_train"):
             raise ValueError("ML model data object must expose a df_train attribute.")
@@ -522,7 +572,10 @@ class CFRL(RecourseMethod):
             df_train = df_train.drop(columns=[target_name])
 
         X_zero = self._ordered_to_cfrl(df_train).astype(np.float32)
-        self._encoder_preprocessor, self._decoder_inv_preprocessor = get_he_preprocessor(
+        (
+            self._encoder_preprocessor,
+            self._decoder_inv_preprocessor,
+        ) = get_he_preprocessor(
             X=X_zero,
             feature_names=self._metadata.feature_names,
             category_map=self._metadata.category_map,
@@ -581,10 +634,14 @@ class CFRL(RecourseMethod):
         # Compute explicit actor/critic input dimensions.
         preds_shape = predictor(X_zero[:1]).shape  # type: ignore[reportOptionalOperand]
         num_classes = preds_shape[1] if len(preds_shape) == 2 else 1
-        cond_dim = get_conditional_dim(self._metadata.feature_names, self._metadata.category_map)
+        cond_dim = get_conditional_dim(
+            self._metadata.feature_names, self._metadata.category_map
+        )
         actor_input_dim = latent_dim + 2 * num_classes + cond_dim
 
-        log.info("Training CFRL explainer (train_steps=%s).", self._params["train_steps"])
+        log.info(
+            "Training CFRL explainer (train_steps=%s).", self._params["train_steps"]
+        )
         self._cf_model = CFRLExplainer(
             predictor=predictor,
             encoder=self._encoder,
@@ -615,14 +672,18 @@ class CFRL(RecourseMethod):
             preds = preds.detach().cpu().numpy()
         target_class = 1 - int(np.argmax(preds, axis=1)[0])
 
-        explanation = self._cf_model.explain(  # pyright: ignore[reportOptionalMemberAccess]
-            X=zero_input.astype(np.float32),
-            Y_t=np.array([target_class]),
-            C=[],
+        explanation = (
+            self._cf_model.explain(  # pyright: ignore[reportOptionalMemberAccess]
+                X=zero_input.astype(np.float32),
+                Y_t=np.array([target_class]),
+                C=[],
+            )
         )
         cf_data = explanation.get("cf", {}).get("X")
         if cf_data is None:
-            log.warning("CFRL failed to produce a counterfactual; falling back to input.")
+            log.warning(
+                "CFRL failed to produce a counterfactual; falling back to input."
+            )
             return factual_ordered
 
         cf_array = np.asarray(cf_data)  # pyright: ignore[reportCallIssue]
@@ -634,14 +695,22 @@ class CFRL(RecourseMethod):
         cf_ordered.index = factual_ordered.index
         return cf_ordered
 
-    def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:  # noqa: D401
+    def get_counterfactuals(  # noqa: D401  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, factuals: pd.DataFrame
+    ) -> pd.DataFrame:
         assert self._trained, "Error: run train() first."
-        results: List[pd.DataFrame] = []
+        set_seed(self._params["seed"])
 
+        factuals = self._mlmodel.get_ordered_features(factuals)
+
+        results: List[pd.DataFrame] = []
         for index, row in factuals.iterrows():
             cf_row = self._generate_counterfactual(pd.DataFrame([row]))
             cf_row.index = [index]  # pyright: ignore[reportAttributeAccessIssue]
             results.append(cf_row)
 
         counterfactuals = pd.concat(results, axis=0)
+        counterfactuals = check_counterfactuals(
+            self._mlmodel, counterfactuals, factuals.index
+        )
         return self._mlmodel.get_ordered_features(counterfactuals)

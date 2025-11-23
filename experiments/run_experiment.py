@@ -172,6 +172,11 @@ def initialize_recourse_method(
         return Probe(mlmodel, hyperparams)
     elif method == "roar":
         return Roar(mlmodel, hyperparams)
+    elif method == "rbr":
+        hyperparams["train_data"] = data.df_train.drop(columns=["y"], axis=1)
+        dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        hyperparams["device"] = dev
+        return RBR(mlmodel, hyperparams)
     else:
         raise ValueError("Recourse method not known")
 
@@ -200,9 +205,9 @@ def create_parser():
         Choices: ["mlp", "linear", "forest"].
     -r, --recourse_method: Specifies recourse methods for the experiment.
         Default: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "claproar", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
-            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl", "probe", "roar"].
+            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl", "probe", "roar", "rbr"].
         Choices: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "claproar", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
-            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl", "probe", "roar"].
+            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl", "probe", "roar", "rbr"].
     -n, --number_of_samples: Specifies the number of instances per dataset.
         Default: 20.
     -s, --train_split: Specifies the split of the available data used for training.
@@ -277,6 +282,7 @@ def create_parser():
             "cfrl",
             "probe",
             "roar",
+            "rbr",
         ],
         choices=[
             "dice",
@@ -302,6 +308,7 @@ def create_parser():
             "cfrl",
             "probe",
             "roar",
+            "rbr",
         ],
         help="Recourse methods for experiment",
     )
@@ -385,6 +392,7 @@ if __name__ == "__main__":
         "cfrl",
         "probe",
         "roar",
+        "rbr",
     ]
     sklearn_methods = ["feature_tweak", "focus", "mace"]
 

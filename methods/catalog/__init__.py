@@ -3,6 +3,7 @@ from .actionable_recourse import ActionableRecourse
 from .causal_recourse import CausalRecourse
 from .cchvae import CCHVAE
 from .cem import CEM
+from .cfrl import CFRL
 from .cfvae import CFVAE
 from .claproar import ClaPROAR
 from .clue import Clue
@@ -16,8 +17,7 @@ from .greedy import Greedy
 from .growing_spheres import GrowingSpheres
 from .mace import MACE
 from .probe import Probe
+from .rbr import RBR
 from .revise import Revise
 from .roar import Roar
 from .wachter import Wachter
-from .cfvae import CFVAE
-from .cfrl import CFRL
