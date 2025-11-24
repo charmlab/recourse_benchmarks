@@ -46,9 +46,13 @@ def _filter_hinge_loss(n_class, mask_vector, features, sigma, temperature, model
     filtered_input = tf.boolean_mask(features, mask_vector)
 
     # if sigma or temperature are not scalars
-    if type(sigma) != float or type(sigma) != int:
+    if not isinstance(
+        sigma, (float, int)
+    ):  # type(sigma) != float or type(sigma) != int:
         sigma = tf.boolean_mask(sigma, mask_vector)
-    if type(temperature) != float or type(temperature) != int:
+    if not isinstance(
+        temperature, (float, int)
+    ):  # type(temperature) != float or type(temperature) != int:
         temperature = tf.boolean_mask(temperature, mask_vector)
 
     # compute loss
