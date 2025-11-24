@@ -191,7 +191,7 @@ class Larr(RecourseMethod):
 
         # print(X_train_t[:5])
 
-        recourse_needed_X_train = df_train_processed[np.where(preds_gpu_probs == 0)]
+        recourse_needed_X_train = df_train_processed.iloc[np.where(preds_gpu_probs == 0)]
         # recourse_needed_X_train = df_train_processed.values[:5]
 
         # first choose the optimal lambda value
