@@ -3,6 +3,7 @@ import sys
 import warnings
 import numpy as np
 import pandas as pd
+import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 import io
@@ -14,7 +15,7 @@ warnings.filterwarnings('ignore', category=RuntimeWarning)
 warnings.filterwarnings('ignore')
 
 # Suppress TensorFlow warnings
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TF logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
@@ -24,24 +25,16 @@ CARE_DIR = os.path.dirname(CURRENT_FILE)
 LIBRARY_DIR = os.path.join(CARE_DIR, 'library')
 sys.path.insert(0, LIBRARY_DIR)
 
-from prepare_datasets import PrepareAdult # type: ignore
-from create_model import CreateModel # type: ignore
-from user_preferences import userPreferences # type: ignore
-from care.care import CARE # type: ignore
-from evaluate_counterfactuals import evaluateCounterfactuals # type: ignore
+from prepare_datasets import PrepareAdult  # type: ignore
+from create_model import CreateModel  # type: ignore
+from user_preferences import userPreferences  # type: ignore
+from care.care import CARE  # type: ignore
+from evaluate_counterfactuals import evaluateCounterfactuals  # type: ignore
 
 
 def reproduce_care_table7(n_samples=50, n_cf=10, verbose=True):
     """
     Reproduce CARE Table 7 results for Adult dataset.
-    
-    Args:
-        n_samples: Number of instances to explain (default: 50)
-        n_cf: Number of counterfactuals per instance (default: 10)
-        verbose: Print progress (default: True)
-    
-    Returns:
-        dict: Results matching Table 7 format
     """
     dataset_path = os.path.join(CARE_DIR, 'datasets/')
     
@@ -55,21 +48,25 @@ def reproduce_care_table7(n_samples=50, n_cf=10, verbose=True):
         print('\n[1/5] Loading Adult dataset...')
     dataset = PrepareAdult(dataset_path, 'adult.csv')
     
+    # Load pre-trained model
+    if verbose:
+        print('[2/5] Loading pre-trained model...')
+    
+    model_path = os.path.join(CARE_DIR, 'trained_models', 'adult_gb_classifier.pkl')
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(
+            f"Pre-trained model not found at: {model_path}\n"
+            f"Please run: cd trained_models && python train_models.py"
+        )
+    
+    with open(model_path, 'rb') as f:
+        blackbox = pickle.load(f)
+    
     # Split data
     X, y = dataset['X_ord'], dataset['y']
-    X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # Train model (suppress print statements)
-    if verbose:
-        print('[2/5] Training Gradient Boosting classifier...')
-    
-    # Temporarily redirect stdout to suppress CreateModel prints
-    f = io.StringIO()
-    with contextlib.redirect_stdout(f):
-        blackbox = CreateModel(
-            dataset, X_train, X_test, Y_train, Y_test, 
-            'classification', 'gb-c', GradientBoostingClassifier
-        )
+    X_train, X_test, Y_train, Y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
     
     predict_fn = lambda x: blackbox.predict(x).ravel()
     predict_proba_fn = lambda x: blackbox.predict_proba(x)
@@ -81,6 +78,7 @@ def reproduce_care_table7(n_samples=50, n_cf=10, verbose=True):
     configs = []
     config_names = ['{1}', '{1,2}', '{1,2,3}', '{1,2,3,4}']
     
+    f = io.StringIO()
     with contextlib.redirect_stdout(f):
         for i, (soundness, coherency, actionability) in enumerate([
             (False, False, False),
