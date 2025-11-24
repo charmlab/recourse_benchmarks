@@ -2,6 +2,8 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+
+# import torch
 from lime.lime_tabular import LimeTabularExplainer
 
 # from sklearn.linear_model import LogisticRegression
@@ -40,9 +42,10 @@ class Larr(RecourseMethod):
         Hyperparameter contains important information for the recourse method to initialize.
         Please make sure to pass all values as dict with the following keys.
 
-        * "lr": float, default: 0.01
-            Learning rate for gradient descent.
-
+        * "beta": float, default: 0.5 (max 1.0, min 0.0)
+            The ratio between Robustness and Consistency. Higher beta means more Robust, Lower means more Consistent
+        * "alpha": float, default: 0.5 (max 1.0, min 0.0)
+            The parameter used to shift model weights for adversarial training
 
     .. [1] Kayastha, K., Gkatzelis, V., Jabbari, S. (2025). Learning-Augmented Robust Algorithmic Recourse. Drexel University. (https://arxiv.org/pdf/2410.01580)
     """
@@ -175,6 +178,8 @@ class Larr(RecourseMethod):
                 intercepts = np.vstack([self._intercepts] * factuals.shape[0]).squeeze(
                     axis=1
                 )
+                self.method.weights = self._coeffs
+                self.method.bias = self._intercepts
             elif self._mlmodel.model_type == "mlp":
                 coeffs, intercepts = self._get_lime_coefficients(factuals)
 
@@ -186,10 +191,20 @@ class Larr(RecourseMethod):
         # X_train_t = torch.from_numpy(df_train_processed.values).float().to(device)
 
         preds_gpu_probs = self._mlmodel.predict_proba(df_train_processed)
-        # preds_gpu_labels = torch.argmax(preds_gpu_probs, dim=1) # since the models use softmax, we need argmax to see which class was predicted
+        preds_gpu_labels = preds_gpu_probs.argmax(
+            axis=1
+        )  # since the models use softmax, we need argmax to see which class was predicted
         # preds_cpu_labels = preds_gpu_labels.cpu().numpy()
 
-        # print(X_train_t[:5])
+        # print(preds_gpu_labels)
+
+        recourse_needed_X_train = df_train_processed[preds_gpu_labels == 0].values
+        # print(recourse_needed_X_train)
+
+        if len(recourse_needed_X_train) == 0:
+            raise Exception(
+                "The model did not predict any failures in the original training data. It cannot search for the Lambda parameter"
+            )
 
         recourse_needed_X_train = df_train_processed.iloc[np.where(preds_gpu_probs == 0)]
         # recourse_needed_X_train = df_train_processed.values[:5]
@@ -197,8 +212,9 @@ class Larr(RecourseMethod):
         # first choose the optimal lambda value
         self.method.choose_lambda(
             recourse_needed_X_train,
-            self._mlmodel.predict_proba,
-            df_train_processed.values,
+            predict_fn=self._mlmodel.predict,
+            predict_proba_fn=self._mlmodel.predict_proba,
+            X_train=df_train_processed.values,
         )  # self._data.df_train.values)
 
         cfs = []

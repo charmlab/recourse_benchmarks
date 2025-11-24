@@ -3,6 +3,7 @@ from .actionable_recourse import ActionableRecourse
 from .causal_recourse import CausalRecourse
 from .cchvae import CCHVAE
 from .cem import CEM
+from .cfvae import CFVAE
 from .claproar import ClaPROAR
 from .clue import Clue
 from .crud import CRUD
@@ -13,6 +14,7 @@ from .focus import FOCUS
 from .gravitational import Gravitational
 from .greedy import Greedy
 from .growing_spheres import GrowingSpheres
+from .larr import Larr
 from .mace import MACE
 from .probe import Probe
 from .revise import Revise
