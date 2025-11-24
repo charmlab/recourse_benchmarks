@@ -20,6 +20,7 @@ from .catalog import (
     Gravitational,
     Greedy,
     GrowingSpheres,
+    Larr,
     Probe,
     Revise,
     Roar,
