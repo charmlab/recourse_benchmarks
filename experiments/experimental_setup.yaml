@@ -142,6 +142,19 @@ recourse_methods:
     hyperparams:
        encoded_size: 10
        train: True
+  cfrl:
+    hyperparams:
+       seed: 0
+       autoencoder_batch_size: 128
+       autoencoder_target_steps: 100_000
+       autoencoder_lr: 1e-3
+       autoencoder_latent_dim: 15
+       autoencoder_hidden_dim: 128
+       coeff_sparsity: 0.5
+       coeff_consistency: 0.5
+       train_steps: 100_000
+       batch_size: 128
+       train: True
   probe:
     hyperparams:
   roar:
@@ -150,3 +163,7 @@ recourse_methods:
     hyperparams:
       alpha: 0.5
       beta: 1.0
+  rbr:
+    hyperparams:
+      train_data: None
+      device: "cpu"
