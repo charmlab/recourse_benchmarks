@@ -14,8 +14,6 @@ class Probe(RecourseMethod):
     ----------
     mlmodel : model.MLModel
         Black-Box-Model
-    data: data.Data
-        Dataset to perform on
     hyperparams : dict
         Dictionary containing hyperparameters. See notes below for its contents.
 

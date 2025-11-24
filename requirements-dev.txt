@@ -34,4 +34,4 @@ gast==0.2.2
 torch==1.7.0 -f https://download.pytorch.org/whl/torch_stable.html
 torchvision==0.8.1
 xgboost==1.4.2
-tqdm
+tqdm == 4.67.1
