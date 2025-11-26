@@ -172,6 +172,8 @@ def initialize_recourse_method(
         return Probe(mlmodel, hyperparams)
     elif method == "roar":
         return Roar(mlmodel, hyperparams)
+    elif method == "larr":
+        return Larr(mlmodel, hyperparams)
     elif method == "rbr":
         hyperparams["train_data"] = data.df_train.drop(columns=["y"], axis=1)
         dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -207,7 +209,7 @@ def create_parser():
         Default: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "claproar", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
             "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl", "probe", "roar", "rbr"].
         Choices: ["dice", "ar", "causal_recourse", "cchvae", "cem", "cem_vae", "claproar", "clue", "cruds", "face_knn", "face_epsilon", "feature_tweak",
-            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl", "probe", "roar", "rbr"].
+            "focus", "gravitational", "greedy", "gs", "mace", "revise", "wachter", "cfvae", "cfrl", "probe", "roar", "rbr", "larr"].
     -n, --number_of_samples: Specifies the number of instances per dataset.
         Default: 20.
     -s, --train_split: Specifies the split of the available data used for training.
@@ -309,6 +311,7 @@ def create_parser():
             "cfrl",
             "probe",
             "roar",
+            "larr",
             "rbr",
         ],
         help="Recourse methods for experiment",
@@ -393,6 +396,7 @@ if __name__ == "__main__":
         "cfrl",
         "probe",
         "roar",
+        "larr",
         "rbr",
     ]
     sklearn_methods = ["feature_tweak", "focus", "mace"]
