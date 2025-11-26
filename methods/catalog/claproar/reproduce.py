@@ -29,9 +29,9 @@ def test_claproar_counterfactuals_standard_deviation(dataset_name):
 
     factuals = total_factuals.iloc[:5]
 
-    counterfactuals = claproar.get_counterfactuals(factuals)
+    counterfactuals = claproar.get_counterfactuals(factuals, raw_output=True)
 
-    factuals_np = factuals.drop("y", axis=1).to_numpy()
+    factuals_np = claproar._mlmodel.get_ordered_features(factuals).to_numpy()
     counterfactuals_np = counterfactuals.to_numpy()
 
     differences = np.abs(counterfactuals_np - factuals_np)
@@ -110,11 +110,11 @@ def test_claproar_individual_cost(dataset_name):
 
     factuals = total_factuals.iloc[:5]
 
-    counterfactuals = claproar.get_counterfactuals(factuals)
+    counterfactuals = claproar.get_counterfactuals(factuals, raw_output=True)
 
     negative_instances = predict_negative_instances(model, data).iloc[:5]
 
-    factuals_np = negative_instances.drop("y", axis=1).to_numpy()
+    factuals_np = claproar._mlmodel.get_ordered_features(negative_instances).to_numpy()
     counterfactuals_np = counterfactuals.to_numpy()
     individual_cost = np.linalg.norm(counterfactuals_np - factuals_np, axis=1).mean()
 

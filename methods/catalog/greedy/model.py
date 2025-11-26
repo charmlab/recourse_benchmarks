@@ -2,9 +2,10 @@ from typing import Dict
 
 import pandas as pd
 import tensorflow as tf
+from tqdm import tqdm
 
 from methods.api import RecourseMethod
-from methods.processing import merge_default_parameters
+from methods.processing import check_counterfactuals, merge_default_parameters
 from models.api import MLModel
 
 
@@ -85,14 +86,19 @@ class Greedy(RecourseMethod):
             labels=target, logits=prediction_val
         )
 
-    def get_counterfactuals(self, factuals: pd.DataFrame):
+    def get_counterfactuals(self, factuals: pd.DataFrame, raw_output: bool = False):
+        factuals = self._mlmodel.get_ordered_features(factuals)
+
         # Initialize a list to collect the counterfactuals
         counterfactuals_list = []
 
         # Iterate over each row in the DataFrame
-        for index, row in factuals.iterrows():
+        for index, row in tqdm(
+            factuals.iterrows(),
+            total=len(factuals),
+        ):
             # Prepare the original instance
-            original_instance = row.drop("y")
+            original_instance = row
             feature_names = original_instance.index
             original_instance = original_instance.values
 
@@ -136,7 +142,10 @@ class Greedy(RecourseMethod):
                 counterfactuals_list.append(counterfactual_df)
 
         # Concatenate all counterfactuals into a single DataFrame
-        final_counterfactuals_df = pd.concat(counterfactuals_list, ignore_index=True)
-        df_cfs = self._mlmodel.get_ordered_features(final_counterfactuals_df)
+        df_cfs = pd.concat(counterfactuals_list, ignore_index=True)
 
+        if not raw_output:
+            df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
+
+        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
         return df_cfs

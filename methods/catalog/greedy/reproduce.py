@@ -74,7 +74,7 @@ def test_greedy_on_datasets(dataset_name, model_type, backend):
     l1_distances = []
     realism_scores = []
 
-    counterfactuals = greedy.get_counterfactuals(factuals)
+    counterfactuals = greedy.get_counterfactuals(factuals, raw_output=True)
 
     l1_distance = calculate_l1_distance(counterfactuals, factuals)
     realism_score = calculate_realism_score(counterfactuals, ae_all, ae_target)

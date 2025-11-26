@@ -68,6 +68,7 @@ setup(
         "sphinx_autodoc_typehints==1.12.0",
         "sphinx-rtd-theme==0.5.2",
         "tensorflow==1.14.0",
+        "gast==0.2.2",
         "torch==1.7.0",
         "torchvision==0.8.1",
         "xgboost==1.4.2",

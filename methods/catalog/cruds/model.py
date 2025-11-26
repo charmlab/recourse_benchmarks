@@ -4,13 +4,13 @@ import pandas as pd
 
 from methods.api import RecourseMethod
 from methods.autoencoder import CSVAE
-from methods.catalog.crud.library import counterfactual_search
+from methods.catalog.cruds.library import counterfactual_search
 from methods.processing import check_counterfactuals, merge_default_parameters
 
 
-class CRUD(RecourseMethod):
+class CRUDS(RecourseMethod):
     """
-    Implementation of CRUD [1]_.
+    Implementation of CRUDS [1]_.
 
     Parameters
     ----------

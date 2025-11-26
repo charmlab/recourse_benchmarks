@@ -103,6 +103,10 @@ def load_adult_data(load_data_size=None):
     for f in data_files:
         check_data_file(f)
 
+        f = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "..", "raw_data", f
+        )
+
         for line in open(f):
             line = line.strip()
             if line == "":
@@ -227,7 +231,6 @@ def load_adult_data_new():
     ]  # sex and race are sensitive feature so we will not use them in classification, we will not consider fnlwght for classification since its computed externally and it highly predictive for the class (for details, see documentation of the adult data)
 
     # adult data comes in two different files, one for training and one for testing, however, we will combine data from both the files
-    this_files_directory = os.path.dirname(os.path.realpath(__file__))
     data_files = ["adult.data", "adult.test"]
 
     y = []
@@ -244,7 +247,9 @@ def load_adult_data_new():
 
     for file_name in data_files:
         check_data_file(file_name)
-        full_file_name = os.path.join(this_files_directory, file_name)
+        full_file_name = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "..", "raw_data", file_name
+        )
         print(full_file_name)
 
         for line in open(full_file_name):

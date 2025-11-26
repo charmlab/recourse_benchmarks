@@ -7,7 +7,7 @@ from .cfrl import CFRL
 from .cfvae import CFVAE
 from .claproar import ClaPROAR
 from .clue import Clue
-from .crud import CRUD
+from .cruds import CRUDS
 from .dice import Dice
 from .face import Face
 from .feature_tweak import FeatureTweak

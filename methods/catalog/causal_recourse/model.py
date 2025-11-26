@@ -8,7 +8,7 @@ from sklearn import preprocessing
 from methods.api import RecourseMethod
 from models.catalog import ModelCatalog
 
-from ...processing import merge_default_parameters
+from ...processing import check_counterfactuals, merge_default_parameters
 from . import constraints, samplers
 from .action_set import get_discretized_action_sets
 from .cost import action_set_cost
@@ -150,20 +150,20 @@ class CausalRecourse(RecourseMethod):
                 intervenables_nodes, min_values, max_values, mean_values
             )
 
-            # we need to make sure that actions don't go out of bounds [0, 1]
-            if isinstance(self._dataset.scaler, preprocessing.MinMaxScaler):
-                out_of_bounds_idx = []
-                for i, action_set in enumerate(valid_action_sets):
-                    instance = _series_plus_dict(factual_instance, action_set)
-                    if not np.all((1 > instance.values) & (instance.values > 0)):
-                        out_of_bounds_idx.append(i)
-                valid_action_sets = [
-                    action_set
-                    for i, action_set in enumerate(valid_action_sets)
-                    if i not in set(out_of_bounds_idx)
-                ]
+            scaler = getattr(self._dataset, "scaler", None)
+
+            def _in_bounds(action_set: dict) -> bool:
+                """
+                Ensure continuous variables stay in the [0,1] range when a MinMax scaler was used.
+                """
+                if not isinstance(scaler, preprocessing.MinMaxScaler):
+                    return True
+                instance = _series_plus_dict(factual_instance, action_set)
+                return np.all((1 > instance.values) & (instance.values > 0))
 
             for action_set in valid_action_sets:
+                if not _in_bounds(action_set):
+                    continue
                 if constraint_handle(
                     self._scm,
                     factual_instance,
@@ -188,11 +188,11 @@ class CausalRecourse(RecourseMethod):
         return min_action_set, min_cost
 
     def get_counterfactuals(self, factuals: pd.DataFrame):
-        factual_df = factuals.drop(columns=self._dataset.target)
+        factuals = self._mlmodel.get_ordered_features(factuals)
 
         cfs = []
         # actions = []
-        for index, factual_instance in factual_df.iterrows():
+        for index, factual_instance in factuals.iterrows():
             min_action_set, _ = self.compute_optimal_action_set(
                 factual_instance, self._constraint_handle, self._sampler_handle
             )
@@ -202,6 +202,9 @@ class CausalRecourse(RecourseMethod):
             cfs.append(cf)
 
         # convert to dataframe
-        cfs = pd.DataFrame(cfs)
+        df_cfs = pd.DataFrame(cfs)
         # action_df = pd.DataFrame(actions)
-        return cfs
+
+        df_cfs = check_counterfactuals(self._mlmodel, df_cfs, factuals.index)
+        df_cfs = self._mlmodel.get_ordered_features(df_cfs)
+        return df_cfs

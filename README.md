@@ -112,6 +112,8 @@ This folder houses all datasets and their cached versions. It also contains the 
 
 This folder contains the implementation of all evaluation and benchmark metrics used to compare recourse methods in the repository. This includes metrics such as `distance`, `redundancy`, `success rate`, `time`, `violations`, and `y nearest neighbors`.
 
+**WARNING: Current success rate implementation (to be specific, `methods.processing.check_counterfactuals()` embedded in `get_counterfactuals()`) will only consider 0->1 flips and mark 0->0 counterfactuals to nan!**
+
 ### Live Site Folder
 
 This folder contains the implementation of the frontend UI interface, which displays results stored in `results.csv` from executing `./experiments/run_experiment.py`.
@@ -158,7 +160,7 @@ benchmark = Benchmark(model, gs, factuals)
 evaluation_measures = [
       evaluation_catalog.YNN(benchmark.mlmodel, {"y": 5, "cf_label": 1}),
       evaluation_catalog.Distance(benchmark.mlmodel),
-      evaluation_catalog.SuccessRate(),
+      evaluation_catalog.SuccessRate(),  # Will only consider 0->1 flips!!!
       evaluation_catalog.Redundancy(benchmark.mlmodel, {"cf_label": 1}),
       evaluation_catalog.ConstraintViolation(benchmark.mlmodel),
       evaluation_catalog.AvgTime({"time": benchmark.timer}),

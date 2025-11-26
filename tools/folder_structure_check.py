@@ -10,7 +10,7 @@ EXEMPTED_METHODS = [
     "cchvae",
     "cem",
     "clue",
-    "crud",
+    "cruds",
     "dice",
     "face",
     "feature_tweak",
