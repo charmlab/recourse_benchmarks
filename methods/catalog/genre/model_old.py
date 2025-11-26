@@ -14,19 +14,17 @@ from typing import Dict
 import pandas as pd
 import torch
 
-# Add author's library to path first
-GENRE_ROOT = os.path.dirname(os.path.abspath(__file__))
-LIBRARY_PATH = os.path.join(GENRE_ROOT, "library")
-sys.path.insert(0, LIBRARY_PATH)
-
-# Import after adding to path
-from library.recourse.genre import GenRe as GenReOriginal
-from library.models import binnedpm
+from methods.catalog.genre.library.recourse.genre import GenRe as GenReOriginal
 
 # Repo imports
 from methods.api import RecourseMethod
 from methods.processing.counterfactuals import merge_default_parameters
 from models.catalog.catalog import ModelCatalog
+
+# Add author's library to path
+GENRE_ROOT = os.path.dirname(os.path.abspath(__file__))
+LIBRARY_PATH = os.path.join(GENRE_ROOT, "library")
+sys.path.insert(0, LIBRARY_PATH)
 
 
 class GenRe(RecourseMethod):
@@ -45,9 +43,8 @@ class GenRe(RecourseMethod):
 
     Hyperparameters
     ---------------
-    transformer : torch.nn.Module, optional
-        Pretrained GenRe Transformer model. If not provided, will be loaded
-        from library/transformer/genre_transformer.pth
+    transformer : torch.nn.Module
+        Pretrained GenRe Transformer model
     cat_mask : torch.Tensor
         Binary mask for categorical features
     temp : float, default=10.0
@@ -61,7 +58,7 @@ class GenRe(RecourseMethod):
     """
 
     _DEFAULT_HYPERPARAMS = {
-        # "transformer": None,
+        "transformer": None,
         "cat_mask": None,
         "temp": 10.0,
         "sigma": 0.0,
@@ -77,16 +74,32 @@ class GenRe(RecourseMethod):
         )
 
         self._mlmodel = mlmodel
-        self._device = torch.device(checked_hyperparams["device"])
 
-        self._ann_clf = mlmodel
-        self._cat_mask = checked_hyperparams["cat_mask"]
-        input_dim = len(self._cat_mask)
-        self._transformer = self._load_transformer(input_dim)
+        # Auto-detect mlmodel type and extract the actual nn.Module
+        if isinstance(mlmodel, ModelCatalog):
+            # FUTURE: Repo's ModelCatalog - extract internal nn.Module
+            self._ann_clf = mlmodel.raw_model
+            # Get cat_mask from data if not provided
+            if checked_hyperparams["cat_mask"] is not None:
+                self._cat_mask = checked_hyperparams["cat_mask"]
+            else:
+                # Build cat_mask from ModelCatalog's data
+                self._cat_mask = torch.tensor(
+                    [1 if f in mlmodel.data.categorical else 0
+                     for f in mlmodel.feature_input_order]
+                )
+        else:
+            # CURRENT: Author's BinaryClassifier - use directly
+            self._ann_clf = mlmodel
+            self._cat_mask = checked_hyperparams["cat_mask"]
+
+        # Transformer must be provided in hyperparams (repo doesn't have it yet)
+        self._transformer = checked_hyperparams["transformer"]
 
         self._temp = checked_hyperparams["temp"]
         self._sigma = checked_hyperparams["sigma"]
         self._best_k = checked_hyperparams["best_k"]
+        self._device = torch.device(checked_hyperparams["device"])
 
         # Initialize GenRe recourse module
         self._genre_recourse = GenReOriginal(
@@ -98,45 +111,6 @@ class GenRe(RecourseMethod):
             ystar=1.0,
             cat_mask=self._cat_mask,
         )
-
-    def _load_transformer(self, input_dim: int):
-        """Load pretrained transformer from library/transformer/"""
-        transformer_path = os.path.join(
-            GENRE_ROOT, "library", "transformer", "genre_transformer.pth"
-        )
-
-        if not os.path.exists(transformer_path):
-            raise FileNotFoundError(
-                f"Transformer not found at {transformer_path}. "
-                "Please ensure genre_transformer.pth is in library/transformer/"
-            )
-
-        # Create transformer architecture
-        transformer = binnedpm.PairedTransformerBinned(
-            n_bins=50,
-            num_inputs=input_dim,
-            num_labels=1,
-            num_encoder_layers=16,
-            num_decoder_layers=16,
-            emb_size=32,
-            nhead=8,
-            dim_feedforward=32,
-            dropout=0.1,
-        )
-
-        # Load state dict
-        state_dict = torch.load(transformer_path, map_location=self._device)
-        
-        # Handle both direct state_dict and nested format
-        if "state_dict" in state_dict:
-            transformer.load_state_dict(state_dict["state_dict"])
-        else:
-            transformer.load_state_dict(state_dict)
-
-        transformer.to(self._device)
-        transformer.eval()
-
-        return transformer
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         """
