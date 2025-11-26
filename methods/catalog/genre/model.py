@@ -9,7 +9,7 @@ Paper: "From Search to Sampling: Generative Models for Robust Algorithmic Recour
 
 import os
 import sys
-from typing import Dict
+from typing import Dict, Optional
 
 import pandas as pd
 import torch
@@ -26,7 +26,6 @@ from library.models import binnedpm
 # Repo imports
 from methods.api import RecourseMethod
 from methods.processing.counterfactuals import merge_default_parameters
-from models.catalog.catalog import ModelCatalog
 
 
 class GenRe(RecourseMethod):
@@ -35,21 +34,21 @@ class GenRe(RecourseMethod):
 
     Parameters
     ----------
-    mlmodel : ModelCatalog or nn.Module
-        Black-Box-Model. Can be either:
-        - Repo's ModelCatalog (FUTURE)
-        - Author's BinaryClassifier nn.Module (CURRENT)
+    mlmodel : nn.Module or ModelCatalog
+        Black-Box-Model (typically an ANN classifier)
 
     hyperparams : dict
         Dictionary containing hyperparameters
 
     Hyperparameters
     ---------------
-    transformer : torch.nn.Module, optional
-        Pretrained GenRe Transformer model. If not provided, will be loaded
-        from library/transformer/genre_transformer.pth
-    cat_mask : torch.Tensor
-        Binary mask for categorical features
+    data : DataCatalog, optional
+        DataCatalog object containing dataset information.
+        If provided, cat_mask will be calculated from data.categorical
+    cat_mask : torch.Tensor, optional
+        Binary mask for categorical features (1=categorical, 0=continuous).
+        If not provided, will be calculated from 'data' parameter.
+        Note: Either 'data' or 'cat_mask' must be provided.
     temp : float, default=10.0
         Temperature for GenRe sampling
     sigma : float, default=0.0
@@ -61,8 +60,6 @@ class GenRe(RecourseMethod):
     """
 
     _DEFAULT_HYPERPARAMS = {
-        # "transformer": None,
-        "cat_mask": None,
         "temp": 10.0,
         "sigma": 0.0,
         "best_k": 10,
@@ -78,10 +75,29 @@ class GenRe(RecourseMethod):
 
         self._mlmodel = mlmodel
         self._device = torch.device(checked_hyperparams["device"])
-
+        
+        # Use mlmodel directly
         self._ann_clf = mlmodel
-        self._cat_mask = checked_hyperparams["cat_mask"]
-        input_dim = len(self._cat_mask)
+
+        # Get cat_mask: either directly provided or calculated from data
+        if "cat_mask" in hyperparams and hyperparams["cat_mask"] is not None:
+            # Option 1: cat_mask provided directly
+            self._cat_mask = hyperparams["cat_mask"]
+            input_dim = len(self._cat_mask)
+        elif "data" in hyperparams and hyperparams["data"] is not None:
+            # Option 2: calculate cat_mask from DataCatalog object
+            data = hyperparams["data"]
+            all_features = data.continuous + data.categorical
+            self._cat_mask = torch.tensor(
+                [1 if f in data.categorical else 0 for f in all_features]
+            )
+            input_dim = len(all_features)
+        else:
+            raise ValueError(
+                "Either 'cat_mask' or 'data' must be provided in hyperparams"
+            )
+
+        # Load transformer from library/transformer/
         self._transformer = self._load_transformer(input_dim)
 
         self._temp = checked_hyperparams["temp"]
@@ -94,7 +110,7 @@ class GenRe(RecourseMethod):
             temp=self._temp,
             sigma=self._sigma,
             best_k=self._best_k,
-            ann_clf=self._ann_clf,  # Use extracted nn.Module
+            ann_clf=self._ann_clf,
             ystar=1.0,
             cat_mask=self._cat_mask,
         )
@@ -126,7 +142,7 @@ class GenRe(RecourseMethod):
 
         # Load state dict
         state_dict = torch.load(transformer_path, map_location=self._device)
-        
+
         # Handle both direct state_dict and nested format
         if "state_dict" in state_dict:
             transformer.load_state_dict(state_dict["state_dict"])

@@ -48,6 +48,11 @@ def parse_args():
     parser.add_argument("--best_k", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--hf_repo", type=str, default="jamie250/genrereproduce")
+    parser.add_argument(
+        "--use-data-object",
+        action="store_true",
+        help="Use DataCatalog object for cat_mask (instead of author's cat_mask)",
+    )
     return parser.parse_args()
 
 
@@ -136,45 +141,74 @@ def reproduce_results():
 
     print(f"GenRe Reproduction - {args.dataset}")
 
-    # 1. Load author's data (tensor format)
+    # Load author's data (tensor format)
     print("Loading author's data...")
     train_y, train_X, test_y, test_X, cat_mask, _ = load_author_data(args.dataset)
     input_dim = train_X.shape[1]
 
-    # 2. Load author's models from HuggingFace (RF and ANN only, transformer loads in model.py)
+    # Load author's models from HuggingFace (RF and ANN only)
     print("Loading author's models from HuggingFace...")
     rf_clf, ann_clf = load_author_models_from_hf(args.hf_repo, input_dim, device)
 
-    # 3. Get factuals (tensor format)
+    # Get factuals (tensor format)
     print(f"Selecting negative instances from {len(test_X)} test samples...")
     xf_r = get_factuals(test_X, ann_clf, device, args.n_samples)
     print(f"Found {len(xf_r)} factuals that need recourse")
 
-    # 4. Convert factuals to DataFrame (adapt to repo interface)
+    # Convert factuals to DataFrame (adapt to repo interface)
     factuals_df = pd.DataFrame(xf_r.cpu().numpy())
 
-    # 5. Initialize GenRe (transformer loads automatically in model.py)
+    # Initialize GenRe with either cat_mask or data object
     print("Initializing GenRe...")
-    genre = GenRe(
-        mlmodel=ann_clf,  # Pass ANN directly
-        hyperparams={
-            # No need to pass transformer - it loads automatically
-            "cat_mask": cat_mask,  # Pass cat_mask
-            "temp": args.temp,
-            "sigma": args.sigma,
-            "best_k": args.best_k,
-            "device": args.device,
-        },
-    )
+    
+    if args.use_data_object:
+        # Option 1: Use DataCatalog object (cat_mask calculated from data)
+        dataset_mapping = {"adult-all": "adult", "compas-all": "compas", "heloc": "heloc"}
+        repo_dataset = dataset_mapping.get(args.dataset, args.dataset)
+        data = DataCatalog(repo_dataset, model_type="mlp", train_split=0.8)
+        
+        genre = GenRe(
+            mlmodel=ann_clf,
+            hyperparams={
+                "data": data,  # Pass DataCatalog - cat_mask calculated automatically
+                "temp": args.temp,
+                "sigma": args.sigma,
+                "best_k": args.best_k,
+                "device": args.device,
+            },
+        )
+    else:
+        # Option 2: Use author's cat_mask directly (default)
+        genre = GenRe(
+            mlmodel=ann_clf,
+            hyperparams={
+                "cat_mask": cat_mask,  # Pass cat_mask directly
+                "temp": args.temp,
+                "sigma": args.sigma,
+                "best_k": args.best_k,
+                "device": args.device,
+            },
+        )
+    
+    # genre = GenRe(
+    #         mlmodel=ann_clf,
+    #         hyperparams={
+    #             "cat_mask": cat_mask,  # Pass cat_mask directly
+    #             "temp": args.temp,
+    #             "sigma": args.sigma,
+    #             "best_k": args.best_k,
+    #             "device": args.device,
+    #         },
+    # )
 
-    # 6. Generate counterfactuals using standard interface
+    # Generate counterfactuals using standard interface
     print("Generating counterfactuals...")
     cfs_df = genre.get_counterfactuals(factuals_df)
 
-    # 7. Convert back to tensor for evaluation
+    # Convert back to tensor for evaluation
     sample_xcf = torch.tensor(cfs_df.values).to(torch.float32)
 
-    # 8. Evaluate
+    # Evaluate
     print("Evaluating...")
     results = evaluate(xf_r, sample_xcf, rf_clf, train_X, test_X)
 
@@ -184,7 +218,7 @@ def reproduce_results():
     print(f"  LOF:      {results['lof']:.4f}")
     print(f"  Score:    {results['score']:.4f}")
 
-    # 9. Verify results (Adult dataset expectations)
+    # Verify results (Adult dataset expectations)
     if args.dataset == "adult-all":
         print("\nVerification (Adult Dataset - Paper Table 3):")
 
@@ -224,16 +258,19 @@ def reproduce_results():
 
 
 def test_compatibility(dataset_name, model_type, backend):
+    """Test GenRe compatibility with repo's DataCatalog and ModelCatalog"""
     dataset = DataCatalog(dataset_name, model_type, 0.8)
+    # Load model from catalog
     model = ModelCatalog(dataset, model_type, backend)
-
-    factuals = (dataset._df_train).sample(n=3, random_state=RANDOM_SEED)
-
-    genre = GenRe(model)
+    # Get factuals from the data to generate counterfactual examples
+    factuals = (dataset._df_train).sample(n=5, random_state=RANDOM_SEED)
+    # Load GenRe and pass data for cat_mask calculation
+    genre = GenRe(model, hyperparams={"data": dataset})
+    # Generate counterfactual examples
     counterfactuals = genre.get_counterfactuals(factuals)
     print(counterfactuals)
 
 
 if __name__ == "__main__":
     reproduce_results()
-    test_compatibility("adult", "linear", "pytorch")
+    test_compatibility("adult", "forest", "sklearn")
