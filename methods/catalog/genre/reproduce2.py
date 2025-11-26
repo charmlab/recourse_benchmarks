@@ -225,13 +225,11 @@ def reproduce_results():
 
 def test_compatibility(dataset_name, model_type, backend):
     dataset = DataCatalog(dataset_name, model_type, 0.8)
-    # load artificial neural network from catalog
     model = ModelCatalog(dataset, model_type, backend)
-    # get factuals from the data to generate counterfactual examples
-    factuals = (dataset._df_train).sample(n=5, random_state=RANDOM_SEED)
-    # load a recourse model and pass black box model
+
+    factuals = (dataset._df_train).sample(n=3, random_state=RANDOM_SEED)
+
     genre = GenRe(model)
-    # generate counterfactual examples
     counterfactuals = genre.get_counterfactuals(factuals)
     print(counterfactuals)
 
