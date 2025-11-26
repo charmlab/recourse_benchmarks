@@ -198,8 +198,8 @@ def create_parser():
     Command-line Arguments
     -------
     -d, --dataset: Specifies datasets for the experiment.
-        Default: ["adult", "compass", "credit", "german", "mortgage", "twomoon"].
-        Choices: ["adult", "compass", "credit", "german", "mortgage", "twomoon"].
+        Default: ["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer", "boston_housing"].
+        Choices: ["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer", "boston_housing", "uci_credit"].
     -t, --type: Specifies model types for the experiment.
         Default: ["linear"].
         Choices: ["mlp", "linear", "forest"].
@@ -243,6 +243,7 @@ def create_parser():
             "twomoon",
             "breast_cancer",
             "boston_housing",
+            "uci_credit",
         ],
         help="Datasets for experiment",
     )

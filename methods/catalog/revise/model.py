@@ -1,11 +1,10 @@
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
 import torch
 from torch import nn
 
-from data.api import Data
 from methods.api import RecourseMethod
 from methods.autoencoder import VariationalAutoencoder
 from methods.processing.counterfactuals import (
@@ -92,7 +91,9 @@ class Revise(RecourseMethod):
         },
     }
 
-    def __init__(self, mlmodel: MLModel, hyperparams: Dict = None) -> None:
+    def __init__(
+        self, mlmodel: MLModel, hyperparams: Optional[Dict] = None, vae = None
+    ) -> None:
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
             raise ValueError(
@@ -112,7 +113,7 @@ class Revise(RecourseMethod):
         self._binary_cat_features = self._params["binary_cat_features"]
 
         vae_params = self._params["vae_params"]
-        self.vae = VariationalAutoencoder(
+        self.vae = vae if vae else VariationalAutoencoder(
             self._params["data_name"], vae_params["layers"], mlmodel.get_mutable_mask()
         )
 
