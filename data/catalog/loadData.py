@@ -79,7 +79,9 @@ except Exception as e:
     print(f"[ENV WARNING] process_sba_data not available. Error: {e}")
 
 try:
-    from data.catalog._data_main.process_data.process_uci_credit_data import load_uci_credit_data
+    from data.catalog._data_main.process_data.process_uci_credit_data import (
+        load_uci_credit_data,
+    )
 except Exception as e:
     print(f"[ENV WARNING] process_uci_credit_data not available. Error: {e}")
 

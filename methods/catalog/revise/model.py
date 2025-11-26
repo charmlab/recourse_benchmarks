@@ -92,7 +92,7 @@ class Revise(RecourseMethod):
     }
 
     def __init__(
-        self, mlmodel: MLModel, hyperparams: Optional[Dict] = None, vae = None
+        self, mlmodel: MLModel, hyperparams: Optional[Dict] = None, vae=None
     ) -> None:
         supported_backends = ["pytorch"]
         if mlmodel.backend not in supported_backends:
@@ -113,8 +113,14 @@ class Revise(RecourseMethod):
         self._binary_cat_features = self._params["binary_cat_features"]
 
         vae_params = self._params["vae_params"]
-        self.vae = vae if vae else VariationalAutoencoder(
-            self._params["data_name"], vae_params["layers"], mlmodel.get_mutable_mask()
+        self.vae = (
+            vae
+            if vae
+            else VariationalAutoencoder(
+                self._params["data_name"],
+                vae_params["layers"],
+                mlmodel.get_mutable_mask(),
+            )
         )
 
         if vae_params["train"]:
@@ -160,9 +166,7 @@ class Revise(RecourseMethod):
         mutable_mask_tensor = torch.tensor(
             self.vae.mutable_mask, dtype=torch.bool, device=device
         )
-        mutable_indices = torch.nonzero(
-            mutable_mask_tensor, as_tuple=False
-        ).squeeze(1)
+        mutable_indices = torch.nonzero(mutable_mask_tensor, as_tuple=False).squeeze(1)
         mutable_indices = (
             mutable_indices if mutable_indices.ndim else mutable_indices.unsqueeze(0)
         )
@@ -195,15 +199,14 @@ class Revise(RecourseMethod):
             for idx in range(self._max_iter):
                 decoded_cf = self.vae.decode(z)
 
-                index = mutable_indices.unsqueeze(0).expand(
-                    query_instance.size(0), -1
-                )
+                index = mutable_indices.unsqueeze(0).expand(query_instance.size(0), -1)
                 cf = query_instance.scatter(1, index, decoded_cf)
 
-                cf_soft, cf_hard = (cf,
+                cf_soft, cf_hard = (
+                    cf,
                     reconstruct_encoding_constraints(
                         cf, cat_features_indices, self._params["binary_cat_features"]
-                    )
+                    ),
                 )
 
                 output_soft = self._mlmodel.forward(cf_soft)[0]
