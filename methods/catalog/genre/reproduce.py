@@ -199,6 +199,14 @@ def main():
     # rf_clf, ann_clf, transformer = load_repo_models(data, device)
     # # Note: Still need to load transformer from HF until repo provides it
     # _, _, transformer = load_author_models_from_hf(args.hf_repo, train_X.shape[1], device)
+    print("Loading dataset...")
+    dataset_repo = DataCatalog("compass", "mlp", 0.7)
+    mlmodel_repo = ModelCatalog(dataset_repo, "mlp", "pytorch")
+    # mlmodel_repo.raw_model.eval()
+    transformer_repo = 
+
+
+
 
     # 3. Get factuals (tensor format)
     print(f"Selecting negative instances from {len(test_X)} test samples...")
@@ -215,6 +223,18 @@ def main():
         mlmodel=ann_clf,  # Pass ANN directly
         hyperparams={
             "transformer": transformer,  # Pass transformer
+            "cat_mask": cat_mask,  # Pass cat_mask
+            "temp": args.temp,
+            "sigma": args.sigma,
+            "best_k": args.best_k,
+            "device": args.device,
+        },
+    )
+
+    genre_repo = GenRe(
+        mlmodel=mlmodel_repo,  # Pass model from repo
+        hyperparams={
+            "transformer": transformer,  # Pass transformer that fits the repo
             "cat_mask": cat_mask,  # Pass cat_mask
             "temp": args.temp,
             "sigma": args.sigma,
