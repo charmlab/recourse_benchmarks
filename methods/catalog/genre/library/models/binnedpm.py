@@ -5,6 +5,10 @@ sys.path.append("../")
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
+from torch.nn import Transformer
+from tqdm import tqdm
+
 from methods.catalog.genre.library.models.utils import (
     Embedding2RealNet,
     HetLinearLayer,
@@ -12,9 +16,6 @@ from methods.catalog.genre.library.models.utils import (
     PositionalEncoding,
     RealEmbeddingNet,
 )
-from torch import Tensor
-from torch.nn import Transformer
-from tqdm import tqdm
 
 
 class PairedTransformerBinnedExpanded(nn.Module):

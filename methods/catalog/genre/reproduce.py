@@ -24,11 +24,11 @@ from library.models.classifiers.ann import BinaryClassifier
 
 # Import repo catalogs
 from data.catalog import DataCatalog
-from models.catalog import ModelCatalog
 
 # Import utils and GenRe wrapper
-from methods.catalog.genre import utils as genre_utils
 from methods.catalog.genre import GenRe
+from methods.catalog.genre import utils as genre_utils
+from models.catalog import ModelCatalog
 
 RANDOM_SEED = 54321
 
@@ -162,13 +162,17 @@ def reproduce_results():
 
     # Initialize GenRe with either cat_mask or data object
     print("Initializing GenRe...")
-    
+
     if args.use_data_object:
         # Option 1: Use DataCatalog object (cat_mask calculated from data)
-        dataset_mapping = {"adult-all": "adult", "compas-all": "compas", "heloc": "heloc"}
+        dataset_mapping = {
+            "adult-all": "adult",
+            "compas-all": "compas",
+            "heloc": "heloc",
+        }
         repo_dataset = dataset_mapping.get(args.dataset, args.dataset)
         data = DataCatalog(repo_dataset, model_type="mlp", train_split=0.8)
-        
+
         genre = GenRe(
             mlmodel=ann_clf,
             hyperparams={
@@ -191,7 +195,7 @@ def reproduce_results():
                 "device": args.device,
             },
         )
-    
+
     # genre = GenRe(
     #         mlmodel=ann_clf,
     #         hyperparams={
@@ -263,18 +267,17 @@ def test_compatibility(dataset_name, model_type, backend):
     """Test GenRe compatibility with repo's DataCatalog and ModelCatalog"""
     dataset = DataCatalog(dataset_name, model_type=model_type, train_split=0.8)
     model = ModelCatalog(dataset, model_type, backend)
-    
+
     factuals = dataset.df_train.drop(columns=[dataset.target]).sample(
         n=5, random_state=RANDOM_SEED
     )
-    
+
     genre = GenRe(model, hyperparams={"data": dataset})
-    
-    # Generate counterfactual examples
+
     counterfactuals = genre.get_counterfactuals(factuals)
     print(counterfactuals)
 
 
 if __name__ == "__main__":
-    # reproduce_results()
-    test_compatibility("genre_adult", "mlp", "pytorch") 
+    reproduce_results()
+    test_compatibility("genre_adult", "mlp", "pytorch")

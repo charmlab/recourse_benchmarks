@@ -14,11 +14,14 @@ import numpy as np
 import pandas as pd
 import torch
 import yaml
-from methods.catalog.genre.library.models.classifiers.ann import BinaryClassifier as ann_BinaryClassifier
 from matplotlib import cm
 from matplotlib.colors import to_rgba
 from matplotlib.ticker import MaxNLocator
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+
+from methods.catalog.genre.library.models.classifiers.ann import (
+    BinaryClassifier as ann_BinaryClassifier,
+)
 
 
 def curr_time_hash(n=0):
