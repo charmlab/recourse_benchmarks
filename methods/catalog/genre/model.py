@@ -87,7 +87,13 @@ class GenRe(RecourseMethod):
         elif "data" in hyperparams and hyperparams["data"] is not None:
             # Option 2: calculate cat_mask from DataCatalog object
             data = hyperparams["data"]
-            all_features = data.continuous + data.categorical
+
+            # Get feature columns from actual DataFrame
+            df_train = data.df_train
+            # all_features = data.continuous + data.categorical
+            all_features = [col for col in df_train.columns if col != data.target]
+            
+            # calculate cat_mask
             self._cat_mask = torch.tensor(
                 [1 if f in data.categorical else 0 for f in all_features]
             )

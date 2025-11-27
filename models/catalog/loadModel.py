@@ -106,6 +106,7 @@ def loadModelForDataset(
             "boston_housing",
             "sba",
             "sba_modified",
+            "genre_adult",
         }
     ):
         raise Exception(f"{dataset_string} not supported.")
