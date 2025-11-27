@@ -259,13 +259,15 @@ def reproduce_results():
 
 def test_compatibility(dataset_name, model_type, backend):
     """Test GenRe compatibility with repo's DataCatalog and ModelCatalog"""
-    dataset = DataCatalog(dataset_name, model_type, 0.8)
-    # Load model from catalog
+    dataset = DataCatalog(dataset_name, model_type=model_type, train_split=0.8)
     model = ModelCatalog(dataset, model_type, backend)
-    # Get factuals from the data to generate counterfactual examples
-    factuals = (dataset._df_train).sample(n=5, random_state=RANDOM_SEED)
-    # Load GenRe and pass data for cat_mask calculation
+    
+    factuals = dataset.df_train.drop(columns=[dataset.target]).sample(
+        n=5, random_state=RANDOM_SEED
+    )
+    
     genre = GenRe(model, hyperparams={"data": dataset})
+    
     # Generate counterfactual examples
     counterfactuals = genre.get_counterfactuals(factuals)
     print(counterfactuals)
@@ -273,4 +275,4 @@ def test_compatibility(dataset_name, model_type, backend):
 
 if __name__ == "__main__":
     reproduce_results()
-    test_compatibility("adult", "forest", "sklearn")
+    test_compatibility("genre_adult", "mlp", "pytorch") 
