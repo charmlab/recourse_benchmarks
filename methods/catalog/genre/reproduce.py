@@ -6,7 +6,6 @@ Reproduces GenRe paper results using the RecourseMethod interface.
 Usage:
     python reproduce.py --dataset adult-all --device cpu
 """
-
 import argparse
 import os
 import pickle
@@ -20,16 +19,18 @@ try:
 except ImportError:
     raise ImportError("Install huggingface-hub: pip install huggingface-hub")
 
-import methods.catalog.genre.library.data.utils as dutils
-import methods.catalog.genre.library.models.binnedpm as bpm
-import utils as genre_utils
-from methods.catalog.genre.library.models.classifiers.ann import BinaryClassifier
+from library.data import utils as dutils
+from library.models.classifiers.ann import BinaryClassifier
 
-from models.catalog import ModelCatalog
+# Import repo catalogs
 from data.catalog import DataCatalog
+from models.catalog import ModelCatalog
 
-# Import our GenRe wrapper
+# Import utils and GenRe wrapper
+from methods.catalog.genre import utils as genre_utils
 from methods.catalog.genre import GenRe
+
+RANDOM_SEED = 54321
 
 
 def parse_args():
@@ -47,6 +48,11 @@ def parse_args():
     parser.add_argument("--best_k", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--hf_repo", type=str, default="jamie250/genrereproduce")
+    parser.add_argument(
+        "--use-data-object",
+        action="store_true",
+        help="Use DataCatalog object for cat_mask (instead of author's cat_mask)",
+    )
     return parser.parse_args()
 
 
@@ -59,7 +65,7 @@ def load_author_data(dataset_name):
 
 
 def load_author_models_from_hf(hf_repo, input_dim, device):
-    """Load author's pretrained models from HuggingFace"""
+    """Load author's pretrained models from HuggingFace (RF and ANN only)"""
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "genre_models")
     os.makedirs(cache_dir, exist_ok=True)
 
@@ -69,9 +75,6 @@ def load_author_models_from_hf(hf_repo, input_dim, device):
     )
     ann_path = hf_hub_download(
         repo_id=hf_repo, filename="ann_state.pth", cache_dir=cache_dir
-    )
-    genre_path = hf_hub_download(
-        repo_id=hf_repo, filename="genre_state.pth", cache_dir=cache_dir
     )
 
     # Load RF
@@ -85,41 +88,7 @@ def load_author_models_from_hf(hf_repo, input_dim, device):
     ann_clf.to(device)
     ann_clf.eval()
 
-    # Load Transformer
-    genre_state = torch.load(genre_path, map_location=device)
-    transformer = bpm.PairedTransformerBinned(
-        n_bins=50,
-        num_inputs=input_dim,
-        num_labels=1,
-        num_encoder_layers=16,
-        num_decoder_layers=16,
-        emb_size=32,
-        nhead=8,
-        dim_feedforward=32,
-        dropout=0.1,
-    )
-    transformer.load_state_dict(genre_state["state_dict"])
-    transformer.to(device)
-    transformer.eval()
-
-    return rf_clf, ann_clf, transformer
-
-
-# ========== FUTURE: Repo format loading functions ==========
-
-
-def load_repo_data(dataset_name, model_type="mlp"):
-    dataset_mapping = {"adult-all": "adult", "compas-all": "compas", "heloc": "heloc"}
-    repo_dataset = dataset_mapping.get(dataset_name, dataset_name)
-    data = DataCatalog(repo_dataset, model_type=model_type, train_split=0.8)
-    return data
-
-
-def load_repo_models(data, device):
-    rf_clf = ModelCatalog(data, model_type="forest", backend="sklearn")
-    ann_clf = ModelCatalog(data, model_type="mlp", backend="pytorch")
-    transformer = None  # Repo does not provide transformer yet
-    return rf_clf, ann_clf, transformer
+    return rf_clf, ann_clf
 
 
 def get_factuals(test_X, ann_clf, device, n_samples=None):
@@ -161,59 +130,87 @@ def evaluate(xf_r, sample_xcf, rf_clf, train_X, test_X):
 
     # Score
     score = validity + lof_score - (cost / n_features)
+
     return {"cost": cost, "validity": validity, "lof": lof_score, "score": score}
 
 
-def main():
+def reproduce_results():
     args = parse_args()
     genre_utils.set_seed(args.seed)
     device = torch.device(args.device)
 
     print(f"GenRe Reproduction - {args.dataset}")
 
-    # ========== CURRENT: Load author's data and models ==========
-    # 1. Load author's data (tensor format)
+    # Load author's data (tensor format)
     print("Loading author's data...")
     train_y, train_X, test_y, test_X, cat_mask, _ = load_author_data(args.dataset)
     input_dim = train_X.shape[1]
 
-    # 2. Load author's models from HuggingFace
-    print("Loading author's models from HuggingFace...")
-    rf_clf, ann_clf, transformer = load_author_models_from_hf(
-        args.hf_repo, input_dim, device
-    )
+    print(input_dim)
 
-    # 3. Get factuals (tensor format)
+    # Load author's models from HuggingFace (RF and ANN only)
+    print("Loading author's models from HuggingFace...")
+    rf_clf, ann_clf = load_author_models_from_hf(args.hf_repo, input_dim, device)
+
+    # Get factuals (tensor format)
     print(f"Selecting negative instances from {len(test_X)} test samples...")
     xf_r = get_factuals(test_X, ann_clf, device, args.n_samples)
     print(f"Found {len(xf_r)} factuals that need recourse")
 
-    # 4. Convert factuals to DataFrame (adapt to repo interface)
+    # Convert factuals to DataFrame (adapt to repo interface)
     factuals_df = pd.DataFrame(xf_r.cpu().numpy())
 
-    # ========== CURRENT: Initialize GenRe with author's components ==========
-    # 5. Initialize GenRe using our wrapper
+    # Initialize GenRe with either cat_mask or data object
     print("Initializing GenRe...")
-    genre = GenRe(
-        mlmodel=ann_clf,  # Pass ANN directly
-        hyperparams={
-            "transformer": transformer,  # Pass transformer
-            "cat_mask": cat_mask,  # Pass cat_mask
-            "temp": args.temp,
-            "sigma": args.sigma,
-            "best_k": args.best_k,
-            "device": args.device,
-        },
-    )
+    
+    if args.use_data_object:
+        # Option 1: Use DataCatalog object (cat_mask calculated from data)
+        dataset_mapping = {"adult-all": "adult", "compas-all": "compas", "heloc": "heloc"}
+        repo_dataset = dataset_mapping.get(args.dataset, args.dataset)
+        data = DataCatalog(repo_dataset, model_type="mlp", train_split=0.8)
+        
+        genre = GenRe(
+            mlmodel=ann_clf,
+            hyperparams={
+                "data": data,  # Pass DataCatalog - cat_mask calculated automatically
+                "temp": args.temp,
+                "sigma": args.sigma,
+                "best_k": args.best_k,
+                "device": args.device,
+            },
+        )
+    else:
+        # Option 2: Use author's cat_mask directly (default)
+        genre = GenRe(
+            mlmodel=ann_clf,
+            hyperparams={
+                "cat_mask": cat_mask,  # Pass cat_mask directly
+                "temp": args.temp,
+                "sigma": args.sigma,
+                "best_k": args.best_k,
+                "device": args.device,
+            },
+        )
+    
+    # genre = GenRe(
+    #         mlmodel=ann_clf,
+    #         hyperparams={
+    #             "cat_mask": cat_mask,  # Pass cat_mask directly
+    #             "temp": args.temp,
+    #             "sigma": args.sigma,
+    #             "best_k": args.best_k,
+    #             "device": args.device,
+    #         },
+    # )
 
-    # 6. Generate counterfactuals using standard interface
+    # Generate counterfactuals using standard interface
     print("Generating counterfactuals...")
     cfs_df = genre.get_counterfactuals(factuals_df)
 
-    # 7. Convert back to tensor for evaluation
+    # Convert back to tensor for evaluation
     sample_xcf = torch.tensor(cfs_df.values).to(torch.float32)
 
-    # 8. Evaluate
+    # Evaluate
     print("Evaluating...")
     results = evaluate(xf_r, sample_xcf, rf_clf, train_X, test_X)
 
@@ -223,7 +220,7 @@ def main():
     print(f"  LOF:      {results['lof']:.4f}")
     print(f"  Score:    {results['score']:.4f}")
 
-    # 9. Verify results (Adult dataset expectations)
+    # Verify results (Adult dataset expectations)
     if args.dataset == "adult-all":
         print("\nVerification (Adult Dataset - Paper Table 3):")
 
@@ -261,17 +258,23 @@ def main():
         except AssertionError:
             print(f"FAIL Score = {score:.4f} outside expected range {EXPECTED_SCORE}")
 
-    # # Save results
-    # output_dir = os.path.join("results", "genre_reproduction", args.dataset)
-    # os.makedirs(output_dir, exist_ok=True)
-    # results_file = os.path.join(output_dir, 'metrics.txt')
-    # with open(results_file, 'w') as f:
-    #     f.write(f"GenRe Reproduction Results - {args.dataset}\n")
-    #     for key, value in results.items():
-    #         f.write(f"{key}: {value}\n")
 
-    # print(f"\nResults saved to: {results_file}")
+def test_compatibility(dataset_name, model_type, backend):
+    """Test GenRe compatibility with repo's DataCatalog and ModelCatalog"""
+    dataset = DataCatalog(dataset_name, model_type=model_type, train_split=0.8)
+    model = ModelCatalog(dataset, model_type, backend)
+    
+    factuals = dataset.df_train.drop(columns=[dataset.target]).sample(
+        n=5, random_state=RANDOM_SEED
+    )
+    
+    genre = GenRe(model, hyperparams={"data": dataset})
+    
+    # Generate counterfactual examples
+    counterfactuals = genre.get_counterfactuals(factuals)
+    print(counterfactuals)
 
 
 if __name__ == "__main__":
-    main()
+    # reproduce_results()
+    test_compatibility("genre_adult", "mlp", "pytorch") 

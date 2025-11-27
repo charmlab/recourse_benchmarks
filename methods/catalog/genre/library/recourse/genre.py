@@ -33,4 +33,11 @@ class GenRe:
         sample_concat = torch.cat(sampled_list, dim=1)
         sample_predictions = self.model(sample_concat).squeeze()
         best_sample_idx = sample_predictions.argmax(dim=1)
+
+        # print(f"[DEBUG GENRE] xf_r.shape: {xf_r.shape}")
+        # print(f"[DEBUG GENRE] sample_concat.shape: {sample_concat.shape}")
+        # print(f"[DEBUG GENRE] best_sample_idx.shape: {best_sample_idx.shape}")
+        # print(f"[DEBUG GENRE] best_sample_idx: {best_sample_idx}")
+        # print(f"[DEBUG GENRE] torch.arange(xf_r.shape[0]).shape: {torch.arange(xf_r.shape[0]).shape}")
+
         return sample_concat[torch.arange(xf_r.shape[0]), best_sample_idx, :]

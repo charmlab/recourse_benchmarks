@@ -13,11 +13,7 @@ from typing import Dict, Optional
 
 import pandas as pd
 import torch
-
-# Add author's library to path first
-GENRE_ROOT = os.path.dirname(os.path.abspath(__file__))
-LIBRARY_PATH = os.path.join(GENRE_ROOT, "library")
-sys.path.insert(0, LIBRARY_PATH)
+import torch.nn as nn 
 
 # Import after adding to path
 from library.recourse.genre import GenRe as GenReOriginal
@@ -28,6 +24,27 @@ from methods.api import RecourseMethod
 from methods.processing.counterfactuals import merge_default_parameters
 from models.catalog.catalog import ModelCatalog
 
+# Add author's library to path first
+GENRE_ROOT = os.path.dirname(os.path.abspath(__file__))
+LIBRARY_PATH = os.path.join(GENRE_ROOT, "library")
+sys.path.insert(0, LIBRARY_PATH)
+
+class BinaryClassifierWrapper(nn.Module):
+    """Wrapper to convert 2-class output to single probability"""
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+    
+    def forward(self, x):
+        output = self.model(x)
+        if output.shape[-1] == 2:
+            # Return only positive class probability
+            return output[:, 1:2]  # Keep 2D shape [batch, 1]
+        return output
+    
+    def eval(self):
+        self.model.eval()
+        return self
 
 class GenRe(RecourseMethod):
     """
@@ -79,7 +96,8 @@ class GenRe(RecourseMethod):
         
         # Use mlmodel directly
         if isinstance(mlmodel, ModelCatalog):
-            self._ann_clf = mlmodel.raw_model  # 提取PyTorch模型
+            raw_model = mlmodel.raw_model
+            self._ann_clf = BinaryClassifierWrapper(raw_model) # our transformer wants binary output
         else:
             self._ann_clf = mlmodel
 
@@ -186,6 +204,8 @@ class GenRe(RecourseMethod):
         with torch.no_grad():
             cf_tensor = self._genre_recourse(factuals_tensor)
             cf_tensor = cf_tensor.squeeze().cpu().float()
+        
+        cf_tensor = cf_tensor.squeeze().cpu().float()
 
         # Handle single instance
         if cf_tensor.dim() == 1:
