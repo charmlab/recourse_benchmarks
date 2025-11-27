@@ -26,6 +26,7 @@ from library.models import binnedpm
 # Repo imports
 from methods.api import RecourseMethod
 from methods.processing.counterfactuals import merge_default_parameters
+from models.catalog.catalog import ModelCatalog
 
 
 class GenRe(RecourseMethod):
@@ -77,7 +78,10 @@ class GenRe(RecourseMethod):
         self._device = torch.device(checked_hyperparams["device"])
         
         # Use mlmodel directly
-        self._ann_clf = mlmodel
+        if isinstance(mlmodel, ModelCatalog):
+            self._ann_clf = mlmodel.raw_model  # 提取PyTorch模型
+        else:
+            self._ann_clf = mlmodel
 
         # Get cat_mask: either directly provided or calculated from data
         if "cat_mask" in hyperparams and hyperparams["cat_mask"] is not None:

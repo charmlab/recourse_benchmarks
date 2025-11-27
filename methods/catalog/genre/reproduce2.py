@@ -274,5 +274,5 @@ def test_compatibility(dataset_name, model_type, backend):
 
 
 if __name__ == "__main__":
-    reproduce_results()
+    # reproduce_results()
     test_compatibility("genre_adult", "mlp", "pytorch") 

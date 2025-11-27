@@ -1432,13 +1432,14 @@ def loadDataset(
         )
     
     elif dataset_name == "genre_adult":
-        data_frame_non_hot = load_genre_adult_data()
+        genre_adult_data = load_genre_adult_data()
+        data_frame_non_hot = genre_adult_data.df
         data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
     
         # Get categorical and immutable info from the dataframe attributes
-        cat_cols = data_frame_non_hot.categorical_features
-        immutable_cols = data_frame_non_hot.immutable_features
-        target = data_frame_non_hot.target_column
+        cat_cols = genre_adult_data.categorical_features
+        immutable_cols = genre_adult_data.immutable_features
+        target = genre_adult_data.target_column
     
         attributes_non_hot = {}
     

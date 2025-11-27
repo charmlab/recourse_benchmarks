@@ -2,13 +2,23 @@ import pandas as pd
 import pathlib
 
 
+class GenreAdultData:
+    """Container for genre_adult dataset with metadata"""
+    def __init__(self, df, categorical_features, continuous_features, 
+                 immutable_features, target_column):
+        self.df = df
+        self.categorical_features = categorical_features
+        self.continuous_features = continuous_features
+        self.immutable_features = immutable_features
+        self.target_column = target_column
+
+
 def load_genre_adult_data():
     """
     Load and preprocess author's adult-all dataset exactly as GenRe expects.
-    Based on the preprocessing in library/data/utils.py
     """
     current_file = pathlib.Path(__file__).resolve()
-    repo_root = current_file.parent.parent.parent.parent
+    repo_root = current_file.parent.parent.parent.parent.parent
     data_dir = repo_root / "methods" / "catalog" / "genre" / "library" / "datasets" / "adult"
     
     if not data_dir.exists():
@@ -62,11 +72,12 @@ def load_genre_adult_data():
     # Combine for DataCatalog
     full_df = pd.concat([train_X, test_X], ignore_index=True)
     
-    # Store categorical and immutable info as attributes
-    full_df.categorical_features = categorical_cols  # Use reordered list
-    full_df.continuous_features = continuous_cols     # Add this
-    full_df.immutable_features = immutable_cols
-    full_df.target_column = target
-    
-    return full_df
+    # Return object with metadata
+    return GenreAdultData(
+        df=full_df,
+        categorical_features=categorical_cols,
+        continuous_features=continuous_cols,
+        immutable_features=immutable_cols,
+        target_column=target
+    )
 
