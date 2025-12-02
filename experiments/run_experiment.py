@@ -161,7 +161,7 @@ def initialize_recourse_method(
         hyperparams["vae_params"]["layers"] = [
             sum(mlmodel.get_mutable_mask())
         ] + hyperparams["vae_params"]["layers"]
-        return Revise(mlmodel, data, hyperparams)
+        return Revise(mlmodel, hyperparams)
     elif method == "wachter":
         return Wachter(mlmodel, hyperparams)
     elif method == "cfvae":
@@ -201,7 +201,7 @@ def create_parser():
     -------
     -d, --dataset: Specifies datasets for the experiment.
         Default: ["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer", "boston_housing"].
-        Choices: ["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer", "boston_housing"].
+        Choices: ["adult", "compass", "credit", "german", "mortgage", "twomoon", "breast_cancer", "boston_housing", "uci_credit"].
     -t, --type: Specifies model types for the experiment.
         Default: ["linear"].
         Choices: ["mlp", "linear", "forest"].
@@ -245,6 +245,7 @@ def create_parser():
             "twomoon",
             "breast_cancer",
             "boston_housing",
+            "uci_credit",
         ],
         help="Datasets for experiment",
     )
