@@ -16,6 +16,7 @@ from .genre import GenRe
 from .gravitational import Gravitational
 from .greedy import Greedy
 from .growing_spheres import GrowingSpheres
+from .larr import Larr
 from .mace import MACE
 from .probe import Probe
 from .rbr import RBR

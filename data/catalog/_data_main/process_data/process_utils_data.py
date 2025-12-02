@@ -22,13 +22,15 @@ def get_one_hot_encoding(in_arr):
     output: m (ndarray): one-hot encoded matrix
             d (dict): also returns a dictionary original_val -> column in encoded matrix
     """
+    valid_types = (int, np.int64, float, np.float64)
 
     for k in in_arr:
-        if (
-            str(type(k)) != "<type 'numpy.float64'>"
-            and type(k) != int
-            and type(k) != np.int64
-        ):
+        # if (
+        #     str(type(k)) != "<type 'numpy.float64'>"
+        #     and type(k) != int
+        #     and type(k) != np.int64
+        # ):
+        if not isinstance(k, valid_types):
             print(str(type(k)))
             print("************* ERROR: Input arr does not have integer types")
             return None
