@@ -31,6 +31,8 @@ from pysmt.shortcuts import (
     Symbol,
     Times,
     ToReal,
+    get_env,
+    reset_env,
 )
 from pysmt.typing import BOOL, INT, REAL
 from sklearn.ensemble import RandomForestClassifier
@@ -938,6 +940,9 @@ def genExp(
         raise Exception(
             f"`{approach_string}` not recognized as valid approach string; expected `mint` or `mace`."
         )
+
+    reset_env()
+    get_env().enable_infix_notation = True
 
     start_time = time.time()
 

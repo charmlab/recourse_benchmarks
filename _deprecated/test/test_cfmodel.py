@@ -8,7 +8,7 @@ from carla.recourse_methods.catalog.actionable_recourse import ActionableRecours
 from carla.recourse_methods.catalog.cchvae import CCHVAE
 from carla.recourse_methods.catalog.cem import CEM
 from carla.recourse_methods.catalog.clue import Clue
-from carla.recourse_methods.catalog.crud import CRUD
+from carla.recourse_methods.catalog.cruds import CRUDS
 from carla.recourse_methods.catalog.dice import Dice
 from carla.recourse_methods.catalog.face import Face
 from carla.recourse_methods.catalog.feature_tweak import FeatureTweak
@@ -367,7 +367,7 @@ def test_cchvae(model_type):
 
 
 @pytest.mark.parametrize("model_type", testmodel)
-def test_crud(model_type):
+def test_cruds(model_type):
     # Build data and mlmodel
     data_name = "adult"
     data = OnlineCatalog(data_name)
@@ -384,8 +384,8 @@ def test_crud(model_type):
         },
     }
 
-    crud = CRUD(model, hyperparams)
-    df_cfs = crud.get_counterfactuals(test_factual)
+    cruds = CRUDS(model, hyperparams)
+    df_cfs = cruds.get_counterfactuals(test_factual)
 
     assert test_factual.shape[0] == df_cfs.shape[0]
     assert isinstance(df_cfs, pd.DataFrame)

@@ -138,7 +138,7 @@ def initialize_recourse_method(
         hyperparams["vae_params"]["layers"] = [
             sum(mlmodel.get_mutable_mask())
         ] + hyperparams["vae_params"]["layers"]
-        return CRUD(mlmodel, hyperparams)
+        return CRUDS(mlmodel, hyperparams)
     elif method == "dice":
         return Dice(mlmodel, hyperparams)
     elif "face" in method:
@@ -340,6 +340,22 @@ def create_parser():
     return parser
 
 
+def _csv_has_data(path: str) -> bool:
+    with open(path, "r") as csv_file:
+        for line in csv_file:
+            if line.strip():
+                return True
+
+    # Empty or whitespace-only file; clear contents to keep CSV detection consistent.
+    open(path, "w").close()
+    return False
+
+
+def _append_to_csv(path: str, df: pd.DataFrame):
+    write_header = not os.path.isfile(path) or not _csv_has_data(path)
+    df.to_csv(path, mode="a", header=write_header, index=False)
+
+
 if __name__ == "__main__":
     """
     Runs experiments on recourse methods extracted from academic papers, iterating over different combinations of datasets, model types, and recourse methods.
@@ -377,11 +393,30 @@ if __name__ == "__main__":
     args = create_parser().parse_args()
     setup = load_setup()
 
-    path = file_path = os.path.join(os.path.dirname(__file__), "results.csv")
-    if os.path.isfile(path):
+    default_path = os.path.join(os.path.dirname(__file__), "results.csv")
+    path = args.path if args.path else default_path
+    path_dir = os.path.dirname(path)
+    if path_dir:
+        os.makedirs(path_dir, exist_ok=True)
+    if os.path.isfile(path) and _csv_has_data(path):
         results = pd.read_csv(path)
     else:
-        results = pd.DataFrame()
+        results = pd.DataFrame(
+            columns=[
+                "Recourse_Method",
+                "Dataset",
+                "ML_Model",
+                "L0_distance",
+                "L1_distance",
+                "L2_distance",
+                "Linf_distance",
+                "Constraint_Violation",
+                "Redundancy",
+                "y-Nearest-Neighbours",
+                "Success_Rate",
+                "Average_Time",
+            ]
+        )
 
     session_models = ["cem", "cem_vae", "greedy"]
     torch_methods = [
@@ -542,6 +577,6 @@ if __name__ == "__main__":
                     f"==={method_name}==={data_name}==============================="
                 )
 
-                results.to_csv(path, index=False)
+                _append_to_csv(path, df_benchmark)
                 # deliberately saving this after every addition
                 # save_result(results, path)
