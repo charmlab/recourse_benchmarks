@@ -104,24 +104,16 @@ def get_discretized_action_sets(
         grid = list(dict.fromkeys(grid))
         possible_actions_per_node.append(grid)
 
-    all_action_tuples = list(itertools.product(*possible_actions_per_node))
-    all_action_tuples = [
-        _tuple
-        for _tuple in all_action_tuples
-        if len([element for element in _tuple if element is not None])
-        < max_intervention_cardinality
-    ]
-
     # get all node names
     nodes = np.concatenate(
         [intervenable_nodes["continuous"], intervenable_nodes["categorical"]]
     )
-    # create from list and tuple a dict: {nodes[0]: tuple[0], nodes[1]: tuple[1], etc.}
-    all_action_sets = [dict(zip(nodes, _tuple)) for _tuple in all_action_tuples]
 
-    valid_action_sets = []
-    for action_set in all_action_sets:
-        valid_action_set = {k: v for k, v in action_set.items() if v is not None}
-        valid_action_sets.append(valid_action_set)
-
-    return valid_action_sets
+    for _tuple in itertools.product(*possible_actions_per_node):
+        if (
+            len([element for element in _tuple if element is not None])
+            >= max_intervention_cardinality
+        ):
+            continue
+        action_set = dict(zip(nodes, _tuple))
+        yield {k: v for k, v in action_set.items() if v is not None}

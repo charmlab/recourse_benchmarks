@@ -59,8 +59,12 @@ def load_compas_data():
     COMPAS_INPUT_FILE = "compas-scores-two-years.csv"
     check_data_file(COMPAS_INPUT_FILE)
 
+    f = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", "raw_data", COMPAS_INPUT_FILE
+    )
+
     # load the data and get some stats
-    df = pd.read_csv(COMPAS_INPUT_FILE)
+    df = pd.read_csv(f)
     df = df.dropna(subset=["days_b_screening_arrest"])  # dropping missing vals
 
     # convert to np array
@@ -185,9 +189,10 @@ def load_compas_data_new():
     CLASS_FEATURE = "two_year_recid"  # the decision variable
 
     file_name = "compas-scores-two-years.csv"
-    this_files_directory = os.path.dirname(os.path.realpath(__file__))
-    full_file_name = os.path.join(this_files_directory, file_name)
     check_data_file(file_name)
+    full_file_name = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", "raw_data", file_name
+    )
 
     # load the data and get some stats
     df = pd.read_csv(full_file_name)
