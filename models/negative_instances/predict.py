@@ -27,7 +27,7 @@ def predict_negative_instances(
 
     """
     # get processed data and remove target
-    df = data.df_test.copy()
+    df = data.df_test.copy() if isinstance(data, DataCatalog) else data.copy()
     if df.empty:
         raise ValueError("Empty Test Set")
     df["y_neg"] = predict_label(model, df)

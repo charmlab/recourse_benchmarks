@@ -6,7 +6,7 @@ from .catalog import (
     CEM,
     CFRL,
     CFVAE,
-    CRUD,
+    CRUDS,
     FOCUS,
     MACE,
     RBR,
