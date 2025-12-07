@@ -201,7 +201,6 @@ adult:
           - x9
           - x10
           - x11
-
   linear:
     pytorch:
       feature_order:
@@ -1321,6 +1320,7 @@ test:
           - x0_cat_1
           - x0_cat_2
           - x0_cat_3
+
 breast_cancer:
   mlp:
     tensorflow:
@@ -1837,6 +1837,7 @@ breast_cancer:
           - x27
           - x28
           - x29
+
 boston_housing:
   mlp:
     tensorflow:
@@ -2081,6 +2082,7 @@ boston_housing:
           - x10
           - x11
           - x12
+
 sba:
   mlp:
     tensorflow:
@@ -2525,3 +2527,448 @@ sba:
           - x11_cat_1
           - x11_cat_2
           - x11_cat_3
+
+uci_credit:
+  mlp:
+    tensorflow:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+        one-hot:
+          - x0
+          - x1
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+          - x2_ord_0
+          - x2_ord_1
+          - x2_ord_2
+          - x2_ord_3
+          - x3_cat_0
+          - x3_cat_1
+          - x3_cat_2
+    pytorch:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+        one-hot:
+          - x0
+          - x1
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+          - x2_ord_0
+          - x2_ord_1
+          - x2_ord_2
+          - x2_ord_3
+          - x3_cat_0
+          - x3_cat_1
+          - x3_cat_2
+    sklearn:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+        one-hot:
+          - x0
+          - x1
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+          - x2_ord_0
+          - x2_ord_1
+          - x2_ord_2
+          - x2_ord_3
+          - x3_cat_0
+          - x3_cat_1
+          - x3_cat_2
+  linear:
+    tensorflow:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+        one-hot:
+          - x0
+          - x1
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+          - x2_ord_0
+          - x2_ord_1
+          - x2_ord_2
+          - x2_ord_3
+          - x3_cat_0
+          - x3_cat_1
+          - x3_cat_2
+    pytorch:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+        one-hot:
+          - x0
+          - x1
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+          - x2_ord_0
+          - x2_ord_1
+          - x2_ord_2
+          - x2_ord_3
+          - x3_cat_0
+          - x3_cat_1
+          - x3_cat_2
+    sklearn:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+        one-hot:
+          - x0
+          - x1
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+          - x2_ord_0
+          - x2_ord_1
+          - x2_ord_2
+          - x2_ord_3
+          - x3_cat_0
+          - x3_cat_1
+          - x3_cat_2
+  forest:
+    sklearn:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+        one-hot:
+          - x0
+          - x1
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+          - x2_ord_0
+          - x2_ord_1
+          - x2_ord_2
+          - x2_ord_3
+          - x3_cat_0
+          - x3_cat_1
+          - x3_cat_2
+    xgboost:
+      feature_order:
+        default:
+          - x0
+          - x1
+          - x2
+          - x3
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+        one-hot:
+          - x0
+          - x1
+          - x4
+          - x5
+          - x6
+          - x7
+          - x8
+          - x9
+          - x10
+          - x11
+          - x12
+          - x13
+          - x14
+          - x15
+          - x16
+          - x17
+          - x18
+          - x19
+          - x20
+          - x21
+          - x22
+          - x2_ord_0
+          - x2_ord_1
+          - x2_ord_2
+          - x2_ord_3
+          - x3_cat_0
+          - x3_cat_1
+          - x3_cat_2

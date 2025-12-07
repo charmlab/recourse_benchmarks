@@ -78,6 +78,13 @@ try:
 except Exception as e:
     print(f"[ENV WARNING] process_sba_data not available. Error: {e}")
 
+try:
+    from data.catalog._data_main.process_data.process_uci_credit_data import (
+        load_uci_credit_data,
+    )
+except Exception as e:
+    print(f"[ENV WARNING] process_uci_credit_data not available. Error: {e}")
+
 
 VALID_ATTRIBUTE_DATA_TYPES = {
     "numeric-int",
@@ -1383,6 +1390,7 @@ def loadDataset(
             lower_bound=data_frame_non_hot[output_col].min(),
             upper_bound=data_frame_non_hot[output_col].max(),
         )
+
     elif dataset_name == "sba" or dataset_name == "sba_modified":
         modified = False
         if dataset_name == "sba_modified":
@@ -1424,6 +1432,65 @@ def loadDataset(
             lower_bound=data_frame_non_hot[output_col].min(),
             upper_bound=data_frame_non_hot[output_col].max(),
         )
+
+    elif dataset_name == "uci_credit":
+        data_frame_non_hot = load_uci_credit_data()
+        data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
+        attributes_non_hot = {}
+
+        input_cols, output_col = getInputOutputColumns(data_frame_non_hot)
+
+        attributes_non_hot[output_col] = DatasetAttribute(
+            attr_name_long=output_col,
+            attr_name_kurz="y",
+            attr_type="binary",
+            node_type="output",
+            actionability="none",
+            mutability=False,
+            parent_name_long=-1,
+            parent_name_kurz=-1,
+            lower_bound=data_frame_non_hot[output_col].min(),
+            upper_bound=data_frame_non_hot[output_col].max(),
+        )
+
+        for col_idx, col_name in enumerate(input_cols):
+            if col_name == "Sex":
+                attr_type = "binary"
+                actionability = "none"
+                mutability = False
+            elif col_name == "EducationLevel":
+                attr_type = "ordinal"
+                actionability = "same-or-increase"
+                mutability = True
+            elif col_name == "MaritalStatus":
+                attr_type = "categorical"
+                actionability = "none"
+                mutability = False
+            elif col_name == "Age":
+                attr_type = "numeric-int"
+                actionability = "same-or-increase"
+                mutability = True
+            elif "RepayStatus" in col_name:
+                attr_type = "numeric-int"
+                actionability = "any"
+                mutability = True
+            else:
+                attr_type = "numeric-real"
+                actionability = "any"
+                mutability = True
+
+            attributes_non_hot[col_name] = DatasetAttribute(
+                attr_name_long=col_name,
+                attr_name_kurz=f"x{col_idx}",
+                attr_type=attr_type,
+                node_type="input",
+                actionability=actionability,
+                mutability=mutability,
+                parent_name_long=-1,
+                parent_name_kurz=-1,
+                lower_bound=data_frame_non_hot[col_name].min(),
+                upper_bound=data_frame_non_hot[col_name].max(),
+            )
 
     else:
         raise Exception(f"{dataset_name} not recognized as a valid dataset.")
