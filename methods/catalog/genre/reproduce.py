@@ -9,10 +9,10 @@ Usage:
 import argparse
 import os
 import pickle
-
 import pandas as pd
 import torch
 from sklearn.neighbors import LocalOutlierFactor
+import pytest
 
 try:
     from huggingface_hub import hf_hub_download
@@ -262,7 +262,12 @@ def reproduce_results():
         except AssertionError:
             print(f"FAIL Score = {score:.4f} outside expected range {EXPECTED_SCORE}")
 
-
+@pytest.mark.parametrize(
+    "dataset_name, model_type, backend",
+    [
+        ("genre_adult", "mlp", "pytorch"),
+    ],
+)
 def test_compatibility(dataset_name, model_type, backend):
     """Test GenRe compatibility with repo's DataCatalog and ModelCatalog"""
     dataset = DataCatalog(dataset_name, model_type=model_type, train_split=0.8)
