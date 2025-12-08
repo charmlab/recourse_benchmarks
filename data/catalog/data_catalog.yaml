@@ -423,8 +423,8 @@ genre_adult:
       - x11
       - x12
     immutable:
-      - x9   # race
-      - x10  # sex
+      - x9
+      - x10
   one-hot:
     target: y
     continuous:
