@@ -2527,6 +2527,7 @@ sba:
           - x11_cat_1
           - x11_cat_2
           - x11_cat_3
+
 uci_credit:
   mlp:
     tensorflow:
@@ -2600,9 +2601,6 @@ uci_credit:
           - x10
           - x11
           - x12
-        one-hot:
-          - x0
-          - x1
           - x13
           - x14
           - x15
@@ -2658,7 +2656,6 @@ uci_credit:
           - x10
           - x11
           - x12
-  linear:
           - x13
           - x14
           - x15
@@ -2770,9 +2767,6 @@ uci_credit:
           - x10
           - x11
           - x12
-        one-hot:
-          - x0
-          - x1
           - x13
           - x14
           - x15
@@ -2884,9 +2878,6 @@ uci_credit:
           - x10
           - x11
           - x12
-        one-hot:
-          - x0
-          - x1
           - x13
           - x14
           - x15
@@ -2981,6 +2972,7 @@ uci_credit:
           - x3_cat_0
           - x3_cat_1
           - x3_cat_2
+          
 genre_adult:
   mlp:
     pytorch:
