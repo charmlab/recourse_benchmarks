@@ -35,12 +35,13 @@ seed(
 )  # set the random seed so that the random permutations can be reproduced again
 np.random.seed(RANDOM_SEED)
 
-try:
-    import treeUtils
-except Exception as e:
-    print(f"[ENV WARNING] treeUtils not available. Error: {e}")
-
 SIMPLIFY_TREES = False
+
+if SIMPLIFY_TREES:
+    try:
+        import treeUtils
+    except Exception as e:
+        print(f"[ENV WARNING] treeUtils not available. Error: {e}")
 
 
 @utils.Memoize
@@ -107,6 +108,7 @@ def loadModelForDataset(
             "sba",
             "sba_modified",
             "genre_adult",
+            "uci_credit",
         }
     ):
         raise Exception(f"{dataset_string} not supported.")

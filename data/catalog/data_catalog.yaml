@@ -405,6 +405,7 @@ sba:
       - x11_cat_3
     immutable:
 genre_adult:
+uci_credit:
   default:
     target: y
     continuous:
@@ -415,6 +416,8 @@ genre_adult:
       - x4
       - x5
     categorical:
+      - x4
+      - x5
       - x6
       - x7
       - x8
@@ -425,6 +428,23 @@ genre_adult:
     immutable:
       - x9   # race
       - x10  # sex
+      - x13
+      - x14
+      - x15
+      - x16
+      - x17
+      - x18
+      - x19
+      - x20
+      - x21
+      - x22
+    categorical:
+      - x1
+      - x2
+      - x3
+    immutable:
+      - x1
+      - x4
   one-hot:
     target: y
     continuous:
@@ -435,6 +455,8 @@ genre_adult:
       - x4
       - x5
     categorical:
+      - x4
+      - x5
       - x6
       - x7
       - x8
@@ -445,3 +467,25 @@ genre_adult:
     immutable:
       - x9
       - x10
+      - x13
+      - x14
+      - x15
+      - x16
+      - x17
+      - x18
+      - x19
+      - x20
+      - x21
+      - x22
+    categorical:
+      - x1
+      - x2_ord_0
+      - x2_ord_1
+      - x2_ord_2
+      - x2_ord_3
+      - x3_cat_0
+      - x3_cat_1
+      - x3_cat_2
+    immutable:
+      - x1
+      - x4
