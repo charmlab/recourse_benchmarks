@@ -12,6 +12,7 @@ from .dice import Dice
 from .face import Face
 from .feature_tweak import FeatureTweak
 from .focus import FOCUS
+from .genre import GenRe
 from .gravitational import Gravitational
 from .greedy import Greedy
 from .growing_spheres import GrowingSpheres

@@ -107,6 +107,7 @@ def loadModelForDataset(
             "boston_housing",
             "sba",
             "sba_modified",
+            "genre_adult",
             "uci_credit",
         }
     ):

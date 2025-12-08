@@ -79,6 +79,11 @@ except Exception as e:
     print(f"[ENV WARNING] process_sba_data not available. Error: {e}")
 
 try:
+    from data.catalog._data_main.process_data.process_genre_adult_data import (
+        load_genre_adult_data,
+    )
+except Exception as e:
+    print(f"[ENV WARNING] process_genre_data not available. Error: {e}")
     from data.catalog._data_main.process_data.process_uci_credit_data import (
         load_uci_credit_data,
     )
@@ -1433,6 +1438,32 @@ def loadDataset(
             upper_bound=data_frame_non_hot[output_col].max(),
         )
 
+    elif dataset_name == "genre_adult":
+        genre_adult_data = load_genre_adult_data()
+        data_frame_non_hot = genre_adult_data.df
+        data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
+
+        # Get categorical and immutable info from the dataframe attributes
+        cat_cols = genre_adult_data.categorical_features
+        immutable_cols = genre_adult_data.immutable_features
+        target = genre_adult_data.target_column
+
+        attributes_non_hot = {}
+
+        # All columns except target
+        input_cols = [col for col in data_frame_non_hot.columns if col != target]
+
+        # Define input features
+        for col_idx, col_name in enumerate(input_cols):
+            # Determine type based on whether it's categorical
+            if col_name in cat_cols:
+                attr_type = "numeric-int"  # categorical encoded as int
+            else:
+                attr_type = "numeric-real"  # continuous
+
+            # Determine mutability
+            mutability = col_name not in immutable_cols
+            actionability = "none" if col_name in immutable_cols else "any"
     elif dataset_name == "uci_credit":
         data_frame_non_hot = load_uci_credit_data()
         data_frame_non_hot = data_frame_non_hot.reset_index(drop=True)
@@ -1491,6 +1522,20 @@ def loadDataset(
                 lower_bound=data_frame_non_hot[col_name].min(),
                 upper_bound=data_frame_non_hot[col_name].max(),
             )
+
+        # Define output
+        attributes_non_hot[target] = DatasetAttribute(
+            attr_name_long=target,
+            attr_name_kurz="y",
+            attr_type="binary",
+            node_type="output",
+            actionability="none",
+            mutability=False,
+            parent_name_long=-1,
+            parent_name_kurz=-1,
+            lower_bound=data_frame_non_hot[target].min(),
+            upper_bound=data_frame_non_hot[target].max(),
+        )
 
     else:
         raise Exception(f"{dataset_name} not recognized as a valid dataset.")
