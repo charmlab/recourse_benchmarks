@@ -11,6 +11,7 @@ from .catalog import (
     MACE,
     RBR,
     ActionableRecourse,
+    Care,
     CausalRecourse,
     ClaPROAR,
     Clue,
