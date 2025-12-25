@@ -1,0 +1,184 @@
+# # [8,4] for unicirc
+# TODO: unicircv2, corr,
+
+define: &lP 1
+common:
+  TRAIN_TEST_LABEL_SRC: True
+  MIN_MAX: True
+  SAMPLE_SIZE: 200 # sample size for recourse instances
+  P:
+    *lP
+    # lP norm used as cost
+
+# ann parameters
+ann:
+  # small datasets are all 2d datasets
+  small_defaults: &small_defaults
+    HIDDEN_LAYER_SIZE: [4, 4]
+    BATCH_SIZE: 64
+    CALIBRATED: False
+    LEARNING_RATE: 0.05
+    N_EPOCHS: 400
+
+  big_defaults: &big_defaults
+    HIDDEN_LAYER_SIZE: [10, 10, 10]
+    BATCH_SIZE: 64
+    CALIBRATED: True
+    LEARNING_RATE: 0.001
+    N_EPOCHS: 100
+
+  moons:
+    <<: *small_defaults
+  circles:
+    <<: *small_defaults
+    HIDDEN_LAYER_SIZE: [8, 4]
+  corr:
+    <<: *small_defaults
+  heloc:
+    <<: *big_defaults
+    CALIBRATED: False
+  gmsc:
+    <<: *big_defaults
+    BATCH_SIZE: 512
+  adult-all:
+    <<: *big_defaults
+  compas-all:
+    <<: *big_defaults
+  bank:
+    <<: *big_defaults
+
+pm:
+  sweep: # parameters which needs to be sweeped through
+    TOP_K: [50, 1000]
+    train_lambda: [0.5, 2.0, 10.0]
+    sample_sigma: [0.0, 0.01, 0.05, 0.1]
+    sample_bestk: [10, 20, 50]
+
+  # small datasets are all 2d datasets
+  small_defaults_pm: &small_defaults_pm
+    NUM_LABELS: 1 # binary targets
+    NUM_ENCODER_LAYERS: 2
+    NUM_DECODER_LAYERS: 2
+    NHEAD: 2
+    EMB_SIZE: 4
+    DIMFF: 8
+    BATCH_SIZE: 256
+    N_EPOCHS: 500
+    LEARNING_RATE: 0.003
+
+  big_defaults_pm: &big_defaults_pm
+    NUM_LABELS: 1 # binary targets
+    NUM_ENCODER_LAYERS: 3
+    NUM_DECODER_LAYERS: 3
+    NHEAD: 4
+    EMB_SIZE: 8
+    DIMFF: 16
+    BATCH_SIZE: 2048
+    N_EPOCHS: 500
+    LEARNING_RATE: 0.003
+
+  moons:
+    <<: *small_defaults_pm
+  circles:
+    <<: *small_defaults_pm
+  corr:
+    <<: *small_defaults_pm
+  heloc:
+    <<: *big_defaults_pm
+  gmsc:
+    <<: *big_defaults_pm
+  adult-all:
+    <<: *big_defaults_pm
+    N_EPOCHS: 500
+  compas-all:
+    <<: *big_defaults_pm
+  bank:
+    <<: *big_defaults_pm
+
+# LABEL_SRC:
+#   unicircv2: "gold"
+#   gc6: "gold"
+#   corr: "gold"
+#   heloc: "rf"
+#   gmsc: "rf"
+#   adult: "rf"
+#   compas: "rf"
+
+# from https://github.com/charmlab/recourse_benchmarks/blob/main/experimental_setup.yaml#L7
+
+cchvae:
+  hyperparams:
+    n_search_samples: 100
+    p_norm: *lP
+    step: 0.1
+    max_iter: 1000
+    binary_cat_features: True
+    vae_params:
+      layers: [512, 256, 8]
+      train: True
+      lambda_reg: 0.000001
+      epochs: 100 # # CHANGED: from 5
+      lr: 0.001
+      batch_size: 32
+
+cruds:
+  hyperparams:
+    lambda_param: 0.001
+    optimizer: "RMSprop"
+    lr: 0.008
+    max_iter: 2000
+    vae_params:
+      layers: [512, 256, 8] # CHANGED: from [16,8]
+      train: True
+      epochs: 100 # CHANGED: from 5
+      lr: 0.001
+      batch_size: 32
+
+revise:
+  hyperparams:
+    lambda: 0.5
+    optimizer: "adam"
+    lr: 0.1
+    max_iter: 1500
+    target_class: [0, 1]
+    binary_cat_features: True
+    vae_params:
+      layers: [512, 256, 8]
+      activFun:
+      train: True
+      lambda_reg: 0.000001
+      epochs: 100 # CHANGED: from 5
+      lr: 0.001
+      batch_size: 32
+
+# does lambda tuning by itself
+wachter:
+  hyperparams:
+    loss_type: "BCE"
+    binary_cat_features: True
+
+dice:
+  hyperparams:
+    loss_type: "BCE"
+    binary_cat_features: True
+
+# invalidation target low(keeps away from boundary) ----> lambda low
+probe:
+  hyperparams:
+    loss_type: "BCE"
+    binary_cat_features: False
+    invalidation_target: 0.05
+    inval_target_eps: 0.010
+    noise_variance: 0.01
+    n_iter: 200
+    t_max_min: 0.50
+    clamp: True
+
+# no lambda
+gs:
+  hyperparams:
+
+# how bad the model shift is
+roar:
+  hyperparams:
+    delta: 0.01
