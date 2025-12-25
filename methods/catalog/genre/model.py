@@ -14,13 +14,13 @@ from typing import Dict
 import pandas as pd
 import torch
 import torch.nn as nn
-from library.models import binnedpm
-
-# Import after adding to path
-from library.recourse.genre import GenRe as GenReOriginal
 
 # Repo imports
 from methods.api import RecourseMethod
+from methods.catalog.genre.library.models import binnedpm
+
+# Import after adding to path
+from methods.catalog.genre.library.recourse.genre import GenRe as GenReOriginal
 from methods.processing.counterfactuals import merge_default_parameters
 from models.catalog.catalog import ModelCatalog
 

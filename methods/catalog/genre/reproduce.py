@@ -9,18 +9,16 @@ Usage:
 import argparse
 import os
 import pickle
+
 import pandas as pd
+import pytest
 import torch
 from sklearn.neighbors import LocalOutlierFactor
-import pytest
 
 try:
     from huggingface_hub import hf_hub_download
 except ImportError:
     raise ImportError("Install huggingface-hub: pip install huggingface-hub")
-
-from library.data import utils as dutils
-from library.models.classifiers.ann import BinaryClassifier
 
 # Import repo catalogs
 from data.catalog import DataCatalog
@@ -28,6 +26,8 @@ from data.catalog import DataCatalog
 # Import utils and GenRe wrapper
 from methods.catalog.genre import GenRe
 from methods.catalog.genre import utils as genre_utils
+from methods.catalog.genre.library.data import utils as dutils
+from methods.catalog.genre.library.models.classifiers.ann import BinaryClassifier
 from models.catalog import ModelCatalog
 
 RANDOM_SEED = 54321
@@ -261,6 +261,7 @@ def reproduce_results():
             print(f"PASS Score = {score:.4f} is within expected range {EXPECTED_SCORE}")
         except AssertionError:
             print(f"FAIL Score = {score:.4f} outside expected range {EXPECTED_SCORE}")
+
 
 @pytest.mark.parametrize(
     "dataset_name, model_type, backend",
